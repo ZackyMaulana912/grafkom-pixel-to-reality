@@ -1,6 +1,8 @@
 # Module 1 -- Digital Representation, Colour & Memory
 # POSIX make. On Windows use Git Bash / WSL, or run the `python ...` lines by hand.
-PY ?= python
+# Use this module's own virtualenv so library versions match requirements.txt.
+# Create it once: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+PY ?= .venv/bin/python
 
 .PHONY: all data test report figures clean
 
