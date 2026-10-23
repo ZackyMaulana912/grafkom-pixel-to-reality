@@ -3,7 +3,7 @@
 # reference call each primitive is matched against and (b) the JPG/PNG/WebP
 # encoder for the size measurement in format_compare.py.
 #
-# Pin lower bounds (libraries), per MASTER plan section 9.5.
+# Exact versions, so a fresh clone gets the same results (tested on macOS 27.0.1, Python 3.11.8).
 
-numpy>=1.24
-pillow>=10.0        # optional at import time; only format_compare.py / luma.py cross-check need it
+numpy==2.4.6
+pillow==13.0.0      # optional at import time; only format_compare.py / luma.py cross-check need it
