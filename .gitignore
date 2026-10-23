@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+Module*/*.pdf
+Module1/Source/data/
+
+# sementara fokus Modul 1, modul lain belum dikerjakan
+/Module2/
+/Module3/
+/Module4/
+/Module5/
