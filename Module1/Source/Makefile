@@ -25,9 +25,9 @@ report: data
 	$(PY) report.py
 	@echo "open report/report.html"
 
-## optional slide figures (not needed to compile the module)
+## Studi Pendahuluan diagrams (own venv, needs matplotlib; not needed to compile the module)
 figures:
-	$(PY) ../../figures/make_figures_m1.py
+	figures/.venv/bin/python figures/make_figures.py
 
 clean:
 	rm -rf data report _tmp_selftest.* __pycache__
