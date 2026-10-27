@@ -16,11 +16,13 @@ is the documented fallback.
 ## Quick start
 
 ```bash
-cd code/Module1
-python -m pip install -r requirements.txt
-make data      # or: python make_data.py --out data
-make test      # or: python tests.py           -> "ALL CHECKS PASSED"
-make report    # or: run the python lines in the Makefile
+cd Module1/Source            # in this repo the module's code/Module1 lives here
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+make data      # synthetic set + my photos + the two Lab 3 crops -> data/
+make test      # -> "ALL CHECKS PASSED"
+make report    # -> report/budget.md + report/report.html
+make png       # -> ../docs/img/*.png for Module1/README.md
 # then open report/report.html
 ```
 
@@ -84,7 +86,34 @@ the `Makefile` directly.
 - `Module1_EN.tex` Case Study transcripts (Steps 2/3/5, the evidence caption,
   Expected State) updated to the values this run prints.
 
-## Verified
+## Added in this repo
+
+| File | Job |
+|---|---|
+| `prepare_photos.py` | full-resolution iPhone photos (Display P3) -> `photos/small/`: P3 -> sRGB, 5x box downscale in linear light, GPS and all metadata stripped |
+| `import_photos.py` | `photos/small/` -> `data/*.ppm`, the two Lab 3 crops, and photo rows in `data/manifest.csv` (original camera W, H, bytes) |
+| `dither.py` | 8-bit / 5-bit gradient, band widths, ordered (Bayer 4x4) dithering |
+| `gamma_diagnosis.py` | the washed-out thumbnail diagnosed from pixel values only (written before the fix) |
+| `gamma_fix_check.py` | checks the four predictions of the diagnosis against the one-line fix |
+| `aliasing_demo.py` | 0.1..0.9 cycles/px sweep, predicted vs measured alias, with and without box pre-filter |
+| `downscale_compare.py` | linear-correct vs naive vs Pillow `Image.BOX`, PSNR/SSIM |
+| `export_png.py` | report images -> PNG for the GitHub README |
+| `prelim_check.py` | recomputes every number in the Studi Pendahuluan |
+| `figures/` | diagrams (own venv with matplotlib, not needed for make data/test/report) |
+
+## Verified (this repo)
+
+| Item | Status | Date | Toolchain |
+|---|---|---|---|
+| Clean copy, fresh `.venv`, `pip install -r requirements.txt` | numpy 2.4.6, pillow 13.0.0 installed exactly | 2026-10-27 | macOS 27.0.1 (arm64), Python 3.11.8, GNU Make 3.81 |
+| `make data` | 21 synthetic images + 24 photos + 2 crops, `manifest.csv` 47 rows | 2026-10-27 | same |
+| `make test` | **ALL CHECKS PASSED** (16/16) | 2026-10-27 | same |
+| `make report` | `budget.md` + `report.html` (7 sections, 18 inline images, no external file) | 2026-10-27 | same, Pillow has WebP + AVIF |
+| Reproducible | every `report/` file, `data/manifest.csv` and all 47 `data/` images byte-identical to the working copy | 2026-10-27 | same |
+
+Not yet verified: a clone pulled from GitHub (needs the commits pushed first), and Windows or Linux.
+
+## Verified (starter, kept for reference)
 
 | Item | Status | Date | Toolchain |
 |---|---|---|---|
