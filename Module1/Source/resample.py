@@ -30,42 +30,57 @@ def resample_nearest(img: np.ndarray, factor: int) -> np.ndarray:
     """Integer downscale by `factor` -- keep the top-left sample of each block.
     This is DECIMATION: it throws (factor^2 - 1) of every factor^2 samples
     away and is what aliases."""
-    return img[::factor, ::factor].copy()
+    if int(factor) != factor or factor < 1:
+        raise ValueError(f"factor must be a positive integer, got {factor}")
+    rows = np.arange(0, img.shape[0], factor)
+    cols = np.arange(0, img.shape[1], factor)
+    return img[rows][:, cols]
 
 
-# ---- 1-D bilinear (the hand-checkable core) ---------------------------
+# ---- 1-D linear interpolation (the hand-checkable core) -------------------
+def _neighbours(positions: np.ndarray, n: int):
+    """Left/right sample index and the weight t of the right one, clamped at the edges."""
+    left = np.floor(positions)
+    t = positions - left
+    left = left.astype(int)
+    return np.clip(left, 0, n - 1), np.clip(left + 1, 0, n - 1), t
+
+
 def lerp_1d(samples: np.ndarray, positions: np.ndarray) -> np.ndarray:
-    """Linear interpolation of a 1-D signal at fractional positions."""
-    samples = np.asarray(samples, dtype=np.float64)
-    positions = np.asarray(positions, dtype=np.float64)
-    i0 = np.floor(positions).astype(int)
-    i1 = np.clip(i0 + 1, 0, len(samples) - 1)
-    i0 = np.clip(i0, 0, len(samples) - 1)
-    t = positions - np.floor(positions)
-    return (1 - t) * samples[i0] + t * samples[i1]
+    """Linear interpolation of a 1-D signal at fractional positions:
+    value = left + t * (right - left)."""
+    s = np.asarray(samples, dtype=np.float64)
+    i0, i1, t = _neighbours(np.asarray(positions, dtype=np.float64), len(s))
+    return s[i0] + t * (s[i1] - s[i0])
+
+
+def _lerp_axis(f: np.ndarray, positions: np.ndarray, axis: int) -> np.ndarray:
+    """lerp_1d applied to every line of `f` along one axis at once."""
+    i0, i1, t = _neighbours(positions, f.shape[axis])
+    shape = [1] * f.ndim
+    shape[axis] = len(t)
+    t = t.reshape(shape)
+    a, b = np.take(f, i0, axis=axis), np.take(f, i1, axis=axis)
+    return a + t * (b - a)
 
 
 # ---- 2-D bilinear resize --------------------------------------------
 def resample_bilinear(img: np.ndarray, scale: float) -> np.ndarray:
     """Resize by an arbitrary positive `scale` using bilinear interpolation.
-    Uses the pixel-centre convention: pixel (r,c) sits at (c+0.5, r+0.5)."""
+    Uses the pixel-centre convention: pixel (r,c) sits at (c+0.5, r+0.5).
+
+    Bilinear is separable: interpolate along the rows first, then along the
+    columns of that result. Same answer as the four-corner formula."""
+    if scale <= 0:
+        raise ValueError(f"scale must be positive, got {scale}")
     f = img.astype(np.float64)
     h, w = f.shape[:2]
     H, W = max(1, round(h * scale)), max(1, round(w * scale))
-    ys = (np.arange(H) + 0.5) / scale - 0.5
+    # where each output pixel centre lands in input pixel coordinates
     xs = (np.arange(W) + 0.5) / scale - 0.5
-    y0 = np.clip(np.floor(ys).astype(int), 0, h - 1)
-    x0 = np.clip(np.floor(xs).astype(int), 0, w - 1)
-    y1 = np.clip(y0 + 1, 0, h - 1)
-    x1 = np.clip(x0 + 1, 0, w - 1)
-    ty = (ys - np.floor(ys))[:, None]
-    tx = (xs - np.floor(xs))[None, :]
-    if f.ndim == 3:
-        ty = ty[..., None]
-        tx = tx[..., None]
-    top = (1 - tx) * f[np.ix_(y0, x0)] + tx * f[np.ix_(y0, x1)]
-    bot = (1 - tx) * f[np.ix_(y1, x0)] + tx * f[np.ix_(y1, x1)]
-    return np.round((1 - ty) * top + ty * bot).clip(0, 255).astype(np.uint8)
+    ys = (np.arange(H) + 0.5) / scale - 0.5
+    out = _lerp_axis(_lerp_axis(f, xs, axis=1), ys, axis=0)
+    return np.round(out).clip(0, 255).astype(np.uint8)
 
 
 # ---- box downscale: the gamma switch --------------------------------
