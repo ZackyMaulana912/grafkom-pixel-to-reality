@@ -1,8 +1,15 @@
 """Module 1 -- box blur from scratch (NumPy only).
 
 Job: average each pixel with its neighbours. Two variants:
-  box_blur_2x2_downscale : non-overlapping 2x2 average -> half size (E1)
-  box_blur_3x3           : overlapping 3x3 average, same size (edge-replicated)
+  box_blur_2x2 : non-overlapping 2x2 average -> half size (E1)
+  box_blur_3x3 : overlapping 3x3 average, same size (edge-replicated)
+
+How:
+  2x2 -- the four samples of every block are four strided views of the image
+         (top-left, top-right, bottom-left, bottom-right); add them, divide by 4.
+  3x3 -- a summed-area table S, where S[y, x] is the sum of everything above
+         and left of (y, x). Any window sum is then 4 lookups:
+         S[bottom, right] - S[top, right] - S[bottom, left] + S[top, left].
 
 Reproduces: Example E1 -- on the running patch, the 2x2 result is
   [[  6, 22, 38, 54],
@@ -18,35 +25,37 @@ Run:  python boxblur.py --selftest
 from __future__ import annotations
 
 import sys
+
 import numpy as np
 
-from ppm_io import read_ppm
 
-
-def box_blur_2x2_downscale(img: np.ndarray) -> np.ndarray:
-    """Non-overlapping 2x2 mean. H and W must be even. Promotes to float so
-    uint8 addition cannot wrap (a real pitfall)."""
-    f = img.astype(np.float64)
+def box_blur_2x2(img: np.ndarray) -> np.ndarray:
+    """Non-overlapping 2x2 mean, half the size. H and W must be even."""
+    f = img.astype(np.float64)          # uint8 + uint8 would wrap above 255
     h, w = f.shape[:2]
     if h % 2 or w % 2:
         raise ValueError(f"need even dimensions, got {h}x{w}")
-    if f.ndim == 2:
-        f = f.reshape(h // 2, 2, w // 2, 2).mean(axis=(1, 3))
-    else:
-        f = f.reshape(h // 2, 2, w // 2, 2, f.shape[2]).mean(axis=(1, 3))
-    return np.round(f).astype(np.uint8)
+    total = f[0::2, 0::2] + f[0::2, 1::2] + f[1::2, 0::2] + f[1::2, 1::2]
+    return np.round(total / 4.0).astype(np.uint8)
+
+
+box_blur_2x2_downscale = box_blur_2x2   # name used by the starter
+
+
+def summed_area_table(f: np.ndarray) -> np.ndarray:
+    """S with one extra zero row and column on top/left, so S[y, x] = f[:y, :x].sum()."""
+    pad = ((1, 0), (1, 0)) + (((0, 0),) if f.ndim == 3 else ())
+    return np.pad(f, pad).cumsum(axis=0).cumsum(axis=1)
 
 
 def box_blur_3x3(img: np.ndarray) -> np.ndarray:
     """Overlapping 3x3 mean, same output size, edges replicated."""
     f = img.astype(np.float64)
+    h, w = f.shape[:2]
     pad = ((1, 1), (1, 1)) + (((0, 0),) if f.ndim == 3 else ())
-    g = np.pad(f, pad, mode="edge")
-    acc = np.zeros_like(f)
-    for dy in (0, 1, 2):
-        for dx in (0, 1, 2):
-            acc += g[dy:dy + f.shape[0], dx:dx + f.shape[1]]
-    return np.round(acc / 9.0).astype(np.uint8)
+    s = summed_area_table(np.pad(f, pad, mode="edge"))
+    window = s[3:3 + h, 3:3 + w] - s[0:h, 3:3 + w] - s[3:3 + h, 0:w] + s[0:h, 0:w]
+    return np.round(window / 9.0).astype(np.uint8)
 
 
 def _selftest() -> None:
@@ -58,13 +67,21 @@ def _selftest() -> None:
                          [22, 38, 54, 70],
                          [38, 54, 70, 86],
                          [54, 70, 86, 102]], dtype=np.uint8)
-    got = box_blur_2x2_downscale(P)
+    got = box_blur_2x2(P)
     assert np.array_equal(got, expected), f"2x2 blur\n{got}\n!=\n{expected}"
+
+    # 3x3 against the neighbour mean written out by hand on the same patch
+    inner = (0 + 4 + 16 + 8 + 12 + 24 + 16 + 20 + 32) / 9            # P[1,1]: rows 0-2, cols 0-2
+    corner = (0 + 0 + 4 + 0 + 0 + 4 + 8 + 8 + 12) / 9                # P[0,0] with edge replication
+    b3 = box_blur_3x3(P)
+    assert b3[1, 1] == round(inner) == 15, f"3x3 at (1,1): {b3[1, 1]} vs {inner:.2f}"
+    assert b3[0, 0] == round(corner) == 4, f"3x3 at (0,0): {b3[0, 0]} vs {corner:.2f}"
 
     # 3x3 blur of a constant image is that constant
     c = np.full((6, 6), 77, dtype=np.uint8)
     assert np.array_equal(box_blur_3x3(c), c), "3x3 blur changed a constant"
     print("boxblur self-test OK  (mean=54; 2x2 result matches Example E1; "
+          f"3x3 = hand mean at (1,1) {inner:.2f} -> 15 and corner {corner:.2f} -> 4; "
           "3x3 preserves a constant)")
 
 
