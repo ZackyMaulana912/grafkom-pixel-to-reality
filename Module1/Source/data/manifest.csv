@@ -1,0 +1,46 @@
+filename,width,height,channels,on_disk_bytes,format,note
+patch8.pgm,8,8,1,75,PGM (sintetis),Example E1 running patch; mean 54 by hand
+gradient.ppm,512,64,3,98318,PPM (sintetis),8-bit black->white ramp; 2 px bands (E2a)
+gradient5.pgm,512,64,1,32782,PGM (sintetis),5-bit ramp; 16 px bands (E2b)
+checker.pgm,256,256,1,65551,PGM (sintetis),2x2 b/w checker; gamma-blend downscale demo
+silhouette.pgm,256,256,1,65551,PGM (sintetis),stepped-temple silhouette; pure geometry
+silhouette_flip.pgm,256,256,1,65551,PGM (sintetis),"silhouette, horizontal flip"
+relief.ppm,256,256,3,196623,PPM (sintetis),procedural sandstone relief; high-frequency ridges
+relief_rot90.ppm,256,256,3,196623,PPM (sintetis),relief rotated 90 deg
+crop_smooth.ppm,118,118,3,41787,PPM (sintetis),smooth sub-region for format_compare
+crop_hifreq.ppm,128,128,3,49167,PPM (sintetis),busy relief crop for format_compare
+thumb_buggy.ppm,128,128,3,49167,PPM (sintetis),relief 2x downscaled IN sRGB SPACE (bug artifact)
+photo_00.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 0 of one subject
+photo_01.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 1 of one subject
+photo_02.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 2 of one subject
+photo_03.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 3 of one subject
+photo_04.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 4 of one subject
+photo_05.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 5 of one subject
+photo_06.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 6 of one subject
+photo_07.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 7 of one subject
+photo_08.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 8 of one subject
+photo_09.ppm,256,256,3,196623,PPM (sintetis),stand-in angle shot 9 of one subject
+IMG_8878.jpg,4536,8064,3,6546535,"JPEG, Apple iPhone 17 Pro, ISO 250, 1/33 s, f/1.78","samping, kepala menghadap kiri foto, agak dari depan; latar dinding polos (versi kerja 907x1612: IMG_8878.ppm)"
+IMG_8879.jpg,4536,8064,3,6117940,"JPEG, Apple iPhone 17 Pro, ISO 250, 1/33 s, f/1.78","samping, kepala menghadap kiri foto, sedikit bergeser dari foto sebelumnya; latar dinding polos (versi kerja 907x1612: IMG_8879.ppm)"
+IMG_8882.jpg,4536,8064,3,6431731,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","samping penuh, kepala menghadap kiri foto, alas terlihat utuh; latar dinding polos (versi kerja 907x1612: IMG_8882.ppm)"
+IMG_8883.jpg,4536,8064,3,6224332,"JPEG, Apple iPhone 17 Pro, ISO 250, 1/33 s, f/1.78","samping, kepala menghadap kiri foto, mulai bergeser ke belakang; latar dinding polos (versi kerja 907x1612: IMG_8883.ppm)"
+IMG_8884.jpg,4536,8064,3,5971188,"JPEG, Apple iPhone 17 Pro, ISO 250, 1/33 s, f/1.78","samping agak dari belakang, kepala menghadap kiri foto; latar dinding polos (versi kerja 907x1612: IMG_8884.ppm)"
+IMG_8886.jpg,4536,8064,3,6452133,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","serong belakang, ekor dan punggung terlihat; latar dinding polos (versi kerja 907x1612: IMG_8886.ppm)"
+IMG_8887.jpg,4536,8064,3,6274049,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","serong belakang, ekor di depan; latar dinding dan ruangan (versi kerja 907x1612: IMG_8887.ppm)"
+IMG_8889.jpg,4536,8064,3,6855280,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","belakang, ekor di tengah foto; latar rak dan barang yang ramai (versi kerja 907x1612: IMG_8889.ppm)"
+IMG_8890.jpg,4536,8064,3,6635265,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78",belakang sedikit serong; latar rak dan barang yang ramai (versi kerja 907x1612: IMG_8890.ppm)
+IMG_8892.jpg,4536,8064,3,6490889,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","serong belakang dari sisi lain, kepala menghadap kanan foto; latar lemari dan gantungan baju (versi kerja 907x1612: IMG_8892.ppm)"
+IMG_8893.jpg,4536,8064,3,6592387,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","samping, kepala menghadap kanan foto, surai terlihat jelas; latar lemari dan gantungan baju (versi kerja 907x1612: IMG_8893.ppm)"
+IMG_8894.jpg,4536,8064,3,6664403,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","samping, kepala menghadap kanan foto; latar lemari (versi kerja 907x1612: IMG_8894.ppm)"
+IMG_8895.jpg,4536,8064,3,7142807,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","samping, kepala menghadap kanan foto, alas terlihat; latar lemari dan rak (versi kerja 907x1612: IMG_8895.ppm)"
+IMG_8896.jpg,4536,8064,3,7276104,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","samping, kepala menghadap kanan foto; latar lemari (versi kerja 907x1612: IMG_8896.ppm)"
+IMG_8897.jpg,4536,8064,3,7350768,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","samping, kepala menghadap kanan foto, sedikit bergeser ke depan; latar lemari (versi kerja 907x1612: IMG_8897.ppm)"
+IMG_8899.jpg,4536,8064,3,6720199,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","serong depan, kepala menghadap kanan foto; latar lemari dan kardus (versi kerja 907x1612: IMG_8899.ppm)"
+IMG_8900.jpg,4536,8064,3,7214375,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","serong depan, kaki depan terangkat terlihat jelas; latar lemari dan kardus (versi kerja 907x1612: IMG_8900.ppm)"
+IMG_8901.jpg,4536,8064,3,7330265,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","serong depan, hampir sama dengan foto sebelumnya; latar lemari dan kardus (versi kerja 907x1612: IMG_8901.ppm)"
+IMG_8902.jpg,4536,8064,3,7243000,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","serong depan, sedikit lebih rendah; latar lemari dan kardus (versi kerja 907x1612: IMG_8902.ppm)"
+IMG_8903.jpg,4536,8064,3,7106875,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/33 s, f/1.78","depan serong, wajah mulai menghadap kamera; latar lemari dan kardus (versi kerja 907x1612: IMG_8903.ppm)"
+IMG_8904.jpg,4536,8064,3,7336810,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","depan serong, wajah menghadap kamera; latar lemari dan kardus (versi kerja 907x1612: IMG_8904.ppm)"
+IMG_8905.jpg,4536,8064,3,7111743,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","depan, wajah menghadap kamera; latar panel ukiran kayu (versi kerja 907x1612: IMG_8905.ppm)"
+IMG_8906.jpg,4536,8064,3,6910663,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/40 s, f/1.78","depan, wajah dan kaki depan menghadap kamera; latar panel ukiran kayu (versi kerja 907x1612: IMG_8906.ppm)"
+IMG_8907.jpg,4536,8064,3,7005050,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/40 s, f/1.78",hampir lurus dari depan; latar panel ukiran kayu (versi kerja 907x1612: IMG_8907.ppm)
