@@ -4,7 +4,7 @@
 # Create it once: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 PY ?= .venv/bin/python
 
-.PHONY: all data photos photos-small test report figures clean
+.PHONY: all data photos photos-small test report png figures clean
 
 all: data test report
 
@@ -29,11 +29,18 @@ test:
 report: data
 	$(PY) gamma_resize_bug.py --fix --out report/
 	$(PY) resample.py --image data/relief.ppm --factor 2 --methods naive-box,linear-box --out report/
-	$(PY) format_compare.py --image data/crop_hifreq.ppm --out report/
-	$(PY) format_compare.py --image data/crop_smooth.ppm --out report/
+	$(PY) format_compare.py --image data/crop_dinding.ppm --out report/
+	$(PY) format_compare.py --image data/crop_surai.ppm --out report/
+	$(PY) downscale_compare.py --out report/
 	$(PY) dither.py --out report/
+	$(PY) aliasing_demo.py --out report/
+	$(PY) cvd.py --legend --out report/
 	$(PY) report.py
 	@echo "open report/report.html"
+
+## report images -> ../docs/img/*.png for the README (GitHub cannot show .ppm)
+png:
+	$(PY) export_png.py --src report --out ../docs/img
 
 ## Studi Pendahuluan diagrams (own venv, needs matplotlib; not needed to compile the module)
 figures:
