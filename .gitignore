@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 Module*/*.pdf
 Module1/Source/data/
+Module1/Source/photos/original/
 
 # sementara fokus Modul 1, modul lain belum dikerjakan
 /Module2/
