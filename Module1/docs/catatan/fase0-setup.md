@@ -14,7 +14,7 @@ Saya juga sudah mengecek apakah Pillow di laptop ini bisa menyimpan gambar ke We
 
 Langkah pertama, saya menyimpan semua bahan awal dari dosen ke git tanpa mengubah isinya sedikit pun. Yang saya buang hanya file sampah yang dibuat otomatis oleh macOS dan sisa tes lama yang ukurannya cuma beberapa byte.
 
-Simpanan ini saya beri penanda bernama `m1-starter`. Gunanya, nanti saya bisa menunjukkan dengan jelas bagian mana yang benar-benar saya kerjakan sendiri, cukup dengan membandingkan isi repo sekarang dengan penanda itu. Ini penting karena penilaian memberi nilai nol kalau pekerjaan saya tidak bisa dibedakan dari bahan dosen.
+Commit bahan dosen ini (`28f8a8c`) jadi titik pembanding. Gunanya, nanti saya bisa menunjukkan dengan jelas bagian mana yang benar-benar saya kerjakan sendiri, cukup dengan membandingkan isi repo sekarang dengan commit itu lewat `git diff 28f8a8c`. Ini penting karena penilaian memberi nilai nol kalau pekerjaan saya tidak bisa dibedakan dari bahan dosen.
 
 ### Memilih file yang tidak ikut masuk repo
 
