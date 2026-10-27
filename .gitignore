@@ -3,7 +3,9 @@ __pycache__/
 *.pyc
 .venv/
 Module*/*.pdf
-Module1/Source/data/
+# data/ dibuat ulang oleh make data, kecuali manifest.csv yang diminta modul untuk di-commit
+Module1/Source/data/*
+!Module1/Source/data/manifest.csv
 Module1/Source/photos/original/
 
 # sementara fokus Modul 1, modul lain belum dikerjakan
