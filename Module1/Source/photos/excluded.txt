@@ -1,0 +1,7 @@
+# Foto yang tidak dipakai, beserta alasannya.
+# Ketajaman = variance of Laplacian di tengah foto, dibandingkan median semua foto,
+# lalu dicek langsung dengan potongan resolusi penuh.
+IMG_8881.jpg blur karena gerakan, ketajaman 25% dari median
+IMG_8885.jpg blur, ketajaman 28% dari median
+IMG_8888.jpg blur, ketajaman 33% dari median
+IMG_8891.jpg sedikit lembut, ketajaman 48% dari median; dibuang supaya tidak ada foto blur
