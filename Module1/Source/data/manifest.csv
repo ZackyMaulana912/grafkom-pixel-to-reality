@@ -44,3 +44,5 @@ IMG_8904.jpg,4536,8064,3,7336810,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/
 IMG_8905.jpg,4536,8064,3,7111743,"JPEG, Apple iPhone 17 Pro, ISO 400, 1/40 s, f/1.78","depan, wajah menghadap kamera; latar panel ukiran kayu (versi kerja 907x1612: IMG_8905.ppm)"
 IMG_8906.jpg,4536,8064,3,6910663,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/40 s, f/1.78","depan, wajah dan kaki depan menghadap kamera; latar panel ukiran kayu (versi kerja 907x1612: IMG_8906.ppm)"
 IMG_8907.jpg,4536,8064,3,7005050,"JPEG, Apple iPhone 17 Pro, ISO 320, 1/40 s, f/1.78",hampir lurus dari depan; latar panel ukiran kayu (versi kerja 907x1612: IMG_8907.ppm)
+crop_dinding.ppm,256,256,3,196623,PPM (potongan foto),"crop halus: dinding polos di belakang patung (Lab 3, I5); dari IMG_8884.jpg x=100 y=50"
+crop_surai.ppm,256,256,3,196623,PPM (potongan foto),"crop berfrekuensi tinggi: surai berukir dengan guratan pahat berulang (Lab 3, I6); dari IMG_8893.jpg x=300 y=400"

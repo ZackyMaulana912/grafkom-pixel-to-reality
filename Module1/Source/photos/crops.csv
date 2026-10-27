@@ -1,0 +1,3 @@
+name,source,x,y,width,height,keterangan
+crop_dinding.ppm,IMG_8884.jpg,100,50,256,256,"crop halus: dinding polos di belakang patung (Lab 3, I5)"
+crop_surai.ppm,IMG_8893.jpg,300,400,256,256,"crop berfrekuensi tinggi: surai berukir dengan guratan pahat berulang (Lab 3, I6)"

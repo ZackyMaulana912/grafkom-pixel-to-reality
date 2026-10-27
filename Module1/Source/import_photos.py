@@ -74,6 +74,19 @@ def main() -> None:
             "note": f"{notes[name]} (versi kerja {img.shape[1]}x{img.shape[0]}: {ppm})",
         })
 
+    crops_path = os.path.join(base, "crops.csv")
+    if os.path.exists(crops_path):
+        # the two Lab 3 crops are cut from the working copies, so a clean clone rebuilds them
+        for c in read_csv(crops_path):
+            src = os.path.join(args.src, c["source"])
+            x, y, w, h = (int(c[k]) for k in ("x", "y", "width", "height"))
+            img = np.asarray(Image.open(src).convert("RGB"))[y:y + h, x:x + w]
+            n = write_ppm(os.path.join(args.out, c["name"]), img)
+            rows = [r for r in rows if r["filename"] != c["name"]]
+            rows.append({"filename": c["name"], "width": w, "height": h, "channels": 3,
+                         "on_disk_bytes": n, "format": "PPM (potongan foto)",
+                         "note": f"{c['keterangan']}; dari {c['source']} x={x} y={y}"})
+
     with open(manifest_path, "w", newline="", encoding="utf-8") as f:
         wr = csv.DictWriter(f, fieldnames=FIELDS)
         wr.writeheader()
