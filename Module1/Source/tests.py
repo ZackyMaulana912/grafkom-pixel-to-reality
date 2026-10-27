@@ -13,6 +13,11 @@ Covers (MASTER plan section 11.2):
   - metrics: psnr(equal)=inf, ssim(equal)=1, 52-level shift -> known dB
   - cvd: red/green collapses under deuteranopia, blue/orange survives
   - Example E6/E7 budget numbers exact to the byte
+Added in Fase 3:
+  - dither: 8-bit bands 2 px, 5-bit bands 16 px, Bayer dither breaks the bands
+  - box_blur_3x3 equals the neighbour mean written out by hand on the E1 patch
+  - bilinear: scale 1 is the identity, edges clamp ([0,100] x2 -> [0,25,75,100])
+  - luma: every flat grey 0..255 matches Pillow convert("L") within 1 code
 """
 from __future__ import annotations
 
@@ -92,6 +97,37 @@ def t_make_data_patch():
     assert P[0, 0] == 0 and P[7, 7] == 108 and P[1, 1] == 12
 
 
+def t_dither():
+    import dither
+    dither._selftest()
+
+
+def t_boxblur_3x3_by_hand():
+    from boxblur import box_blur_3x3
+    from make_data import running_patch
+    P = running_patch()
+    b = box_blur_3x3(P)
+    # interior pixel (2,3): its 3x3 neighbourhood is P[1:4, 2:5], summed by hand
+    assert P[1:4, 2:5].tolist() == [[24, 28, 40], [32, 36, 48], [40, 44, 56]]
+    assert b[2, 3] == round((24 + 28 + 40 + 32 + 36 + 48 + 40 + 44 + 56) / 9) == 39
+
+
+def t_bilinear_edges():
+    from resample import resample_bilinear
+    flat = np.full((5, 7, 3), 93, dtype=np.uint8)
+    assert np.array_equal(resample_bilinear(flat, 2.5), np.full((12, 18, 3), 93, np.uint8))
+    img = (np.arange(48, dtype=np.uint8) * 5).reshape(6, 8)
+    assert np.array_equal(resample_bilinear(img, 1.0), img), "scale 1 must be the identity"
+    up = resample_bilinear(np.array([[0, 100]], dtype=np.uint8), 2.0)
+    assert up[0].tolist() == [0, 25, 75, 100], f"edge clamp: {up[0].tolist()}"
+
+
+def t_luma_vs_pillow_flat():
+    from luma import pillow_gap
+    flat = np.repeat(np.arange(256, dtype=np.uint8), 3).reshape(1, 256, 3)
+    assert pillow_gap(flat).max() <= 1
+
+
 def main() -> int:
     checks = [
         ("ppm_io round-trip", t_ppm_io),
@@ -104,6 +140,10 @@ def main() -> int:
         ("metrics: psnr/ssim sanity", t_metrics),
         ("cvd: red/green collapse under deuteranopia", t_cvd),
         ("budget: E6/E7 exact to the byte", t_budget_exact),
+        ("dither: bands 2/16 px, Bayer dither breaks them", t_dither),
+        ("boxblur: 3x3 = hand neighbour mean", t_boxblur_3x3_by_hand),
+        ("bilinear: identity, constant, edge clamp", t_bilinear_edges),
+        ("luma: flat greys 0..255 = Pillow 'L' within 1", t_luma_vs_pillow_flat),
     ]
     ok = all(check(n, f) for n, f in checks)
     print("\n" + ("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED"))
