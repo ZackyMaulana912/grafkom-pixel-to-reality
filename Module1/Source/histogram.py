@@ -1,7 +1,11 @@
 """Module 1 -- histogram from raw arrays, from scratch (NumPy only).
 
 Job: count how many pixels fall in each intensity bin, WITHOUT calling a
-histogram function, then prove it matches numpy.histogram exactly.
+histogram or bincount function, then prove it matches numpy.histogram exactly.
+
+How: sort the codes once, then for every bin find where its first code would
+be inserted in the sorted list. The count of a bin is the distance between its
+start and the next bin's start. Works for any bin count from 1 to 256.
 
 Reproduces: Fully Worked Example Step 2 -- "sum of bins = W*H",
             "max err vs numpy.histogram = 0".
@@ -13,7 +17,6 @@ Run:
 from __future__ import annotations
 
 import argparse
-import sys
 
 import numpy as np
 
@@ -29,42 +32,49 @@ def to_luma_codes(img: np.ndarray) -> np.ndarray:
     return np.round(img.astype(np.float64) @ w).clip(0, 255).astype(np.uint8)
 
 
+def bin_starts(bins: int) -> np.ndarray:
+    """First code of each bin, plus 256 as the end marker.
+
+    Bin k covers [k*256/bins, (k+1)*256/bins); for integer codes its first code
+    is ceil(k*256/bins). Integer arithmetic only, so no float edge can land on
+    the wrong side of a code.
+    """
+    k = np.arange(bins + 1, dtype=np.int64)
+    return -(-k * 256 // bins)
+
+
 def histogram_from_scratch(values_u8: np.ndarray, bins: int) -> np.ndarray:
-    """Count uint8 values (0..255) into `bins` equal-width bins. Pure loops
-    over the 256 possible codes -- no np.histogram, no np.bincount."""
-    if 256 % bins != 0:
-        raise ValueError("use a bin count that divides 256 (2,4,8,16,32,...)")
-    width = 256 // bins
-    flat = values_u8.reshape(-1)
-    counts = np.zeros(bins, dtype=np.int64)
-    # tally each of the 256 codes, then fold into bins
-    per_code = np.zeros(256, dtype=np.int64)
-    for code in flat:                       # explicit: this is the "from scratch" part
-        per_code[code] += 1
-    for code in range(256):
-        counts[code // width] += per_code[code]
-    return counts
+    """Count uint8 values (0..255) into `bins` equal-width bins over [0, 256)."""
+    if not 1 <= bins <= 256:
+        raise ValueError(f"bins must be 1..256, got {bins}")
+    values = np.asarray(values_u8)
+    if values.dtype != np.uint8:
+        raise ValueError("histogram_from_scratch expects uint8 codes")
+    ordered = np.sort(values.reshape(-1))
+    positions = np.searchsorted(ordered, bin_starts(bins), side="left")
+    return np.diff(positions).astype(np.int64)
 
 
 def _print_hist(counts: np.ndarray) -> None:
-    bins = len(counts)
-    width = 256 // bins
+    starts = bin_starts(len(counts))
     scale = max(1, counts.max() // 40)
     for b, c in enumerate(counts):
-        lo, hi = b * width, b * width + width - 1
-        print(f"bin {b:2d} [{lo:3d}-{hi:3d}]: {c:8d}  {'#' * int(c // scale)}")
+        lo, hi = starts[b], starts[b + 1] - 1
+        print(f"bin {b:3d} [{lo:3d}-{hi:3d}]: {c:8d}  {'#' * int(c // scale)}")
     print(f"sum of bins = {counts.sum()}")
 
 
 def _selftest() -> None:
-    rng_free = (np.arange(64, dtype=np.uint8).reshape(8, 8) * 4)   # 0,4,...,252
-    for bins in (2, 4, 8, 16, 32):
-        mine = histogram_from_scratch(rng_free, bins)
-        ref, _ = np.histogram(rng_free, bins=bins, range=(0, 256))
-        err = int(np.max(np.abs(mine - ref)))
-        assert err == 0, f"mismatch at bins={bins}: {mine} vs {ref}"
-        assert mine.sum() == rng_free.size
-    print("histogram self-test OK  (max err vs numpy.histogram = 0 for bins 2..32)")
+    # every code 0..255 appears, each a different number of times (1..256)
+    every_code = np.repeat(np.arange(256, dtype=np.uint8), np.arange(1, 257))
+    worst = 0
+    for bins in range(1, 257):
+        mine = histogram_from_scratch(every_code, bins)
+        ref, _ = np.histogram(every_code, bins=bins, range=(0, 256))
+        worst = max(worst, int(np.max(np.abs(mine - ref))))
+        assert mine.sum() == every_code.size
+    assert worst == 0, f"max err vs numpy.histogram = {worst}"
+    print("histogram self-test OK  (max err vs numpy.histogram = 0 for every bin count 1..256)")
 
 
 def main() -> None:
