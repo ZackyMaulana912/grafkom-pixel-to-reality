@@ -18,6 +18,10 @@ Added in Fase 3:
   - box_blur_3x3 equals the neighbour mean written out by hand on the E1 patch
   - bilinear: scale 1 is the identity, edges clamp ([0,100] x2 -> [0,25,75,100])
   - luma: every flat grey 0..255 matches Pillow convert("L") within 1 code
+Added in Fase 4:
+  - cvd: the chart legend stays distinct under deuteranopia, protanopia and
+    grayscale, and the guard does fail on a red/green palette
+  - aliasing: 0.1..0.9 cycles/px land at |f - fs|; box pre-filter amplitude as predicted
 """
 from __future__ import annotations
 
@@ -128,6 +132,21 @@ def t_luma_vs_pillow_flat():
     assert pillow_gap(flat).max() <= 1
 
 
+def t_cvd_legend_guard():
+    import cvd
+    cvd.assert_legend_safe(cvd.LEGEND)          # the palette our charts use must pass
+    try:                                        # and the guard must catch a red/green palette
+        cvd.assert_legend_safe(cvd.BAD_LEGEND)
+    except AssertionError:
+        return
+    raise AssertionError("legend guard did not catch the red/green palette")
+
+
+def t_aliasing():
+    import aliasing_demo
+    aliasing_demo._selftest()
+
+
 def main() -> int:
     checks = [
         ("ppm_io round-trip", t_ppm_io),
@@ -144,6 +163,8 @@ def main() -> int:
         ("boxblur: 3x3 = hand neighbour mean", t_boxblur_3x3_by_hand),
         ("bilinear: identity, constant, edge clamp", t_bilinear_edges),
         ("luma: flat greys 0..255 = Pillow 'L' within 1", t_luma_vs_pillow_flat),
+        ("cvd: chart legend survives deuter/protan/grayscale", t_cvd_legend_guard),
+        ("aliasing: every f lands at its predicted |f - fs|", t_aliasing),
     ]
     ok = all(check(n, f) for n, f in checks)
     print("\n" + ("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED"))
