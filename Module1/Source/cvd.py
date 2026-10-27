@@ -13,6 +13,7 @@ Run:
   python cvd.py --selftest
   python cvd.py --image data/relief.ppm --type deuteranopia --out report/relief_deut.ppm
   python cvd.py --legend                 # builds + tests a 5-category legend
+  python cvd.py --legend --out report/   # also writes the before/after legend strips
 """
 from __future__ import annotations
 
@@ -87,11 +88,47 @@ def _selftest() -> None:
           f"blue/orange gap {b0:.0f} largely preserved)")
 
 
+BAD_LEGEND = [(200, 40, 40), (40, 170, 40), (210, 150, 30), (150, 90, 40), (90, 160, 40)]
+# viridis sampled at 5 points -- monotone luminance ramp, so grayscale-safe too.
+# This is the legend the project's charts use; make test guards it.
+LEGEND = [(68, 1, 84), (59, 82, 139), (33, 145, 140), (94, 201, 98), (253, 231, 37)]
+VIEWS = {
+    "normal": lambda row: row,
+    "deuteranopia": lambda row: simulate(row, "deuteranopia"),
+    "protanopia": lambda row: simulate(row, "protanopia"),
+    "grayscale": grayscale_test,
+}
+
+
+def legend_distances(colors, sw: int = 24) -> dict[str, float]:
+    """Smallest distance between any two legend entries, for each way of seeing it."""
+    row = _swatches(colors, sw)
+    return {view: _min_pair_dist(f(row), sw) for view, f in VIEWS.items()}
+
+
+def assert_legend_safe(colors, thresh: float = 20.0) -> None:
+    """Fail loudly, naming the view, if any two categories collapse below `thresh`."""
+    collapsed = {v: round(d, 1) for v, d in legend_distances(colors).items() if d < thresh}
+    assert not collapsed, f"legend categories collapse (min distance < {thresh}): {collapsed}"
+
+
+def write_legend_images(out: str) -> None:
+    """Before/after legend strips (bad palette, project palette) in all four views."""
+    import os
+    os.makedirs(out, exist_ok=True)
+    for tag, cols in (("bad", BAD_LEGEND), ("", LEGEND)):
+        row = _swatches(cols, sw=48)
+        for view, suffix in (("normal", ""), ("deuteranopia", "_deuter"),
+                             ("protanopia", "_protan"), ("grayscale", "_gray")):
+            name = f"legend{'_' + tag if tag else ''}{suffix}.ppm"
+            write_ppm(os.path.join(out, name), VIEWS[view](row))
+    print(f"wrote legend strips (bad + project palette, 4 views each) to {out}")
+
+
 def _legend_demo() -> None:
-    bad = [(200, 40, 40), (40, 170, 40), (210, 150, 30), (150, 90, 40), (90, 160, 40)]
+    bad = BAD_LEGEND
     hue_ok = [(15, 60, 130), (250, 190, 20), (110, 20, 130), (20, 160, 160), (230, 90, 30)]
-    # viridis sampled at 5 points -- monotone luminance ramp, so grayscale-safe too
-    lum_ramp = [(68, 1, 84), (59, 82, 139), (33, 145, 140), (94, 201, 98), (253, 231, 37)]
+    lum_ramp = LEGEND
     for name, cols in (("BAD (red/green heavy)", bad),
                        ("HUE-OK (survives CVD, fails grayscale)", hue_ok),
                        ("BEST (viridis: luminance ramp)", lum_ramp)):
@@ -102,6 +139,8 @@ def _legend_demo() -> None:
         ok_gray = _distinct(grayscale_test(row))
         print(f"{name:28s}  normal={ok_norm}  deuter={ok_deut}  "
               f"protan={ok_prot}  grayscale={ok_gray}")
+        dist = legend_distances(cols)
+        print(" " * 30 + "min distance: " + ", ".join(f"{v} {d:.1f}" for v, d in dist.items()))
 
 
 def main() -> None:
@@ -114,6 +153,8 @@ def main() -> None:
     args = ap.parse_args()
     if args.legend:
         _legend_demo()
+        if args.out:
+            write_legend_images(args.out)
         return
     if args.selftest or not args.image:
         _selftest()
