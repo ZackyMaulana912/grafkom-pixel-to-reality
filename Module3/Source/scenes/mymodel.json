@@ -1,0 +1,22 @@
+{
+  "name": "mymodel",
+  "note": "World origin = the left corner of the entrance side, the same origin as Module2/Source/myplan.json (plan y = -z). The camera stands inside the room near the left wall at about eye height and looks across the statue towards the cabinet doors.",
+  "model": {
+    "obj": "data/mymodel.obj",
+    "texture": "data/mymodel_tex.ppm",
+    "translate": [1.0, 0, -2.0],
+    "rot_y_deg": 0,
+    "scale": [1, 1, 1]
+  },
+  "camera": {
+    "eye": [0.15, 1.15, -0.8],
+    "center": [0.85, 0.3, -2.1],
+    "up": [0, 1, 0],
+    "fovy_deg": 55,
+    "near": 0.1,
+    "far": 10.0
+  },
+  "light": { "dir": [-0.4, 0.9, 0.5], "ambient": 0.25 },
+  "frame": { "w": 512, "h": 512 },
+  "texel_centre": "starter"
+}

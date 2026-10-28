@@ -1,0 +1,22 @@
+{
+  "name": "temple",
+  "note": "The starter's hard-coded values in raster3d.py, raytrace.py and web/viewer.js, copied exactly.",
+  "model": {
+    "obj": "data/pusaka_model.obj",
+    "texture": "data/relief.ppm",
+    "translate": [0, 0, 0],
+    "rot_y_deg": 35,
+    "scale": [1.4, 1.4, 1.4]
+  },
+  "camera": {
+    "eye": [2.6, 2.0, 3.4],
+    "center": [0, 0.7, 0],
+    "up": [0, 1, 0],
+    "fovy_deg": 45,
+    "near": 1.0,
+    "far": 14.0
+  },
+  "light": { "dir": [0.4, 0.9, 0.6], "ambient": 0.15 },
+  "frame": { "w": 512, "h": 512 },
+  "texel_centre": "starter"
+}
