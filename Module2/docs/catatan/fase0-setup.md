@@ -15,7 +15,7 @@ Dicatat 28 Oktober 2026.
 | Three.js | 0.160.0 (sama dengan importmap di `web/index.html`) |
 | serve | 14.2.6 |
 | Browser untuk uji otomatis | Google Chrome 156.0.8078.48, mode tanpa layar (headless), WebGL lewat ANGLE Metal di GPU Apple M5 |
-| Browser yang saya buka sendiri | _diisi setelah saya membuka halaman GitHub Pages_ |
+| Browser yang saya buka sendiri | Safari 27.0.1 di Mac yang sama, membuka halaman GitHub Pages (28 Okt 2026): denah dan legenda tampil, keempat toggle bekerja dan warnanya berganti |
 
 Kenapa Node 22: di Mac saya sebelumnya hanya ada Node v20.20.2, sedangkan dosen memverifikasi starter di Node v22.19.0. Node 20 juga sudah habis masa dukungannya (April 2026). Node 22 saya pasang lewat nvm tanpa mengubah default nvm, jadi proyek lain yang memakai Node 20 tidak terganggu. Di folder `Module2/Source`, perintah `nvm use` otomatis memilih versi dari `.nvmrc`.
 

@@ -38,5 +38,5 @@ Diukur dan diceritakan oleh saya sendiri pada 28 Oktober 2026.
 
 ## Yang masih kurang
 
-- **Foto sketsa tangan** berisi angka meter belum ada di folder ini. Saya akan menambahkannya sebagai bukti sumber denah (`docs/denah/sketsa.jpg`).
+- **Tidak ada foto sketsa.** Ukuran ruangan saya ukur sendiri secara manual, lalu angkanya langsung saya tulis ke `myplan.json`.
 - Lebar jalan masuk dan letak patung belum diukur dengan meteran. Kalau nanti diukur, cukup ubah angka di `myplan.json`. Semua test dan gambar dibuat ulang otomatis.

@@ -1,6 +1,6 @@
 # Fase 5: Pustaka, keputusan, hosting (Lab 3)
 
-Semua uji browser di fase ini dijalankan otomatis di **Google Chrome 156.0.8078.48 mode headless**, dengan WebGL lewat **ANGLE Metal di GPU Apple M5** (bukan software renderer), `devicePixelRatio` = 1, dan MSAA 4 sampel. Server hanya di `127.0.0.1` dan dimatikan setelah dipakai. Halaman GitHub Pages juga sudah diuji dengan cara yang sama (lihat bagian 6). Pengujian di browser yang saya buka sendiri belum.
+Semua uji browser di fase ini dijalankan otomatis di **Google Chrome 156.0.8078.48 mode headless**, dengan WebGL lewat **ANGLE Metal di GPU Apple M5** (bukan software renderer), `devicePixelRatio` = 1, dan MSAA 4 sampel. Server hanya di `127.0.0.1` dan dimatikan setelah dipakai. Halaman GitHub Pages juga sudah diuji dengan cara yang sama (lihat bagian 6). Selain itu, halaman Pages saya buka sendiri di Safari 27.0.1: denah dan legenda tampil, dan keempat toggle bekerja.
 
 ## 1. Viewer sekarang menggambar denah saya
 

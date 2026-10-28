@@ -111,7 +111,9 @@ safe `serve`).
 | GitHub Pages (`https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/`) | every file 200 with the right type (`.mjs` as `text/javascript`, `cvd.css`, `myplan.json`, three.js from jsDelivr); 0 console errors (only the browser's own `/favicon.ico` 404); 5 legend rows; each of the 4 toggles changes the picture and switching it back restores it exactly; Export PPM byte-identical to the local export (479929/480000 vs from-scratch) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
 | Fresh clone from GitHub (commit `cceae00`) | `npm ci` 0 vulnerabilities, `npm test` 22 ok; every regenerated image and reference identical to the 33 committed ones; viewer export from the clone identical to the working copy (479929/480000 vs from-scratch) | 2026-10-28 | same |
 
-Not yet verified: a browser opened by hand (not headless), Windows or Linux.
+Opened by hand: Safari 27.0.1 on the same Mac, GitHub Pages URL, 2026-10-28 -- plan and legend render, all 4 toggles work (visual check only, no export or console check in Safari).
+
+Not yet verified: other GPUs, Windows or Linux.
 
 ## Verified (starter, kept for reference)
 

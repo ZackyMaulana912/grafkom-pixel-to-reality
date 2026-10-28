@@ -203,9 +203,9 @@ Urutan warna legenda saya pilih berdasarkan **di mana benda digambar**. Kontrasn
 
 ## 7. Keterbatasan
 
-1. **Data denah.** Lebar jalan masuk berasal dari perbandingan, letak patung adalah perkiraan, dan foto sketsa tangan belum dilampirkan.
-2. **Uji browser otomatis.** Semua uji browser dijalankan di Chrome headless. GPU-nya sungguhan (Apple M5), tapi belum ada uji di browser yang saya buka sendiri atau di browser lain. Hasil antialiasing bisa sedikit berbeda di GPU lain, karena MSAA tidak dijamin sama antar vendor.
-3. **GitHub Pages** sudah aktif dan sudah diuji, tapi baru lewat Chrome headless. Belum ada uji di browser yang saya buka sendiri.
+1. **Data denah.** Ukuran ruangan saya ukur sendiri secara manual, tanpa foto sketsa. Lebar jalan masuk berasal dari perbandingan, dan letak patung adalah perkiraan.
+2. **Uji browser.** Uji yang terukur (export, perbandingan pixel, console) dijalankan di Chrome headless dengan GPU sungguhan (Apple M5). Di Safari 27.0.1 saya hanya memeriksa dengan mata: denah dan legenda tampil, dan keempat toggle bekerja. Semua uji dilakukan di satu Mac. Hasil antialiasing bisa sedikit berbeda di GPU lain, karena MSAA tidak dijamin sama antar vendor.
+3. **GitHub Pages** sudah aktif dan sudah diuji lewat Chrome headless dan Safari yang saya buka sendiri. Belum diuji di komputer lain.
 4. **Aturan tepi.** Default `triangle()` mengikuti rumus modul, yang merupakan cerminan aturan GPU. Untuk denah saya ini tidak berpengaruh, karena tidak ada pusat pixel yang jatuh tepat di tepi lantai. Tapi untuk mesh dengan tepi miring, rasteriser saya dan GPU akan berbeda di pixel tepat-di-tepi, kecuali memakai `fillRule: "gpu"`.
 5. **Matriks CVD.** Asal-usul angka matriks di `index.html` (sama dengan `cvd.py`) belum saya temukan publikasinya. Matriks 3 × 3 seperti ini juga hanya perkiraan kasar penglihatan buta warna.
 6. **`bench.mjs`.** Waktu absolut berbeda antar mesin dan antar run. Yang bisa dipegang adalah rasio dan arahnya.
@@ -272,4 +272,6 @@ Sisanya memang tidak dibuat ulang otomatis:
 - legenda tampil 5 baris, dan keempat toggle mengubah gambar lalu kembali persis seperti semula saat dimatikan;
 - Export PPM dari Pages identik byte demi byte dengan export lokal, jadi perbandingannya tetap 479929/480000.
 
-**Belum diuji:** browser yang saya buka sendiri, serta Windows dan Linux.
+**Dibuka sendiri:** Safari 27.0.1 di Mac yang sama. Denah dan legenda tampil, dan keempat toggle bekerja (diperiksa dengan mata).
+
+**Belum diuji:** GPU lain, Windows, dan Linux.
