@@ -1,7 +1,8 @@
 # Module 3 -- 3D Transforms, Projection, Texture & Real-Time Rendering
 # The transform stack, the z-buffer rasteriser and the ray tracer are NumPy
-# only. Pillow is used ONLY for the reference cross-check in metrics/tests and
-# is optional at import time.
+# only. Pillow decodes my JPG photos once (import_texture.py) and writes the
+# README PNGs (export_png.py); it is never on the rendering path.
+# Pinned to the versions verified in .venv (Python 3.11.8, macOS arm64).
 
-numpy>=1.24
-pillow>=10.0        # optional -- reference cross-checks only
+numpy==2.4.6
+pillow==13.0.0
