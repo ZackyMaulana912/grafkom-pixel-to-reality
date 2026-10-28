@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="584" height="484" viewBox="0 0 584 484">
+<rect width="584" height="484" fill="#ffffff"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker></defs>
+<text x="40" y="24" font-family="Helvetica, Arial, sans-serif" font-size="15" text-anchor="start" font-weight="bold" fill="#222">Segitiga A(1,1) B(6,2) C(3,7), y ke bawah: tanda tiga edge function</text>
+<text x="40" y="44" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#222">Arsir hijau = pixel yang pusatnya (x+0.5, y+0.5) di dalam (triangle() dengan aturan top-left).</text>
+<line x1="40" y1="60" x2="40" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="88" y1="60" x2="88" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="136" y1="60" x2="136" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="184" y1="60" x2="184" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="232" y1="60" x2="232" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="280" y1="60" x2="280" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="328" y1="60" x2="328" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="376" y1="60" x2="376" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="424" y1="60" x2="424" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="60" x2="424" y2="60" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="108" x2="424" y2="108" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="156" x2="424" y2="156" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="204" x2="424" y2="204" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="252" x2="424" y2="252" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="300" x2="424" y2="300" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="348" x2="424" y2="348" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="396" x2="424" y2="396" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="444" x2="424" y2="444" stroke="#c8c8c8" stroke-width="1" />
+<text x="64" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">0</text>
+<text x="112" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">1</text>
+<text x="160" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">2</text>
+<text x="208" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">3</text>
+<text x="256" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">4</text>
+<text x="304" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">5</text>
+<text x="352" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">6</text>
+<text x="400" y="55" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#777">7</text>
+<text x="34" y="88" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">0</text>
+<text x="34" y="136" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">1</text>
+<text x="34" y="184" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">2</text>
+<text x="34" y="232" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">3</text>
+<text x="34" y="280" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">4</text>
+<text x="34" y="328" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">5</text>
+<text x="34" y="376" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">6</text>
+<text x="34" y="424" font-family="Helvetica, Arial, sans-serif" font-size="10" text-anchor="end" font-weight="normal" fill="#777">7</text>
+<rect x="89" y="109" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="137" y="109" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="185" y="109" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="137" y="157" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="185" y="157" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="233" y="157" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="281" y="157" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="137" y="205" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="185" y="205" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="233" y="205" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="137" y="253" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="185" y="253" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="233" y="253" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<rect x="185" y="301" width="46" height="46" fill="#d7ecd9" stroke="none" stroke-width="1"/>
+<line x1="88" y1="108" x2="328" y2="156" stroke="#c0504d" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="328" y1="156" x2="184" y2="396" stroke="#c0504d" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="184" y1="396" x2="88" y2="108" stroke="#c0504d" stroke-width="2" marker-end="url(#arr)"/>
+<circle cx="88" cy="108" r="4" fill="#c0504d" stroke="none"/>
+<text x="74" y="102" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="bold" fill="#c0504d">A(1,1)</text>
+<circle cx="328" cy="156" r="4" fill="#c0504d" stroke="none"/>
+<text x="336" y="150" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="bold" fill="#c0504d">B(6,2)</text>
+<circle cx="184" cy="396" r="4" fill="#c0504d" stroke="none"/>
+<text x="168" y="412" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="bold" fill="#c0504d">C(3,7)</text>
+<circle cx="184" cy="204" r="5" fill="#2e7d32" stroke="none"/>
+<text x="192" y="196" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="start" font-weight="bold" fill="#2e7d32">P1(3,3): (8, 12, 8) di dalam</text>
+<circle cx="280" cy="300" r="5" fill="#555" stroke="none"/>
+<text x="288" y="292" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="start" font-weight="bold" fill="#333">P2(5,5): (16, -4, 16) di luar</text>
+<circle cx="88" cy="252" r="5" fill="#555" stroke="none"/>
+<text x="96" y="244" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="start" font-weight="bold" fill="#333">P3(1,4): (15, 19, -6) di luar</text>
+<text x="40" y="466" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#222">total = E_AB(C) = 28, luas = 14. Urutan (E_AB, E_BC, E_CA).</text>
+</svg>

@@ -1,31 +1,16 @@
 /* Module 2 -- load a floor plan (metres, y-up) and render it as 2D primitives.
- * The single worldToScreen() has the y-flip and origin baked in -- unit-tested
- * in tests.mjs on a known point. */
+ * The single worldToScreen() has the y-flip and origin baked in -- it lives in
+ * plan_common.mjs so the web viewer uses the very same function, and it is
+ * unit-tested in tests.mjs on a known point. */
 import { readFileSync } from "node:fs";
 import { Framebuffer, polyline, triangle } from "./raster.mjs";
+import { categoryColours, makeWorldToScreen } from "./plan_common.mjs";
 
-export const CATEGORY_RGB = {
-  // viridis 5-step ramp (luminance varies -> CVD- and grayscale-safe, Module 1)
-  wall:   [68, 1, 84],
-  cella:  [59, 82, 139],
-  stair:  [33, 145, 140],
-  shrine: [94, 201, 98],
-  axis:   [253, 231, 37],
-};
+export { VIRIDIS5, DEFAULT_LEGEND, legendOf, categoryColours, makeWorldToScreen } from "./plan_common.mjs";
+export const CATEGORY_RGB = categoryColours({});
 
 export function loadPlan(path = "pusaka_plan.json") {
   return JSON.parse(readFileSync(path, "utf8"));
-}
-
-/** metres (y-up) -> screen pixels (y-down), given the plan's scale + origin
- * and the framebuffer height. Deterministic; the ONLY place the flip lives. */
-export function makeWorldToScreen(plan, H) {
-  const s = plan.scale_px_per_m;
-  const [ox, oy] = plan.origin_m;
-  return ([xm, ym]) => [
-    Math.round((xm + ox) * s),
-    Math.round(H - 1 - (ym + oy) * s),
-  ];
 }
 
 export function renderPlan(fb, plan, { fillSilhouette = false } = {}) {
@@ -41,10 +26,11 @@ export function renderPlan(fb, plan, { fillSilhouette = false } = {}) {
       triangle(fb, A, B, C, [230, 236, 245]);
     }
   }
+  const colours = categoryColours(plan);
   let segs = 0;
   for (const pl of plan.polylines) {
     const pts = pl.points.map(w2s);
-    const rgb = CATEGORY_RGB[pl.category] || [255, 255, 255];
+    const rgb = colours[pl.category] || [255, 255, 255];
     polyline(fb, pts, rgb, !!pl.closed);
     segs += pl.points.length - 1 + (pl.closed ? 1 : 0);
   }

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="266" viewBox="0 0 800 266">
+<rect width="800" height="266" fill="#ffffff"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker></defs>
+<text x="40" y="30" font-family="Helvetica, Arial, sans-serif" font-size="15" text-anchor="start" font-weight="bold" fill="#222">Forward (object-order): rasterisation</text>
+<text x="40" y="50" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#222">untuk tiap segitiga: cari pixel yang ditutupinya</text>
+<line x1="40" y1="70" x2="40" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="66" y1="70" x2="66" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="92" y1="70" x2="92" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="118" y1="70" x2="118" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="144" y1="70" x2="144" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="170" y1="70" x2="170" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="196" y1="70" x2="196" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="222" y1="70" x2="222" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="248" y1="70" x2="248" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="70" x2="248" y2="70" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="96" x2="248" y2="96" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="122" x2="248" y2="122" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="148" x2="248" y2="148" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="174" x2="248" y2="174" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="200" x2="248" y2="200" stroke="#c8c8c8" stroke-width="1" />
+<line x1="40" y1="226" x2="248" y2="226" stroke="#c8c8c8" stroke-width="1" />
+<rect x="67" y="97" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="93" y="97" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="119" y="97" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="93" y="123" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="119" y="123" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="145" y="123" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="171" y="123" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="93" y="149" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="119" y="149" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="145" y="149" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<rect x="119" y="175" width="24" height="24" fill="#f4b183" stroke="none" stroke-width="1"/>
+<polygon points="66,96 222,122 118,200" fill="none" stroke="#c0504d" stroke-width="2"/>
+<text x="40" y="248" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#444">biaya ~ jumlah segitiga x luas pixel-nya</text>
+<text x="420" y="30" font-family="Helvetica, Arial, sans-serif" font-size="15" text-anchor="start" font-weight="bold" fill="#222">Backward (image-order): ray casting</text>
+<text x="420" y="50" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#222">untuk tiap pixel: tembakkan ray, cari hit terdekat</text>
+<circle cx="430" cy="150" r="6" fill="#222" stroke="none"/>
+<text x="426" y="174" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#222">mata</text>
+<line x1="570" y1="90" x2="570" y2="210" stroke="#888" stroke-width="3" />
+<text x="552" y="82" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#222">layar</text>
+<circle cx="710" cy="150" r="36" fill="#bdd7ee" stroke="#2f5597"/>
+<text x="710" y="155" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle" font-weight="normal" fill="#222">objek</text>
+<line x1="430" y1="150" x2="760" y2="32.14285714285714" stroke="#aaa" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="430" y1="150" x2="760" y2="79.28571428571428" stroke="#aaa" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="430" y1="150" x2="760" y2="126.42857142857143" stroke="#2f5597" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="430" y1="150" x2="760" y2="173.57142857142858" stroke="#2f5597" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="430" y1="150" x2="760" y2="220.71428571428572" stroke="#aaa" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="430" y1="150" x2="760" y2="267.8571428571429" stroke="#aaa" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="420" y="248" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#444">biaya ~ jumlah pixel x biaya uji potong per ray</text>
+</svg>

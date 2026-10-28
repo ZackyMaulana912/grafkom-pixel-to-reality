@@ -6,14 +6,18 @@
   "private": true,
   "scripts": {
     "test": "node tests.mjs",
-    "plan": "node draw_plan.mjs --w 800 --h 600",
+    "plan": "node draw_plan.mjs --w 800 --h 600 --plan myplan.json --fill",
     "square": "node draw_square.mjs --mode fill",
     "bug": "node triangle_gap_bug.mjs",
-    "bench": "node bench.mjs",
-    "serve": "npx --yes serve web"
+    "bench": "node bench.mjs --plan myplan.json",
+    "png": "node export_png.mjs --src out --out ../docs/img plan_scratch plan_three diff_plan asterisk gap_coverage_buggy gap_coverage_strict gap_coverage_fixed rect_centre rect_corner-inclusive tri_t8_check && node export_png.mjs --src out --out ../docs/img --crop 270,555,50,45 --scale 8 --suffix _zoom plan_scratch plan_three diff_plan",
+    "serve": "serve -l tcp://127.0.0.1:4173 --no-port-switching --no-clipboard ."
   },
   "devDependencies": {
-    "three": ">=0.160.0",
-    "serve": ">=14.0.0"
+    "serve": "14.2.6",
+    "three": "0.160.0"
+  },
+  "overrides": {
+    "compression": "1.8.2"
   }
 }

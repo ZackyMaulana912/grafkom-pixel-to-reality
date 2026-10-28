@@ -1,0 +1,41 @@
+{
+  "name": "Ruangan patung kuda (rumah saya) -- denah lantai",
+  "units": "metres",
+  "note": "y is UP in this file, origin at the left corner of the entrance side. Measured by me: room 2 x 4 m, cabinet 4 m x 0.4 m with 8 doors on the right wall, statue base 0.08 x 0.30 m. Entrance width (1/4 of the 2 m side) is from a ratio, not a tape measure. Statue POSITION is an ESTIMATE (centred on the cabinet's length, in the middle of the free floor). See ../docs/denah/README.md.",
+  "scale_px_per_m": 130.0,
+  "origin_m": [2.0, 0.3],
+  "legend": [
+    { "category": "statue",    "label": "patung",          "marker": "●" },
+    { "category": "cabinet",   "label": "lemari",          "marker": "◆" },
+    { "category": "wall",      "label": "dinding",         "marker": "■" },
+    { "category": "partition", "label": "sekat berlubang", "marker": "▲" },
+    { "category": "entrance",  "label": "jalan masuk",     "marker": "▼" }
+  ],
+  "polylines": [
+    { "id": "outer_wall", "category": "wall", "closed": false,
+      "points": [[0,0],[0,4],[2,4],[2,0]] },
+    { "id": "vase_partition", "category": "partition", "closed": false,
+      "points": [[0.5,0],[2,0]] },
+    { "id": "cabinet_front", "category": "cabinet", "closed": false,
+      "points": [[1.6,0],[1.6,4]] },
+    { "id": "cabinet_door_1", "category": "cabinet", "closed": false, "points": [[1.6,0.5],[2,0.5]] },
+    { "id": "cabinet_door_2", "category": "cabinet", "closed": false, "points": [[1.6,1.0],[2,1.0]] },
+    { "id": "cabinet_door_3", "category": "cabinet", "closed": false, "points": [[1.6,1.5],[2,1.5]] },
+    { "id": "cabinet_door_4", "category": "cabinet", "closed": false, "points": [[1.6,2.0],[2,2.0]] },
+    { "id": "cabinet_door_5", "category": "cabinet", "closed": false, "points": [[1.6,2.5],[2,2.5]] },
+    { "id": "cabinet_door_6", "category": "cabinet", "closed": false, "points": [[1.6,3.0],[2,3.0]] },
+    { "id": "cabinet_door_7", "category": "cabinet", "closed": false, "points": [[1.6,3.5],[2,3.5]] },
+    { "id": "statue_base", "category": "statue", "closed": true,
+      "points": [[0.76,1.85],[0.84,1.85],[0.84,2.15],[0.76,2.15]] },
+    { "id": "entrance_threshold", "category": "entrance", "closed": false,
+      "points": [[0,0],[0.5,0]] },
+    { "id": "entrance_arrow", "category": "entrance", "closed": false,
+      "points": [[0.25,-0.28],[0.25,-0.02]] },
+    { "id": "entrance_arrow_head", "category": "entrance", "closed": false,
+      "points": [[0.15,-0.12],[0.25,-0.02],[0.35,-0.12]] }
+  ],
+  "silhouette": {
+    "id": "room_floor", "category": "wall",
+    "points": [[0,0],[2,0],[2,4],[0,4]]
+  }
+}
