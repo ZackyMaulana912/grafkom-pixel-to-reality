@@ -108,9 +108,10 @@ safe `serve`).
 | Viewer vs from-scratch (`myplan.json`, fill on) | 479929/480000 identical, PSNR 52.7 dB, SSIM 1.000; every mismatch is a line end/joint (25) or diagonal antialiasing (46) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
 | Legend under CVD filters | min distance 36.9 (deuteranopia), 46.4 (protanopia), 69.3 (CSS grayscale); browser pixels match the Node model within 1 code | 2026-10-28 | same |
 | Clean copy reproduction | see `../docs/laporan/laporan-modul2.md`, section 8 | 2026-10-28 | same |
+| GitHub Pages (`https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/`) | every file 200 with the right type (`.mjs` as `text/javascript`, `cvd.css`, `myplan.json`, three.js from jsDelivr); 0 console errors (only the browser's own `/favicon.ico` 404); 5 legend rows; each of the 4 toggles changes the picture and switching it back restores it exactly; Export PPM byte-identical to the local export (479929/480000 vs from-scratch) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
+| Fresh clone from GitHub (commit `cceae00`) | `npm ci` 0 vulnerabilities, `npm test` 22 ok; every regenerated image and reference identical to the 33 committed ones; viewer export from the clone identical to the working copy (479929/480000 vs from-scratch) | 2026-10-28 | same |
 
-Not yet verified: the GitHub Pages URL (needs the push and Pages switched on),
-a browser opened by hand (not headless), Windows or Linux.
+Not yet verified: a browser opened by hand (not headless), Windows or Linux.
 
 ## Verified (starter, kept for reference)
 

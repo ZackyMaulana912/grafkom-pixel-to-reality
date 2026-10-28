@@ -4,7 +4,7 @@ Zacky Maulana (NIM 20241337034), Praktikum Grafika Komputer, S1 Informatika UMSu
 
 Subjek: patung kuda berdiri milik saya sendiri (sama dengan Modul 1). Patung tidak punya denah, jadi yang saya telusuri adalah **ruangan tempat patung itu berdiri**: 2 × 4 m, lemari 8 pintu di dinding kanan, sekat berlubang di sisi masuk, dan jalan masuk di pojok kiri. Ukurannya dari saya sendiri, dan letak patung masih perkiraan (lihat [docs/denah](docs/denah/README.md)). Hasilnya 14 polyline dan 20 segmen.
 
-Halaman WebGL: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/** (aktif setelah GitHub Pages dinyalakan, lihat catatan Fase 5)
+Halaman WebGL: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/** (sudah aktif dan diuji, lihat catatan Fase 5)
 
 ## Cara menjalankan
 

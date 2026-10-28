@@ -1,6 +1,6 @@
 # Fase 5: Pustaka, keputusan, hosting (Lab 3)
 
-Semua uji browser di fase ini dijalankan otomatis di **Google Chrome 156.0.8078.48 mode headless**, dengan WebGL lewat **ANGLE Metal di GPU Apple M5** (bukan software renderer), `devicePixelRatio` = 1, dan MSAA 4 sampel. Server hanya di `127.0.0.1` dan dimatikan setelah dipakai. Pengujian di browser yang saya buka sendiri dan di GitHub Pages masih harus saya lakukan setelah push (lihat bagian 6).
+Semua uji browser di fase ini dijalankan otomatis di **Google Chrome 156.0.8078.48 mode headless**, dengan WebGL lewat **ANGLE Metal di GPU Apple M5** (bukan software renderer), `devicePixelRatio` = 1, dan MSAA 4 sampel. Server hanya di `127.0.0.1` dan dimatikan setelah dipakai. Halaman GitHub Pages juga sudah diuji dengan cara yang sama (lihat bagian 6). Pengujian di browser yang saya buka sendiri belum.
 
 ## 1. Viewer sekarang menggambar denah saya
 
@@ -181,7 +181,7 @@ Saya mengambil warna di tengah setiap swatch dari screenshot Chrome dengan filte
 
 ## 6. GitHub Pages (Lab 3 no 5)
 
-Repo `ZackyMaulana912/grafkom-pixel-to-reality` sudah publik (dicek: halaman repo memberi status 200). GitHub Pages belum aktif (alamatnya masih 404). Langkah yang saya lakukan sendiri setelah push:
+Repo `ZackyMaulana912/grafkom-pixel-to-reality` sudah publik (dicek: halaman repo memberi status 200). Setelah push, GitHub Pages saya nyalakan dengan langkah berikut:
 
 1. Settings → Pages → Source: **Deploy from a branch** → Branch: `main`, folder `/ (root)` → Save.
 2. Tunggu sampai tugas "pages build and deployment" di tab Actions selesai.
@@ -191,6 +191,8 @@ Repo `ZackyMaulana912/grafkom-pixel-to-reality` sudah publik (dicek: halaman rep
    - keempat toggle bekerja;
    - Console (F12) tidak berisi error, terutama error MIME untuk file `.mjs`.
 5. Catat browser dan versinya di `docs/catatan/fase0-setup.md` dan di baris Verified.
+
+**Hasil uji di Pages (28 Okt 2026, Chrome 156 headless):** semua file memberi status 200 dengan tipe yang benar (`.mjs` sebagai `text/javascript`, jadi tidak ada error MIME), console bersih selain `/favicon.ico`, legenda 5 baris, keempat toggle bekerja, dan Export PPM identik byte demi byte dengan export lokal. Halaman root repo memang 404 karena tidak ada `index.html` di sana; yang dipakai hanya alamat `Module2/Source/web/`.
 
 Kenapa publikasi dari root, bukan hanya `web/`: viewer mengambil `../myplan.json` dan `../plan_common.mjs` dari folder induk. Jadi struktur folder di Pages harus sama dengan di server lokal. File `.nojekyll` di root membuat GitHub Pages menyajikan file apa adanya, tanpa diproses Jekyll. Three.js dimuat dari CDN jsDelivr dengan versi terkunci 0.160.0, sesuai importmap.
 

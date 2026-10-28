@@ -205,7 +205,7 @@ Urutan warna legenda saya pilih berdasarkan **di mana benda digambar**. Kontrasn
 
 1. **Data denah.** Lebar jalan masuk berasal dari perbandingan, letak patung adalah perkiraan, dan foto sketsa tangan belum dilampirkan.
 2. **Uji browser otomatis.** Semua uji browser dijalankan di Chrome headless. GPU-nya sungguhan (Apple M5), tapi belum ada uji di browser yang saya buka sendiri atau di browser lain. Hasil antialiasing bisa sedikit berbeda di GPU lain, karena MSAA tidak dijamin sama antar vendor.
-3. **GitHub Pages belum aktif** saat laporan ini ditulis, jadi URL-nya belum diuji (termasuk tipe MIME file `.mjs`).
+3. **GitHub Pages** sudah aktif dan sudah diuji, tapi baru lewat Chrome headless. Belum ada uji di browser yang saya buka sendiri.
 4. **Aturan tepi.** Default `triangle()` mengikuti rumus modul, yang merupakan cerminan aturan GPU. Untuk denah saya ini tidak berpengaruh, karena tidak ada pusat pixel yang jatuh tepat di tepi lantai. Tapi untuk mesh dengan tepi miring, rasteriser saya dan GPU akan berbeda di pixel tepat-di-tepi, kecuali memakai `fillRule: "gpu"`.
 5. **Matriks CVD.** Asal-usul angka matriks di `index.html` (sama dengan `cvd.py`) belum saya temukan publikasinya. Matriks 3 × 3 seperti ini juga hanya perkiraan kasar penglihatan buta warna.
 6. **`bench.mjs`.** Waktu absolut berbeda antar mesin dan antar run. Yang bisa dipegang adalah rasio dan arahnya.
@@ -259,5 +259,17 @@ Sisanya memang tidak dibuat ulang otomatis:
 - `ref/square_fill_ref.ppm` berasal dari dosen;
 - gambar di `docs/prediksi/img/` adalah bukti dari `triangle()` **starter** sebelum perbaikan.
 
-**Belum diuji:** clone dari GitHub setelah push, dan URL GitHub Pages:
-https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/
+**Clone dari GitHub.** Setelah push, repo saya clone ke folder baru dari GitHub (commit `cceae00`), lalu semua langkah di atas saya ulang. Hasilnya:
+
+- `npm ci` 0 vulnerabilities dan `npm test` 22 ok, 0 fail;
+- semua gambar dan referensi yang dibuat ulang identik dengan 33 file yang di-commit (`git status` di clone tetap bersih);
+- export viewer dari clone identik byte demi byte dengan export salinan kerja, jadi perbandingannya tetap 479929/480000.
+
+**GitHub Pages.** Halaman https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/ saya buka dengan Chrome headless yang sama. Hasilnya:
+
+- semua file yang dipakai halaman memberi status 200 dengan tipe yang benar, termasuk `.mjs` sebagai `text/javascript`;
+- tidak ada error di console, selain `/favicon.ico` yang diminta browser sendiri dan memang tidak ada di repo;
+- legenda tampil 5 baris, dan keempat toggle mengubah gambar lalu kembali persis seperti semula saat dimatikan;
+- Export PPM dari Pages identik byte demi byte dengan export lokal, jadi perbandingannya tetap 479929/480000.
+
+**Belum diuji:** browser yang saya buka sendiri, serta Windows dan Linux.
