@@ -16,7 +16,7 @@ Dicatat 28 Oktober 2026.
 | Node | v20.20.2. Tidak dipakai Modul 3, karena server lokalnya `python -m http.server` |
 | Three.js | 0.160.0 dari CDN jsdelivr (importmap di `web/index.html`) |
 | Browser untuk uji otomatis | Google Chrome 156.0.8078.48, mode tanpa layar (headless) |
-| Browser yang saya buka sendiri | diisi setelah saya membuka halamannya (lihat catatan Fase 5) |
+| Browser yang saya buka sendiri | Safari 27.0.1 di Mac yang sama, membuka halaman GitHub Pages (29 Okt 2026): ruangan dan patung tampil, bisa diputar, semua tombol jalan |
 | Pemeriksa model independen | Blender 5.2.2 (hanya membuka OBJ, tidak dipakai membuat model) |
 
 ## Langkah dan buktinya

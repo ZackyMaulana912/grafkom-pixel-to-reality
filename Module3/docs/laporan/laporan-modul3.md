@@ -146,7 +146,7 @@ Tidak ada pergeseran region di bagian dalam.
 2. **Referensi candi adalah referensi regresi.** `ref/temple_ref.ppm` hanya membuktikan bahwa kode saya sama dengan kode dosen. Pembanding independennya adalah ray tracer dan WebGL.
 3. **Konvensi starter saya pertahankan meski kurang ideal:** sampler dengan `mod` (T14) dan pemotongan ke uint8 (T15). Alasannya, referensi bergantung pada keduanya. Akibatnya terukur dan dijelaskan, bukan disembunyikan.
 4. **Perbaikan winding memakai satu tanda global** (signed volume). Ini hanya benar untuk mesh tertutup dengan winding yang konsisten di dalam mesh itu.
-5. **Semua pengujian di satu Mac.** Viewer diuji dengan Chrome headless di GPU Apple M5. Browser lain, GPU lain, Windows, dan Linux belum diuji, dan PSNR raster vs WebGL bisa sedikit berbeda di GPU lain (pola MSAA berbeda).
+5. **Semua pengujian di satu Mac.** Angka viewer diukur dengan Chrome headless di GPU Apple M5. Safari 27.0.1 hanya saya cek dengan mata (halaman Pages tampil dan bisa diputar), tanpa export atau cek console. GPU lain, Windows, dan Linux belum diuji, dan PSNR raster vs WebGL bisa sedikit berbeda di GPU lain (pola MSAA berbeda).
 6. **Frame time hanya dari NumPy di satu mesin.** Rasio dan skalanya bisa dipindah ke mesin lain, tapi angka detiknya tidak.
 
 ## 8. Penyimpangan dari PDF dan alasannya

@@ -12,7 +12,7 @@ Kalau model atau texture gagal dimuat, halaman menulis penyebabnya dengan warna 
 - menyeret mouse mengubah frame, dan tombol "Kamera awal" mengembalikannya ke frame yang sama persis (hash screenshot sama);
 - Export PPM menghasilkan file 512 × 512.
 
-Yang belum: membukanya sendiri di browser biasa (bagian 6).
+Saya juga membukanya sendiri di **Safari 27.0.1** lewat URL GitHub Pages (29 Oktober 2026): ruangan dan patung tampil, bisa diputar, dan tombol-tombolnya jalan. Ini cek dengan mata saja, tanpa export atau cek console.
 
 ## 2. Mencocokkan frame WebGL dengan frame NumPy (Lab 3 no 2, T7)
 
@@ -154,8 +154,6 @@ Ukuran yang diunduh browser: `mymodel.obj` 42 KB dan `mymodel_tex.ppm` 786 KB, d
 
 Saya juga meng-clone repo dari GitHub ke folder baru dengan `.venv` baru: `tests.py` 17 OK, dan data yang dibuat ulang sama persis dengan yang di-commit.
 
-## 6. Yang masih harus saya kerjakan sendiri
+## 6. Yang belum diuji
 
-1. Buka URL di atas di browser biasa (jendela incognito): pastikan model bertexture tampil, bisa di-orbit, dan Console (F12) tanpa error 404 atau MIME.
-2. Catat browser dan versinya di `fase0-setup.md` dan di baris Verified `Source/README.md`.
-3. (Opsional) Export PPM dari browser itu dan bandingkan dengan `compare.py`, untuk melihat apakah GPU dan browser lain memberi angka yang sama dengan Chrome headless.
+GPU lain, Windows, dan Linux. Export PPM dari Safari juga belum dibandingkan dengan `compare.py`.
