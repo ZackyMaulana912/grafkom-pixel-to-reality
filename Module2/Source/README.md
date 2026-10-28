@@ -17,17 +17,22 @@ passed so the total `edge(A,B,C) > 0`; "inside" = all three edge functions
 ## Quick start
 
 ```bash
-cd code/Module2
-node tests.mjs                 # -> ALL CHECKS PASSED (10 ok)
-node draw_square.mjs --mode fill      # the Fully Worked Example
-node triangle_gap_bug.mjs            # diagnose-and-fix: shared-edge cracks/doubles
-node draw_plan.mjs --w 800 --h 600 --fill    # the Pusaka3D plan, from scratch
-node bench.mjs                       # forward vs backward timing
-npx serve .        # then open http://localhost:3000/web/  (the Three.js viewer)
+cd Module2/Source            # in this repo the module's code/Module2 lives here
+nvm use                      # Node version from .nvmrc (22.23.4)
+npm ci                       # exact three + serve from package-lock.json
+npm test                     # -> ALL CHECKS PASSED (22 ok, 0 fail)
+npm run square               # the Fully Worked Example
+npm run bug                  # diagnose-and-fix: shared-edge cracks/doubles
+npm run plan                 # MY floor plan (myplan.json), from scratch -> out/plan_scratch.ppm
+npm run bench                # forward vs backward on myplan.json
+npm run serve                # http://127.0.0.1:4173/web/  (the Three.js viewer)
+npm run png                  # out/*.ppm -> ../docs/img/*.png for Module2/README.md
 ```
 
-`npm install` is only needed for the web viewer's dev server (`three` is
-loaded from a CDN in `web/index.html`; `serve` is optional).
+The from-scratch side needs no package at all; `npm ci` is for the viewer's
+local server (`three` itself is loaded from a CDN in `web/index.html`, pinned
+to the same 0.160.0). The server listens on 127.0.0.1 only and fails instead of
+switching port if 4173 is taken.
 
 ## Unit table
 
@@ -68,7 +73,46 @@ loaded from a CDN in `web/index.html`; `serve` is optional).
   "framebuffer"; guarded the draw call with `typeof fb.set === "function"` so
   `coverage()` can run the same rasteriser without a real framebuffer.
 
-## Verified
+## Added in this repo
+
+| File | Job |
+|---|---|
+| `raster.mjs` (rewritten) | DDA from k (no drift); Bresenham with the E3 decision variable, octant-free; `triangle()` on 1/256-px fixed point so the top-left bias is exact (the starter's -1 bias dropped pixels whose edge value is 0.5), auto-flip winding, `fillRule: "module" \| "gpu"`; `triangleNaive()`; `fillRect()` with centre / corner / corner-inclusive sampling |
+| `plan_common.mjs` | legend (viridis, labels, markers) and `makeWorldToScreen()`, shared by Node and the browser viewer |
+| `myplan.json` | my own floor plan: the room where my statue stands (sources in `../docs/denah/`) |
+| `walkthrough.mjs` | one wall segment through the seven pipeline stages, with real numbers |
+| `draw_asterisk.mjs` | 24-spoke octant check |
+| `sample_centre.mjs` | Example E1: centre vs corner vs corner-inclusive, plus a quarter-pixel shift |
+| `make_tri_ref.mjs` | independent per-pixel integer reference -> `ref/tri_ref.ppm`, `ref/tri_t8_ref.ppm`; `--check` sweeps 1934 triangles |
+| `gpu_rule_check.mjs` + `web/gpu_rule.html` | which edge owns on-edge pixels on a real GPU; `ref/gpu_*.ppm` captured from WebGL |
+| `winding_demo.mjs` | pitfall fix measured: reversed triangles before/after |
+| `diff_pixels.mjs` | lists and classifies every pixel two renders disagree on |
+| `cvd_check.mjs` | legend distances under the page's own CVD matrices (read from `web/index.html`) |
+| `export_png.mjs` | PPM -> PNG with `node:zlib` only (crop and enlarge options) |
+| `prelim_check.mjs`, `figures/make_figures.mjs` | every number and SVG diagram of the Studi Pendahuluan |
+
+Changed starter files: `triangle_gap_bug.mjs` (`--diagnose`: pixel evidence
+only), `bench.mjs` (`--plan`, warm-up, interleaved rounds, median), `plan.mjs`
+(legend from the plan), `web/viewer.mjs` (my plan, DoubleSide fill, +0.5 line
+offset), `web/index.html` (Indonesian, grayscale toggle), `tests.mjs` (12 checks
+added, none of the 10 starter checks loosened), `package.json` (exact versions,
+safe `serve`).
+
+## Verified (this repo)
+
+| Item | Status | Date | Toolchain |
+|---|---|---|---|
+| `npm ci` from `package-lock.json` | three 0.160.0, serve 14.2.6 (compression overridden to 1.8.2), `npm audit`: 0 vulnerabilities | 2026-10-28 | macOS 27.0.1 (Apple M5), Node v22.23.4, npm 10.9.9 |
+| `npm test` | **ALL CHECKS PASSED (22 ok, 0 fail)**; with the starter `triangle()` swapped in, 4 of the new checks fail | 2026-10-28 | same |
+| `npm run serve` | 127.0.0.1:4173 only (checked with `lsof`); `/web/`, `/web/viewer.mjs`, `/myplan.json` all 200 | 2026-10-28 | same |
+| Viewer vs from-scratch (`myplan.json`, fill on) | 479929/480000 identical, PSNR 52.7 dB, SSIM 1.000; every mismatch is a line end/joint (25) or diagonal antialiasing (46) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
+| Legend under CVD filters | min distance 36.9 (deuteranopia), 46.4 (protanopia), 69.3 (CSS grayscale); browser pixels match the Node model within 1 code | 2026-10-28 | same |
+| Clean copy reproduction | see `../docs/laporan/laporan-modul2.md`, section 8 | 2026-10-28 | same |
+
+Not yet verified: the GitHub Pages URL (needs the push and Pages switched on),
+a browser opened by hand (not headless), Windows or Linux.
+
+## Verified (starter, kept for reference)
 
 | Item | Status | Date | Toolchain |
 |---|---|---|---|
