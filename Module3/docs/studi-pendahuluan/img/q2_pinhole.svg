@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="260" viewBox="0 0 820 260">
+<rect width="820" height="260" fill="#ffffff"/>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
+<line x1="40.0" y1="190.0" x2="461.0" y2="190.0" stroke="#444" stroke-width="1.6" marker-end="url(#ah)"/>
+<text x="461.0" y="208.0" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="end" fill="#222" font-weight="normal">−z (masuk ke scene)</text>
+<line x1="70.0" y1="230.0" x2="70.0" y2="40.0" stroke="#444" stroke-width="1.6" marker-end="url(#ah)"/>
+<text x="60.0" y="40.0" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="end" fill="#222" font-weight="normal">y</text>
+<line x1="138.0" y1="50" x2="138.0" y2="220" stroke="#888" stroke-dasharray="5,4"/>
+<text x="138.0" y="236.0" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle" fill="#222" font-weight="normal">bidang citra z = −d</text>
+<polygon points="70,190 138.0,190 138.0,156.0" fill="#f7b267" fill-opacity="0.6" stroke="#c46a1c"/>
+<polygon points="70,190 274.0,190 274.0,88.0" fill="#9aa5b1" fill-opacity="0.25" stroke="#566"/>
+<circle cx="274.0" cy="88.0" r="5" fill="#225"/>
+<text x="284.0" y="80.0" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="start" fill="#222" font-weight="normal">p = (x, y, z), z &lt; 0</text>
+<circle cx="138.0" cy="156.0" r="4" fill="#c46a1c"/>
+<text x="146.0" y="148.0" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="start" fill="#c46a1c" font-weight="normal">(x′, y′)</text>
+<circle cx="70" cy="190" r="4" fill="#000"/>
+<text x="64.0" y="212.0" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="end" fill="#222" font-weight="normal">pinhole</text>
+<text x="104.0" y="206.0" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#c46a1c" font-weight="bold">d</text>
+<text x="202.0" y="220.0" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#222" font-weight="bold">|z|</text>
+<text x="520.0" y="60.0" font-family="Helvetica, Arial, sans-serif" font-size="14" text-anchor="start" fill="#222" font-weight="bold">segitiga sebangun:</text>
+<text x="520.0" y="86.0" font-family="Helvetica, Arial, sans-serif" font-size="14" text-anchor="start" fill="#222" font-weight="normal">y′ / d = y / |z|</text>
+<text x="520.0" y="110.0" font-family="Helvetica, Arial, sans-serif" font-size="14" text-anchor="start" fill="#222" font-weight="normal">y′ = d·y / |z| ,  x′ = d·x / |z|</text>
+<text x="520.0" y="140.0" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" fill="#555" font-weight="normal">contoh di gambar: d = 2, z = −6, y = 3</text>
+<text x="520.0" y="160.0" font-family="Helvetica, Arial, sans-serif" font-size="12" text-anchor="start" fill="#555" font-weight="normal">→ y′ = 2·3/6 = 1</text>
+</svg>
