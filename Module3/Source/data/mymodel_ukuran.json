@@ -1,0 +1,75 @@
+{
+  "name": "Ruangan patung kuda (rumah saya) -- model 3D",
+  "units": "metres; y up; origin at the centre of the floor; +z points out of the entrance side",
+  "sources": {
+    "room": "floor plan from Module2/Source/myplan.json (2 x 4 m, cabinet 0.4 m deep with 8 doors, entrance 0.5 m, partition 1.5 m), measured by me",
+    "heights": "wall 3.5 m, cabinet and partition reach the ceiling: told by me on 28 Oct 2026",
+    "statue": "base 0.08 x 0.30 m measured by me; total height 0.45 m, base thickness and body thickness are ESTIMATES from photo IMG_8882 (base length as the ruler)",
+    "estimates": "statue position (from Module 2), entrance width (ratio), the partition's post and shelf layout, the statue heading"
+  },
+  "room": {
+    "width_x": 2.0,
+    "depth_z": 4.0,
+    "height": 3.5,
+    "wall_thickness": 0.1,
+    "floor_tiles": [2, 4]
+  },
+  "cabinet": {
+    "depth": 0.4,
+    "doors": 8
+  },
+  "entrance_width": 0.5,
+  "partition": {
+    "depth": 0.25,
+    "post_width": 0.04,
+    "shelf_thickness": 0.03,
+    "x_range": [-0.5, 1.09],
+    "posts": 4,
+    "shelves_y": [0.0, 0.875, 1.75, 2.625, 3.44]
+  },
+  "statue": {
+    "plan_centre": [0.8, 2.0],
+    "base": {
+      "width_x": 0.08,
+      "length_z": 0.3,
+      "height": 0.04
+    },
+    "total_height": 0.45,
+    "body_thickness": 0.06,
+    "head_towards": "+z",
+    "photo": "IMG_8882.jpg",
+    "photo_base_centre_x": 515,
+    "outline_px": [[243, 395], [250, 352], [330, 342], [430, 332], [560, 322], [640, 330], [690, 345], [725, 410], [700, 455], [740, 470], [742, 540], [705, 545], [750, 635], [705, 650], [715, 700], [685, 720], [680, 748], [640, 760], [610, 795], [650, 880], [700, 1000], [790, 1035], [855, 1080], [888, 1145], [895, 1215], [880, 1280], [705, 1280], [715, 1195], [745, 1135], [700, 1100], [630, 1130], [560, 1120], [545, 1250], [440, 1250], [440, 1180], [430, 1080], [455, 1010], [410, 975], [320, 950], [300, 955], [215, 905], [175, 930], [130, 890], [100, 800], [65, 690], [62, 640], [110, 630], [230, 690], [270, 640], [320, 590], [395, 520], [385, 500], [300, 450], [290, 470], [255, 450]]
+  },
+  "atlas": {
+    "size": 512,
+    "photos_dir": "../../Module1/Source/photos/small",
+    "regions": {
+      "statue": {
+        "photo": "IMG_8882.jpg",
+        "crop": [55, 315, 900, 1285],
+        "rect": [0, 0, 256, 294]
+      },
+      "marble": {
+        "photo": "IMG_8882.jpg",
+        "crop": [300, 1330, 860, 1440],
+        "rect": [0, 296, 256, 352]
+      },
+      "floor": {
+        "photo": "IMG_8907.jpg",
+        "crop": [0, 1250, 360, 1610],
+        "rect": [256, 0, 512, 256]
+      },
+      "door": {
+        "photo": "IMG_8905.jpg",
+        "crop": [555, 0, 845, 420],
+        "rect": [256, 256, 384, 512]
+      },
+      "wall": {
+        "photo": "IMG_8882.jpg",
+        "crop": [0, 0, 230, 460],
+        "rect": [384, 256, 512, 512]
+      }
+    }
+  }
+}
