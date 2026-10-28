@@ -107,5 +107,6 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | raster vs WebGL, temple | 35.3 dB, SSIM 0.998 | 2026-10-29 | same |
 | fresh copy of the repo files + new `.venv` | `pip install -r requirements.txt`, `make_model.py`, `tests.py` green | 2026-10-29 | same Mac |
 | opened by hand in a normal browser | **not yet** | | |
-| GitHub Pages URL | **not yet** (after push) | | |
+| fresh clone from GitHub (commit `b10843f`) + new `.venv` | `pip install`, `make_model.py` (output identical to the committed files, `git status` clean), `tests.py` 17 ok | 2026-10-29 | same Mac |
+| GitHub Pages URL | every file 200 with the right MIME type, served `viewer.js` and texture identical to the repo, 0 console / page / network errors, orbit + reset work, **Export PPM byte-identical to the local export** (my model and the temple) | 2026-10-29 | Chrome 156.0.8078.48 headless, Apple M5 |
 | other GPUs, Windows, Linux | **not tested** | | |

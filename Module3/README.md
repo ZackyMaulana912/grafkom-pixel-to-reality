@@ -4,7 +4,7 @@ Zacky Maulana (NIM 20241337034), Praktikum Grafika Komputer, S1 Informatika UMSu
 
 Subjek: patung kuda berdiri milik saya sendiri (sama dengan Modul 1 dan 2). Model 3D-nya adalah **ruangan tempat patung itu berdiri**, dibangun dari ukuran denah Modul 2 (2 × 4 m, tinggi 3,5 m, lemari 8 pintu dan sekat sampai plafon), dengan patung dari garis luar yang saya telusuri di foto. Totalnya 394 segitiga. Texture-nya atlas 512 × 512 dari foto saya sendiri di Modul 1. Model ditulis oleh skrip saya sendiri (`make_mymodel.py`) dan diperiksa dengan Blender 5.2.2. Asal setiap angka ada di [docs/model](docs/model/README.md).
 
-Halaman WebGL: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/** (aktif setelah repo di-push, lihat catatan Fase 5)
+Halaman WebGL: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/** (sudah aktif dan diuji, lihat catatan Fase 5)
 
 ## Cara menjalankan
 

@@ -139,14 +139,23 @@ PSNR 40,9 dB, SSIM 0,996. Selisihnya **hanya garis setebal 1 pixel di sepanjang 
 
 ## 5. Hosting di GitHub Pages (Lab 3 no 4)
 
-Folder yang dilayani tetap `Module3/Source/`, karena viewer mengambil `../scenes`, `../data`, dan `../web` (T8). `.nojekyll` sudah ada di root repo sejak Modul 2, jadi GitHub Pages menyajikan file apa adanya. Setelah repo di-push, alamatnya:
+Folder yang dilayani tetap `Module3/Source/`, karena viewer mengambil `../scenes`, `../data`, dan `../web` (T8). `.nojekyll` sudah ada di root repo sejak Modul 2, jadi GitHub Pages menyajikan file apa adanya. Alamatnya:
 
 **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/**
 
 Ukuran yang diunduh browser: `mymodel.obj` 42 KB dan `mymodel_tex.ppm` 786 KB, ditambah Three.js dari CDN.
 
+**Hasil uji di Pages (29 Oktober 2026, setelah push):**
+
+- semua file berstatus 200 (`viewer.js` sebagai `application/javascript`, file scene sebagai JSON);
+- `viewer.js` dan texture yang disajikan sama persis dengan isi repo;
+- di Chrome 156 headless, semua varian halaman termuat tanpa error, dan orbit serta tombol "Kamera awal" bekerja;
+- Export PPM dari Pages **identik byte per byte** dengan export dari server lokal, untuk model saya maupun candi.
+
+Saya juga meng-clone repo dari GitHub ke folder baru dengan `.venv` baru: `tests.py` 17 OK, dan data yang dibuat ulang sama persis dengan yang di-commit.
+
 ## 6. Yang masih harus saya kerjakan sendiri
 
-1. Push, lalu buka URL di atas di jendela incognito: pastikan model bertexture tampil, bisa di-orbit, dan Console (F12) tanpa error 404 atau MIME.
+1. Buka URL di atas di browser biasa (jendela incognito): pastikan model bertexture tampil, bisa di-orbit, dan Console (F12) tanpa error 404 atau MIME.
 2. Catat browser dan versinya di `fase0-setup.md` dan di baris Verified `Source/README.md`.
 3. (Opsional) Export PPM dari browser itu dan bandingkan dengan `compare.py`, untuk melihat apakah GPU dan browser lain memberi angka yang sama dengan Chrome headless.

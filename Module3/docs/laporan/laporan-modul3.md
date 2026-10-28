@@ -188,5 +188,11 @@ GET /data/mymodel.obj -> 200    GET /data/mymodel_tex.ppm -> 200
 
 `make_model.py` menghasilkan file yang sama byte per byte dengan yang di-commit (sha256 identik). Viewer dari salinan itu termuat tanpa error di Chrome 156 headless, bisa di-orbit, dan Export PPM-nya identik byte per byte dengan export sebelumnya. Setelah itu server dimatikan dan folder ujinya dihapus.
 
-**Clone dari GitHub dan URL GitHub Pages:** dikerjakan setelah repo di-push.
-URL: https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/
+**Clone dari GitHub** (commit `b10843f`, folder baru, `.venv` baru): `pip install` memasang `numpy==2.4.6` dan `pillow==13.0.0`, dan `make_model.py` menghasilkan file yang sama persis dengan yang di-commit (`git status` tetap bersih). `tests.py`: `ALL CHECKS PASSED (17 ok, 0 fail)`.
+
+**GitHub Pages:** https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/
+
+- semua file yang dibutuhkan viewer berstatus 200 dengan tipe MIME yang benar;
+- `viewer.js` dan texture yang disajikan identik dengan isi repo;
+- di Chrome 156 headless: 0 error console, halaman, maupun jaringan, dan model bisa di-orbit;
+- Export PPM dari halaman Pages identik byte per byte dengan export dari server lokal, baik untuk model saya maupun candi.
