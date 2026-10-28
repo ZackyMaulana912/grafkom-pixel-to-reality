@@ -1,14 +1,18 @@
-/* Module 2 -- the library-side render: the Pusaka3D floor plan with Three.js.
+/* Module 2 -- the library-side render: my floor plan with Three.js.
  *
- * Draws the SAME pusaka_plan.json that raster.mjs draws headless, at the SAME
- * pixel size, so `node compare.mjs out/plan_scratch.ppm plan_three.ppm`
- * shows a high-but-finite PSNR (the library anti-aliases the edges your
- * integer rasteriser leaves hard).
+ * Draws the SAME plan JSON that raster.mjs draws headless, at the SAME pixel
+ * size, with the SAME legend and world -> screen mapping (plan_common.mjs),
+ * so `node compare.mjs out/plan_scratch.ppm plan_three.ppm` measures only
+ * what the library does differently.
  *
  * The pipeline stages you still own even with a library: vertex winding,
- * canvas SIZE and pixelRatio, and the colour space of the clear colour.
+ * canvas SIZE and pixelRatio, where the pixel centre is, and the colour space.
+ *
+ *   /web/                         -> ../myplan.json
+ *   /web/?plan=../pusaka_plan.json -> the module's fallback plan
  */
 import * as THREE from "three";
+import { legendOf, makeWorldToScreen } from "../plan_common.mjs";
 
 const W = 800, H = 600;
 const canvas = document.getElementById("c");
@@ -23,42 +27,37 @@ renderer.setClearColor(0x121216, 1);
 const camera = new THREE.OrthographicCamera(0, W, 0, H, -10, 10);
 const scene = new THREE.Scene();
 
-// viridis 5-step ramp -- identical to plan.mjs CATEGORY_RGB
-const CATEGORY = {
-  wall:   0x440154,
-  cella:  0x3b528b,
-  stair:  0x21918c,
-  shrine: 0x5ec962,
-  axis:   0xfde725,
-};
-const MARKER = { wall: "■", cella: "◆", stair: "▲", shrine: "●", axis: "‖" };
-
-let plan, world2screen, group;
-
-function makeWorldToScreen(p) {
-  const s = p.scale_px_per_m, [ox, oy] = p.origin_m;
-  return ([xm, ym]) => [Math.round((xm + ox) * s), Math.round(H - 1 - (ym + oy) * s)];
-}
+const hex = ([r, g, b]) => (r << 16) | (g << 8) | b;
+let plan, legend, world2screen, group;
 
 function build(fillSilhouette) {
   if (group) scene.remove(group);
   group = new THREE.Group();
 
   if (fillSilhouette && plan.silhouette) {
+    // vertices stay on integer pixel CORNERS: a pixel is filled when its
+    // centre is inside, exactly the sample-centre rule of triangle()
     const shape = new THREE.Shape();
     plan.silhouette.points.map(world2screen).forEach(([x, y], i) => {
       i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y);
     });
     const geo = new THREE.ShapeGeometry(shape);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xe6ecf5 });
+    // ShapeGeometry fixes the outline's direction itself (isClockWise, then
+    // reverse), so its triangles face a normal y-up camera. This camera is
+    // y-down, which mirrors the screen: they arrive back-facing and the
+    // default FrontSide culls every one. A flat plan has no back: both sides.
+    const mat = new THREE.MeshBasicMaterial({ color: 0xe6ecf5, side: THREE.DoubleSide });
     group.add(new THREE.Mesh(geo, mat));
   }
 
+  const colour = Object.fromEntries(legend.map((e) => [e.category, hex(e.rgb)]));
   for (const pl of plan.polylines) {
-    const pts = pl.points.map(world2screen).map(([x, y]) => new THREE.Vector3(x, y, 1));
+    // a Bresenham pixel (x, y) is the sample at (x + 0.5, y + 0.5); a GL line
+    // through integer coordinates would run on the border between two rows
+    const pts = pl.points.map(world2screen).map(([x, y]) => new THREE.Vector3(x + 0.5, y + 0.5, 1));
     if (pl.closed) pts.push(pts[0].clone());
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: CATEGORY[pl.category] ?? 0xffffff });
+    const mat = new THREE.LineBasicMaterial({ color: colour[pl.category] ?? 0xffffff });
     group.add(new THREE.Line(geo, mat));
   }
   scene.add(group);
@@ -68,12 +67,12 @@ function build(fillSilhouette) {
 function buildLegend() {
   const rows = document.getElementById("rows");
   rows.innerHTML = "";
-  for (const [cat, hex] of Object.entries(CATEGORY)) {
+  for (const e of legend) {
     const row = document.createElement("div");
     row.className = "row";
     row.innerHTML =
-      `<span class="swatch" style="background:#${hex.toString(16).padStart(6, "0")}"></span>` +
-      `<span class="marker">${MARKER[cat]}</span><span>${cat}</span>`;
+      `<span class="swatch" style="background:#${hex(e.rgb).toString(16).padStart(6, "0")}"></span>` +
+      `<span class="marker">${e.marker}</span><span>${e.label}</span>`;
     rows.appendChild(row);
   }
 }
@@ -103,24 +102,29 @@ function applyFilters() {
   const wrap = document.getElementById("wrap");
   wrap.classList.toggle("cvd-deuteranopia", document.getElementById("cvd").checked);
   wrap.classList.toggle("cvd-protanopia", document.getElementById("cvd2").checked);
+  wrap.classList.toggle("cvd-grayscale", document.getElementById("gray").checked);
 }
 
-const PLAN_URL = "../pusaka_plan.json";
+const PLAN_URL = new URLSearchParams(location.search).get("plan") ?? "../myplan.json";
 fetch(PLAN_URL)
-  .then((r) => r.json())
+  .then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
   .then((p) => {
     plan = p;
-    world2screen = makeWorldToScreen(plan);
+    legend = legendOf(plan);
+    world2screen = makeWorldToScreen(plan, H);
+    document.getElementById("plan-name").textContent = plan.name;
     buildLegend();
     build(document.getElementById("fill").checked);
     document.getElementById("fill").addEventListener("change", (e) => build(e.target.checked));
-    document.getElementById("cvd").addEventListener("change", applyFilters);
-    document.getElementById("cvd2").addEventListener("change", applyFilters);
+    for (const id of ["cvd", "cvd2", "gray"]) document.getElementById(id).addEventListener("change", applyFilters);
     document.getElementById("export").addEventListener("click", exportPPM);
   })
   .catch((err) => {
     document.getElementById("view").insertAdjacentHTML(
       "beforeend",
-      `<p style="color:#f66">Could not load ${PLAN_URL}: ${err}. Serve the repo root, e.g. <code>npx serve .</code>, and open <code>/web/</code>.</p>`
+      `<p style="color:#f66">Gagal memuat ${PLAN_URL}: ${err}. Jalankan <code>npm run serve</code> dari <code>Module2/Source</code>, lalu buka <code>/web/</code>.</p>`
     );
   });

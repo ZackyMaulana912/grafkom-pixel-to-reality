@@ -5,7 +5,12 @@
  * ordering FIRST (Lab 3), then run this and reconcile. Absolute ms vary by
  * machine; the RATIO and its direction are the result.
  *
- *   node bench.mjs [--w 800 --h 600 --iters 20]
+ * Every (method, zoom) pair is warmed up BEFORE any timing, and the timings
+ * are taken in interleaved rounds and reported as the median. Without that,
+ * whichever zoom is timed first also pays for V8 optimising the loop, and
+ * zoom 10x looks faster than 1x only because it runs second.
+ *
+ *   node bench.mjs [--plan myplan.json --w 800 --h 600 --iters 20 --warmup 3 --rounds 5]
  */
 import { loadPlan, makeWorldToScreen } from "./plan.mjs";
 import { Framebuffer, lineBresenham } from "./raster.mjs";
@@ -14,8 +19,11 @@ const val = (k, d) => {
   const i = process.argv.indexOf(k);
   return i >= 0 && process.argv[i + 1] ? +process.argv[i + 1] : d;
 };
-const W = val("--w", 800), H = val("--h", 600), ITERS = val("--iters", 20);
-const plan = loadPlan("pusaka_plan.json");
+const W = val("--w", 800), H = val("--h", 600), ITERS = val("--iters", 20), WARMUP = val("--warmup", 3);
+const ROUNDS = val("--rounds", 5);
+const pi = process.argv.indexOf("--plan");
+const planPath = pi >= 0 ? process.argv[pi + 1] : "pusaka_plan.json";
+const plan = loadPlan(planPath);
 
 // flatten the plan into screen-space segments at a given zoom
 function segmentsAtZoom(zoom) {
@@ -54,19 +62,32 @@ const backward = (fb, segs) => {
 };
 
 function time(fn, segs) {
-  fn(new Framebuffer(W, H), segs); // warm-up
   const t0 = performance.now();
   for (let i = 0; i < ITERS; i++) fn(new Framebuffer(W, H), segs);
   return (performance.now() - t0) / ITERS;
 }
 
-console.log(`plan segments: ${segmentsAtZoom(1).length}   framebuffer ${W}x${H}   iters ${ITERS}`);
-console.log(`${"zoom".padEnd(8)}${"forward (ms)".padEnd(16)}${"backward (ms)".padEnd(16)}ratio (bwd/fwd)`);
-for (const zoom of [1, 10]) {
-  const segs = segmentsAtZoom(zoom);
-  const f = time(forward, segs);
-  const b = time(backward, segs);
-  console.log(`${String(zoom + "x").padEnd(8)}${f.toFixed(3).padEnd(16)}${b.toFixed(3).padEnd(16)}${(b / f).toFixed(1)}x`);
+console.log(`plan ${planPath}: ${segmentsAtZoom(1).length} segments   framebuffer ${W}x${H}   iters ${ITERS}`);
+const ZOOMS = [1, 10];
+for (let k = 0; k < WARMUP; k++)
+  for (const zoom of ZOOMS)
+    for (const fn of [forward, backward]) fn(new Framebuffer(W, H), segmentsAtZoom(zoom));
+const median = (xs) => [...xs].sort((p, q) => p - q)[xs.length >> 1];
+const ms = Object.fromEntries(ZOOMS.map((z) => [z, { f: [], b: [] }]));
+for (let r = 0; r < ROUNDS; r++)
+  for (const zoom of ZOOMS) {
+    const segs = segmentsAtZoom(zoom);
+    ms[zoom].f.push(time(forward, segs));
+    ms[zoom].b.push(time(backward, segs));
+  }
+console.log(`${"zoom".padEnd(8)}${"forward (ms)".padEnd(16)}${"backward (ms)".padEnd(16)}ratio (bwd/fwd)   [median of ${ROUNDS} rounds]`);
+for (const zoom of ZOOMS) {
+  const f = median(ms[zoom].f), b = median(ms[zoom].b);
+  const spread = `backward ${Math.min(...ms[zoom].b).toFixed(1)}..${Math.max(...ms[zoom].b).toFixed(1)}`;
+  console.log(`${String(zoom + "x").padEnd(8)}${f.toFixed(3).padEnd(16)}${b.toFixed(3).padEnd(16)}${(b / f).toFixed(1)}x`.padEnd(58) + spread);
 }
+// both timings include allocating the framebuffer; show that share on its own
+const alloc = time(() => {}, []);
+console.log(`framebuffer allocation alone: ${alloc.toFixed(3)} ms per frame`);
 console.log("\nInterpret: forward cost tracks total segment length (pixels drawn);");
 console.log("backward cost tracks pixels x segments and is ~flat in zoom.");

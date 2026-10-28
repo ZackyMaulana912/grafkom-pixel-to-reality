@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aturan Tepi GPU</title>
+<style>
+  body { margin: 1rem; font: 14px/1.5 system-ui, sans-serif; background: #12121a; color: #e8e8ef; }
+  canvas { width: 192px; height: 192px; image-rendering: pixelated; border: 1px solid #444; margin-right: 1rem; }
+  button { font: inherit; padding: .3rem .6rem; margin: .5rem .5rem 0 0; }
+  code { color: #fde725; }
+</style>
+</head>
+<body>
+<h1 style="font-size:1rem">Pixel tepat di tepi: siapa pemiliknya menurut GPU?</h1>
+<p>Raw WebGL2, tanpa antialiasing, vertex di sudut pixel integer (y ke bawah). Kiri: segitiga E4
+  A(1,1) B(6,2) C(3,7). Kanan: persegi 6x6 dari dua segitiga, oranye (2,2) (8,2) (8,8) dan biru (2,2) (8,8) (2,8).
+  Dibandingkan dengan <code>triangle(..., { fillRule: "gpu" })</code> di <code>raster.mjs</code>.</p>
+<canvas id="e4" width="12" height="12"></canvas>
+<canvas id="square" width="12" height="12"></canvas>
+<div>
+  <button data-id="e4">Export gpu_e4.ppm</button>
+  <button data-id="square">Export gpu_square.ppm</button>
+</div>
+<p id="info"></p>
+<script>
+const W = 12, H = 12;
+const VS = `#version 300 es
+in vec2 p; void main() { gl_Position = vec4(p.x / 12.0 * 2.0 - 1.0, 1.0 - p.y / 12.0 * 2.0, 0.0, 1.0); }`;
+const FS = `#version 300 es
+precision mediump float; uniform vec3 col; out vec4 o; void main() { o = vec4(col, 1.0); }`;
+
+/** draw [A, B, C, rgb] triangles with no blending and no culling; return top-down RGB rows */
+function render(id, tris) {
+  const gl = document.getElementById(id).getContext("webgl2", { antialias: false, preserveDrawingBuffer: true });
+  const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); return x; };
+  const pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(pr); gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  const loc = gl.getAttribLocation(pr, "p");
+  gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  for (const [A, B, C, rgb] of tris) {
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...A, ...B, ...C]), gl.STATIC_DRAW);
+    gl.uniform3f(gl.getUniformLocation(pr, "col"), ...rgb.map((v) => v / 255));
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const rgb = new Uint8Array(W * H * 3);       // readPixels is bottom-up
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      for (let k = 0; k < 3; k++) rgb[(y * W + x) * 3 + k] = px[((H - 1 - y) * W + x) * 4 + k];
+  const ext = gl.getExtension("WEBGL_debug_renderer_info");
+  window.renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  return rgb;
+}
+
+const shots = {
+  e4: render("e4", [[[1, 1], [6, 2], [3, 7], [255, 255, 255]]]),
+  square: render("square", [[[2, 2], [8, 2], [8, 8], [230, 120, 40]], [[2, 2], [8, 8], [2, 8], [40, 130, 180]]]),
+};
+window.shots = Object.fromEntries(Object.entries(shots).map(([k, v]) => [k, Array.from(v)]));
+document.getElementById("info").textContent = `renderer: ${window.renderer}`;
+
+for (const b of document.querySelectorAll("button")) {
+  b.addEventListener("click", () => {
+    const head = new TextEncoder().encode(`P6\n${W} ${H}\n255\n`);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([head, shots[b.dataset.id]], { type: "application/octet-stream" }));
+    a.download = `gpu_${b.dataset.id}.ppm`;
+    a.click();
+  });
+}
+</script>
+</body>
+</html>

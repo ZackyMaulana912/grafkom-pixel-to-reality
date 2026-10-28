@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pusaka3D &mdash; Module 2: Floor Plan (Three.js)</title>
+<title>Denah Ruang Patung</title>
 <link rel="stylesheet" href="cvd.css" />
 <style>
   :root { color-scheme: light dark; }
@@ -47,25 +47,26 @@
 </head>
 <body>
 <header>
-  <h1>Pusaka3D &mdash; Temple Floor Plan, drawn with Three.js (Module 2)</h1>
-  <p>Same <code>pusaka_plan.json</code> the from-scratch <code>raster.mjs</code> draws.
-     Outline = <code>THREE.Line</code>, silhouette = <code>ShapeGeometry</code>.
-     Compare <code>Export PPM</code> against <code>out/plan_scratch.ppm</code> with <code>node compare.mjs</code>.</p>
+  <h1>Modul 2: <span id="plan-name">denah</span>, digambar dengan Three.js</h1>
+  <p>Denah yang sama dengan yang digambar <code>raster.mjs</code> buatan saya.
+     Garis = <code>THREE.Line</code>, lantai = <code>ShapeGeometry</code>.
+     Hasil <code>Export PPM</code> dibandingkan dengan <code>out/plan_scratch.ppm</code> lewat <code>node compare.mjs</code>.</p>
 </header>
 <div id="wrap">
   <div id="view">
     <canvas id="c" width="800" height="600"></canvas>
   </div>
   <div id="legend">
-    <h2>Legend</h2>
+    <h2>Legenda</h2>
     <div id="rows"></div>
-    <label class="toggle"><input type="checkbox" id="cvd" /> Simulate deuteranopia</label>
-    <label class="toggle"><input type="checkbox" id="cvd2" /> Simulate protanopia</label>
-    <label class="toggle"><input type="checkbox" id="fill" checked /> Fill silhouette</label>
+    <label class="toggle"><input type="checkbox" id="cvd" /> Simulasi deuteranopia</label>
+    <label class="toggle"><input type="checkbox" id="cvd2" /> Simulasi protanopia</label>
+    <label class="toggle"><input type="checkbox" id="gray" /> Grayscale</label>
+    <label class="toggle"><input type="checkbox" id="fill" checked /> Isi lantai</label>
     <button id="export">Export PPM</button>
-    <p class="hint">The legend uses a <b>viridis</b> ramp (luminance varies), a
-      <b>label</b>, and a distinct <b>marker shape</b> per category &mdash; so all
-      five stay distinguishable under the CVD filters and in grayscale.</p>
+    <p class="hint">Legenda memakai ramp <b>viridis</b> (kecerahannya bertingkat),
+      <b>label</b> teks, dan <b>bentuk marker</b> yang berbeda per kategori, supaya
+      kelimanya tetap bisa dibedakan dengan filter buta warna maupun grayscale.</p>
   </div>
 </div>
 <script type="module" src="viewer.mjs"></script>

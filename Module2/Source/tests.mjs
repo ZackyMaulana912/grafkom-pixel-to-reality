@@ -2,11 +2,17 @@
  * Exit 0 iff all pass. Covers the hand-checkable invariants of Examples
  * E1-E5, watertightness (top-left rule), and the reference raster match. */
 import {
-  Framebuffer, lineDDA, lineBresenham, edge, triangle, barycentric, coverage,
+  Framebuffer, lineDDA, lineBresenham, edge, triangle, triangleNaive, barycentric, coverage, fillRect,
 } from "./raster.mjs";
-import { makeWorldToScreen, loadPlan } from "./plan.mjs";
+import { makeWorldToScreen, loadPlan, renderPlan, newFramebufferForPlan, legendOf } from "./plan.mjs";
 import { pixelStats } from "./metrics.mjs";
+import { asterisk } from "./draw_asterisk.mjs";
+import { sweep, REFS } from "./make_tri_ref.mjs";
+import { encodePNG } from "./export_png.mjs";
+import { views, minPair, BAD } from "./cvd_check.mjs";
+import { GPU_REFS, drawRef, gpuSweep } from "./gpu_rule_check.mjs";
 import { existsSync, mkdirSync } from "node:fs";
+import { inflateSync } from "node:zlib";
 
 let pass = 0, fail = 0;
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -117,6 +123,138 @@ check("reference raster -- draw_square fill is byte-identical to ref/square_fill
   const st = pixelStats(fb, ref);
   assert(st.identical === st.total && st.maxAbs === 0,
     `identical ${st.identical}/${st.total}, max|diff| ${st.maxAbs}`);
+});
+
+// ------------------------------------------------------- added in this repo
+
+check("lines -- 8 reflections of (0,0)->(9,4): start, end, 8-connected, within 0.5 px", () => {
+  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]])
+    for (const [a, b] of [[9, 4], [4, 9]]) {
+      const ex = sx * a, ey = sy * b, pts = lineBresenham(0, 0, ex, ey);
+      const last = pts[pts.length - 1];
+      assert(eq(pts[0], [0, 0]) && eq(last, [ex, ey]), `octant ${ex},${ey}: ends ${pts[0]} ${last}`);
+      for (let k = 1; k < pts.length; k++)
+        assert(Math.max(Math.abs(pts[k][0] - pts[k - 1][0]), Math.abs(pts[k][1] - pts[k - 1][1])) === 1,
+          `octant ${ex},${ey}: gap or repeat at step ${k}`);
+      const xMajor = Math.abs(ex) >= Math.abs(ey);
+      for (const [x, y] of pts) {
+        const off = xMajor ? Math.abs(y - (ey * x) / ex) : Math.abs(x - (ex * y) / ey);
+        assert(off <= 0.5 + 1e-12, `octant ${ex},${ey}: (${x},${y}) is ${off} px off the line`);
+      }
+    }
+});
+
+check("asterisk -- 24 spokes every 15 deg reach R +/- 1 px and stay within 0.5 px of their line", () => {
+  const spokes = asterisk(120, 120, 110);
+  assert(spokes.length === 24, "spoke count");
+  for (const s of spokes) {
+    assert(Math.abs(s.reach - 110) <= 1, `${s.deg} deg reaches ${s.reach}`);
+    assert(s.wander <= 0.5 + 1e-12, `${s.deg} deg wanders ${s.wander}`);
+    assert(s.pixels === s.expected, `${s.deg} deg: ${s.pixels} px, expected ${s.expected}`);
+  }
+});
+
+check("E1b -- corner test with an inclusive bound lights a 3x3 block, centre rule 2x2", () => {
+  const centre = fillRect(null, 1, 1, 3, 3, undefined, { sample: "centre" });
+  const corner = fillRect(null, 1, 1, 3, 3, undefined, { sample: "corner-inclusive" });
+  assert(eq(centre, [[1, 1], [2, 1], [1, 2], [2, 2]]), `centre ${JSON.stringify(centre)}`);
+  const want = [];
+  for (let y = 1; y <= 3; y++) for (let x = 1; x <= 3; x++) want.push([x, y]);
+  assert(eq(corner, want), `corner-inclusive ${JSON.stringify(corner)}`);
+  // a quarter-pixel move shows the corner test's shift: centre keeps (1..2), corner moves to (2..3)
+  const moved = fillRect(null, 1.25, 1.25, 3.25, 3.25, undefined, { sample: "corner" });
+  assert(eq(moved, [[2, 2], [3, 2], [2, 3], [3, 3]]), `moved corner ${JSON.stringify(moved)}`);
+});
+
+check("E4 -- barycentric of P1 (3,3) is (3/7, 2/7, 2/7); triangleNaive fills the same 6x6 seam", () => {
+  const [a, b, c] = barycentric([1, 1], [6, 2], [3, 7], [3, 3]);
+  assert(Math.abs(a - 3 / 7) < 1e-12 && Math.abs(b - 2 / 7) < 1e-12 && Math.abs(c - 2 / 7) < 1e-12, `${a},${b},${c}`);
+  const counts = new Int32Array(144);
+  for (const T of [[[2, 2], [8, 2], [8, 8]], [[2, 2], [8, 8], [2, 8]]])
+    triangleNaive({ w: 12, h: 12 }, ...T, null, { onFragment: (x, y) => counts[y * 12 + x]++ });
+  const twice = [...counts].filter((k) => k >= 2).length;
+  assert(twice === 6, `triangleNaive doubles ${twice}`);
+});
+
+check("top-left on fixed point -- triangle() equals the independent reference on 1934 triangles", () => {
+  const r = sweep(triangle);
+  assert(r.badTris === 0 && r.missing === 0 && r.extra === 0,
+    `${r.badTris} triangles differ, ${r.missing} missing, ${r.extra} extra, e.g. ${JSON.stringify(r.examples[0])}`);
+});
+
+check("reference raster -- triangle() matches ref/tri_ref.ppm and ref/tri_t8_ref.ppm, max|diff| = 0", () => {
+  for (const { path, tri, w, h } of REFS) {
+    const fb = new Framebuffer(w, h);
+    triangle(fb, ...tri, [255, 255, 255]);
+    const st = pixelStats(fb, Framebuffer.readPPM(path));
+    assert(st.identical === st.total && st.maxAbs === 0, `${path}: ${st.identical}/${st.total}, max|diff| ${st.maxAbs}`);
+  }
+});
+
+check("fill rule \"gpu\" -- matches the pixels WebGL drew (ref/gpu_*.ppm) and its own reference; still watertight", () => {
+  for (const ref of GPU_REFS) {
+    const st = pixelStats(drawRef(ref, "gpu"), Framebuffer.readPPM(ref.path));
+    assert(st.identical === st.total && st.maxAbs === 0, `${ref.path}: ${st.identical}/${st.total}`);
+  }
+  const r = gpuSweep();
+  assert(r.badTris === 0, `${r.badTris} triangles differ from the GPU-rule reference`);
+  const c = coverage(12, 12, [[[2, 2], [8, 2], [8, 8]], [[2, 2], [8, 8], [2, 8]]], { fillRule: "gpu" });
+  assert(c.once === 36 && c.twice === 0 && c.gaps === 0, `once=${c.once} twice=${c.twice} gaps=${c.gaps}`);
+});
+
+check("winding -- a reversed triangle fills the same pixels; triangleNaive drops it", () => {
+  const A = [1, 1], B = [6, 2], C = [3, 7];
+  const f = new Framebuffer(10, 10), r = new Framebuffer(10, 10), n = new Framebuffer(10, 10);
+  const lit = triangle(f, A, B, C), litRev = triangle(r, A, C, B);
+  assert(lit === 14 && litRev === 14, `lit ${lit} / ${litRev}`);
+  assert(pixelStats(f, r).maxAbs === 0, "reversed order changed the raster");
+  assert(triangleNaive(n, A, C, B) === 0, "triangleNaive should draw nothing for the reversed order");
+});
+
+check("myplan -- every point inside 800x600, 5 legend categories, every category in the legend", () => {
+  const plan = loadPlan("myplan.json"), w2s = makeWorldToScreen(plan, 600);
+  for (const pl of [...plan.polylines, plan.silhouette])
+    for (const p of pl.points) {
+      const [x, y] = w2s(p);
+      assert(x >= 0 && y >= 0 && x < 800 && y < 600, `${pl.id} point ${p} -> (${x},${y}) is off-canvas`);
+    }
+  const cats = legendOf(plan).map((e) => e.category);
+  assert(cats.length === 5 && new Set(cats).size === 5, `legend ${cats}`);
+  for (const pl of plan.polylines) assert(cats.includes(pl.category), `${pl.id}: category ${pl.category} not in legend`);
+});
+
+check("myplan -- footprint fills exactly 260 x 520 px, each pixel once, no zero-area triangle", () => {
+  const plan = loadPlan("myplan.json"), p = plan.silhouette.points.map(makeWorldToScreen(plan, 600));
+  const tris = [];
+  for (let i = 1; i + 1 < p.length; i++) tris.push([p[0], p[i], p[i + 1]]);
+  for (const [A, B, C] of tris) assert(edge(...A, ...B, ...C) !== 0, "zero-area fan triangle");
+  const cov = coverage(800, 600, tris, { topLeft: true });
+  assert(cov.once === 260 * 520 && cov.twice === 0 && cov.gaps === 0, `once=${cov.once} twice=${cov.twice} gaps=${cov.gaps}`);
+  const fb = newFramebufferForPlan(plan, 800, 600);
+  renderPlan(fb, plan, { fillSilhouette: true });
+  assert(eq(fb.get(400, 300), [230, 236, 245]), "floor colour at the room centre");
+});
+
+check("legend -- all 5 categories stay >= 20 apart under the page's CVD filters; red/green fails", () => {
+  const V = views(), labels = legendOf(loadPlan("myplan.json")).map((e) => e.label);
+  const cols = legendOf(loadPlan("myplan.json")).map((e) => e.rgb);
+  for (const [name, f] of Object.entries(V)) {
+    const m = minPair(cols.map(f), labels);
+    assert(m.d >= 20, `${name}: ${m.pair} only ${m.d.toFixed(1)} apart`);
+  }
+  assert(minPair(BAD.map(V.deuteranopia), BAD.map(String)).d < 20, "the red/green control should collapse");
+});
+
+check("export_png -- the PNG encoder round-trips a raster through node:zlib", () => {
+  const fb = new Framebuffer(5, 3);
+  for (let i = 0; i < fb.data.length; i++) fb.data[i] = (i * 37) % 256;
+  const png = encodePNG(fb);
+  assert(png.subarray(1, 4).toString("ascii") === "PNG", "signature");
+  const idatLen = png.readUInt32BE(33), raw = inflateSync(png.subarray(41, 41 + idatLen));
+  for (let y = 0; y < 3; y++) {
+    assert(raw[y * 16] === 0, "filter byte");
+    assert(Buffer.compare(raw.subarray(y * 16 + 1, y * 16 + 16), Buffer.from(fb.data.subarray(y * 15, y * 15 + 15))) === 0, `row ${y}`);
+  }
 });
 
 console.log(`\n${fail === 0 ? "ALL CHECKS PASSED" : fail + " CHECK(S) FAILED"}  (${pass} ok, ${fail} fail)`);
