@@ -1,91 +1,142 @@
-/* Module 3 -- real-time textured temple in Three.js.
+/* Module 3 -- the real-time renderer: my model in Three.js 0.160.0.
  *
- * Camera, model matrix, light and colour management are set to MATCH
- * raster3d.py / raytrace.py so `compare.py` is meaningful.
+ * Camera, model matrix, light and texture come from the SAME scenes/<name>.json
+ * that raster3d.py and raytrace.py read, so compare.py measures how the two
+ * renderers differ, not what they were given.
+ *
+ * Three settings are needed to match raster3d.py (finding T7); each can be
+ * switched off from the URL to measure it: ?lights=physical&filter=nearest&texel=gpu
+ *   lights  three.js r155+ lights are physical: Lambert is albedo / pi, so the
+ *           intensities are multiplied by pi to get raster3d's albedo * cos.
+ *   filter  DataTexture defaults to NearestFilter; raster3d is bilinear.
+ *   texel   raster3d puts u = 0 and u = 1 on the centres of the edge texels,
+ *           a GPU on the texel edges; repeat/offset maps one onto the other.
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
-const W = 512, H = 512;
+const params = new URLSearchParams(location.search);
+const sceneName = params.get("scene") || "mymodel";
+const opt = {
+  lights: params.get("lights") || "matched",
+  filter: params.get("filter") || "linear",
+  texel: params.get("texel") || "matched",
+};
+
 const canvas = document.getElementById("c");
+const status = document.getElementById("status");
+const fail = (msg) => {
+  status.textContent = msg;
+  status.className = "error";
+  throw new Error(msg);
+};
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(1);
-renderer.setSize(W, H, false);
-renderer.outputColorSpace = THREE.SRGBColorSpace;      // match srgb.py output encode
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
-
-// --- camera: exactly raster3d.render() defaults ---
-const camera = new THREE.PerspectiveCamera(45, W / H, 1.0, 14.0);
-camera.position.set(2.6, 2.0, 3.4);
-const controls = new OrbitControls(camera, canvas);
-controls.target.set(0, 0.7, 0);
-controls.update();
-
-// --- lights: ambient 0.15 + one directional along (0.4, 0.9, 0.6) ---
-scene.add(new THREE.AmbientLight(0xffffff, 0.15));
-const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-sun.position.set(0.4, 0.9, 0.6);
-scene.add(sun);
-
-// --- parse a binary P6 PPM into a DataTexture (Three.js has no PPM loader) ---
+/** Parse a binary P6 PPM into an sRGB DataTexture (three.js has no PPM loader). */
 async function loadPPMTexture(url) {
-  const buf = new Uint8Array(await (await fetch(url)).arrayBuffer());
+  const res = await fetch(url);
+  if (!res.ok) fail(`texture ${url}: HTTP ${res.status}`);
+  const buf = new Uint8Array(await res.arrayBuffer());
   let p = 0;
-  const tok = () => {
-    while (/\s/.test(String.fromCharCode(buf[p]))) p++;
+  const isSpace = (b) => b === 0x20 || b === 0x0a || b === 0x0d || b === 0x09;
+  const token = () => {
+    while (isSpace(buf[p])) p++;
     let s = "";
-    while (!/\s/.test(String.fromCharCode(buf[p]))) s += String.fromCharCode(buf[p++]);
+    while (!isSpace(buf[p])) s += String.fromCharCode(buf[p++]);
     return s;
   };
-  if (tok() !== "P6") throw new Error("not a P6 PPM");
-  const w = +tok(), h = +tok();
-  tok(); p++;                                  // maxval + one whitespace
+  if (token() !== "P6") fail(`${url} is not a binary P6 PPM`);
+  const w = +token(), h = +token();
+  token();
+  p++;                                              // exactly one whitespace after maxval
   const rgba = new Uint8Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
-    rgba[i * 4] = buf[p + i * 3];
-    rgba[i * 4 + 1] = buf[p + i * 3 + 1];
-    rgba[i * 4 + 2] = buf[p + i * 3 + 2];
+    rgba.set(buf.subarray(p + i * 3, p + i * 3 + 3), i * 4);
     rgba[i * 4 + 3] = 255;
   }
   const tex = new THREE.DataTexture(rgba, w, h, THREE.RGBAFormat);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.flipY = true;                            // OBJ vt origin is bottom-left
+  tex.flipY = true;                                 // PPM row 0 is the top; OBJ v = 1 is the top
+  if (opt.filter === "linear") tex.magFilter = tex.minFilter = THREE.LinearFilter;
+  if (opt.texel === "matched") {
+    tex.repeat.set((w - 1) / w, (h - 1) / h);
+    tex.offset.set(0.5 / w, 0.5 / h);
+  }
   tex.needsUpdate = true;
   return tex;
 }
 
-let mesh;
-Promise.all([
-  new OBJLoader().loadAsync("../data/pusaka_model.obj"),
-  loadPPMTexture("../data/relief.ppm"),
-]).then(([obj, tex]) => {
-  const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
-  obj.traverse((c) => { if (c.isMesh) c.material = mat; });
-  obj.scale.set(1.4, 1.4, 1.4);
-  obj.rotation.y = THREE.MathUtils.degToRad(35);   // rot_y(35) in transforms.py
-  mesh = obj;
-  scene.add(obj);
-}).catch((e) => {
-  document.getElementById("wrap").insertAdjacentHTML("beforeend",
-    `<p style="color:#f66">Could not load model/texture: ${e}. Serve the repo
-     root (<code>npx serve .</code>) and open <code>/web/</code>.</p>`);
-});
+const res = await fetch(`../scenes/${sceneName}.json`);
+if (!res.ok) fail(`scene ../scenes/${sceneName}.json: HTTP ${res.status}`);
+const sc = await res.json();
+const W = sc.frame.w, H = sc.frame.h;
 
-function animate() {
-  requestAnimationFrame(animate);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);                          // 1 canvas pixel = 1 framebuffer pixel
+renderer.setSize(W, H, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;   // encode like srgb.linear_to_srgb
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const cam = sc.camera;
+const camera = new THREE.PerspectiveCamera(cam.fovy_deg, W / H, cam.near, cam.far);
+camera.position.set(...cam.eye);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(...cam.center);
+controls.update();
+const home = { pos: camera.position.clone(), target: controls.target.clone() };
+
+const k = opt.lights === "matched" ? Math.PI : 1;
+scene.add(new THREE.AmbientLight(0xffffff, sc.light.ambient * k));
+const sun = new THREE.DirectionalLight(0xffffff, (1 - sc.light.ambient) * k);
+sun.position.set(...sc.light.dir);                  // shines from this direction towards the origin
+scene.add(sun);
+
+let model;
+try {
+  const [obj, tex] = await Promise.all([
+    new OBJLoader().loadAsync(`../${sc.model.obj}`),
+    loadPPMTexture(`../${sc.model.texture}`),
+  ]);
+  const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+  let tris = 0;
+  obj.traverse((c) => {
+    if (c.isMesh) {
+      c.material = mat;
+      tris += c.geometry.attributes.position.count / 3;
+    }
+  });
+  obj.position.set(...sc.model.translate);          // M = T Ry S, the same order as scene.py
+  obj.rotation.y = THREE.MathUtils.degToRad(sc.model.rot_y_deg);
+  obj.scale.set(...sc.model.scale);
+  model = obj;
+  scene.add(obj);
+  status.textContent = `${sc.name}: ${tris} triangles, ${W}x${H}, three.js r${THREE.REVISION}` +
+    (opt.lights !== "matched" || opt.filter !== "linear" || opt.texel !== "matched"
+      ? `  (comparison mode: lights=${opt.lights} filter=${opt.filter} texel=${opt.texel})` : "");
+  document.body.dataset.ready = "1";
+} catch (e) {
+  fail(`could not load the model or texture (${e.message}). Serve Module3/Source, not web/: ` +
+       `python -m http.server 8000 --bind 127.0.0.1, then open /web/`);
+}
+
+renderer.setAnimationLoop(() => {
   controls.update();
   renderer.render(scene, camera);
-}
-animate();
-
-document.getElementById("wire").addEventListener("click", () => {
-  mesh?.traverse((c) => { if (c.isMesh) c.material.wireframe = !c.material.wireframe; });
 });
 
+document.getElementById("home").addEventListener("click", () => {
+  camera.position.copy(home.pos);
+  controls.target.copy(home.target);
+  controls.update();
+});
+
+document.getElementById("wire").addEventListener("click", () => {
+  model?.traverse((c) => { if (c.isMesh) c.material.wireframe = !c.material.wireframe; });
+});
+
+/** Read the framebuffer back (bottom row first) and save it as a top-first P6 PPM. */
 document.getElementById("export").addEventListener("click", () => {
   renderer.render(scene, camera);
   const gl = renderer.getContext();
@@ -100,6 +151,6 @@ document.getElementById("export").addEventListener("click", () => {
   const header = new TextEncoder().encode(`P6\n${W} ${H}\n255\n`);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([header, body]));
-  a.download = "temple_three.ppm";
+  a.download = `${sc.name}_three.ppm`;
   a.click();
 });
