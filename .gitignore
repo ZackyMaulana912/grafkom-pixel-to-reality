@@ -8,6 +8,9 @@ Module1/Source/data/*
 !Module1/Source/data/manifest.csv
 Module1/Source/photos/original/
 
-# sementara fokus Modul 3, modul berikutnya belum dikerjakan
-/Module4/
+# cache editor Godot (bisa dibuat ulang) dan hasil ekspor Modul 4
+.godot/
+Module4/build/
+
+# sementara fokus Modul 4, modul berikutnya belum dikerjakan
 /Module5/
