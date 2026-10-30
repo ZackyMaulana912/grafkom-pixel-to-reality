@@ -138,8 +138,11 @@ func _track_feet() -> void:
 
 
 func _update_label() -> void:
+	var cm := 100.0 * _last_slide
+	if absf(cm) < 0.05:
+		cm = 0.0  # rounding residue (~1e-5 cm) would otherwise print as "-0.0"
 	_label.text = ("root motion dari kaki" if use_root_motion else "scripted_speed %.2f m/s" % scripted_speed) \
-		+ "\ngeser kaki langkah terakhir %.1f cm  [F]" % (100.0 * _last_slide)
+		+ "\ngeser kaki langkah terakhir %.1f cm  [F]" % cm
 
 
 func _unhandled_input(event: InputEvent) -> void:

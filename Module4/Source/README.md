@@ -1,150 +1,127 @@
-# Module 4 -- Animation, Kinematics & Game Engine (reference repo)
+# Module 4 -- Animation, Kinematics & Game Engine
 
-Course: *Grafika Komputer / Computer Graphics* (`25MP7716G030`), S1 Informatika
-semester 5. Companion to `../../Module4_EN.tex`. **Feeds the capstone game
-track.**
+Course: *Grafika Komputer* (`25MP7716G030`), S1 Informatika UMSurabaya. Student: Zacky Maulana (20241337034).
+The PDF and the starter README say `code/Module4/`; in this repo that folder is `Module4/Source/`.
 
-**Rule:** forward kinematics, inverse kinematics, the Catmull-Rom spline
-sampler, quaternion slerp, and the foot-slide diagnosis are **pure Python
-standard library** (no engine, no animation library) -- built from the maths
-first. `godot_project/` reproduces the same four primitives *inside* Godot 4
-(GDScript) as the "real tool" reconciliation step, using the identical
-formulas and the identical running-example numbers.
+**Rule:** forward kinematics, inverse kinematics, the Catmull-Rom sampler, quaternions / Euler angles and the
+foot-slide study are **Python standard library only** (`tests.py` checks the imports with `ast`). matplotlib is
+used only by `figures.py` to draw the README PNGs. `godot_project/` rebuilds the same primitives inside
+Godot 4.7.2 and prints its numbers, which `godot_check.py` compares with the Python ones.
 
-**Conventions** (pinned at the top of `fk.py`): a chain is a list of
-`(length, local_angle_deg)` pairs; `local_angle_deg` is relative to the
-*parent* link's direction (so composing a chain is just summing angles, the
-2D analogue of a `Node3D` hierarchy in Godot). Angles in degrees everywhere in
-this module's public API (converted to radians internally) -- match the
-running example values in the `.tex` without a units slip.
+**Conventions** (pinned once at the top of `fk.py` and `quaternion.py`): a chain is a list of
+`Bone(length, local_angle_deg)`, each angle relative to the parent bone, counter-clockwise positive, degrees in
+every public function; quaternions are `(w, x, y, z)` with norm 1; matrices act on column vectors and an Euler
+order is the matrix product left to right, so `"ZYX"` is `M = Rz(roll) @ Ry(yaw) @ Rx(pitch)` (extrinsic X, Y, Z
+= intrinsic Z, Y', X''; locks at yaw = 90). Godot's `Node3D` default is intrinsic YXZ = `Ry @ Rx @ Rz` (locks at
+pitch = 90); comparisons with Godot always name the order.
 
 ## Quick start
 
 ```bash
-cd code/Module4
-python fk.py                # E1: the 2-bone arm, shoulder=30deg, elbow=60deg
-python ik.py                 # E2: solve for target (4,1), verify via FK
-python spline.py             # E3: Catmull-Rom q(0.5); samples camera_path.json
-python quaternion.py         # E4: slerp 40% + the gimbal-lock demonstration
-python foot_slide_bug.py     # diagnose-and-fix: buggy (2.5 m gap) vs fixed (0 m)
-python tests.py              # -> ALL CHECKS PASSED (40 ok)
+cd Module4/Source
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt          # matplotlib 3.11.2 and its pinned dependencies
+python tests.py                          # ALL CHECKS PASSED (134 ok)
 ```
 
-The Godot reference project is opened in the Godot 4 editor from
-`godot_project/project.godot` (see "Known deviations" below -- it was authored
-on a host with no Godot binary and has not been opened in the editor).
+There is no Makefile; every task is one command:
+
+```bash
+python fk.py                             # E1: elbow (2.598, 1.500), hand (2.598, 3.500)
+python ik.py                             # E2: -13.18 / 70.53 deg, FK error 4.44e-16, two unreachable targets
+python spline.py                         # E3 + camera_path.json + my_path.json (all 51 samples, spacing)
+python quaternion.py                     # E4 + gimbal lock + the locked axis of ZYX, XZY and Godot's YXZ
+python my_chain.py                       # my arm (data/my_chain.json): FK, angles re-derived from the photo
+python foot_slide_bug.py --diagnose      # evidence only: root vs animation distance and the gap
+python foot_slide_bug.py                 # the fix (gap exactly 0.0) and pitfall (c), baked root-motion curve
+python figures.py --set studi            # ../docs/studi-pendahuluan/img/*.png
+python figures.py --set readme           # ../docs/img/*.png
+```
+
+Godot (`$GODOT` = the Godot 4.7.2 binary; on my Mac `/Applications/Godot.app/Contents/MacOS/Godot`):
+
+```bash
+$GODOT --headless --path godot_project --quit-after 60 | python godot_check.py               # scene numbers vs Python
+$GODOT --headless --path godot_project --script res://tools/cek_basis.gd | python godot_check.py      # T4
+$GODOT --headless --path godot_project --script res://tools/cek_walker.gd | python godot_check.py     # T11
+$GODOT --headless --path godot_project --script res://tools/cek_knight.gd | python godot_check.py     # Knight
+$GODOT --headless --path godot_project --script res://tools/cek_euler_rig.gd | python godot_check.py  # prediction
+$GODOT --path godot_project --resolution 1280x720 --script res://tools/foto_scene.gd -- ../docs/img    # screenshots
+$GODOT --headless --path godot_project --export-release "Web" ../../build/web/index.html             # Web build
+python -m http.server 8000 --bind 127.0.0.1 -d ../build/web                                         # test it locally
+```
+
+The Web export needs the Godot 4.7.2 export templates (`web_nothreads_release.zip`); the build is single-threaded,
+so it needs no cross-origin isolation headers.
 
 ## Unit table
 
-| File | Job | Reproduces |
+| File | Job |
+|---|---|
+| `fk.py` | planar FK as a product of local 3 x 3 homogeneous matrices `R(theta) T(l, 0)`, root to leaf |
+| `ik.py` | analytic 2-bone IK (law of cosines), `UnreachableTarget` outside `|l1 - l2| <= d <= l1 + l2`, `fk_error()` |
+| `spline.py` | Catmull-Rom as basis weights, clamped-end sampler, `sample_spacing()`, both path loaders |
+| `quaternion.py` | product, conjugate, norm, rotate, slerp, axis-angle, matrices, `euler_to_matrix(..., order)`, `lock_rule(order)` |
+| `foot_slide_bug.py` | the foot-slide case study: `--diagnose`, the fix `matched_speed()`, pitfall (c) `walk()` / `root_motion()` |
+| `my_chain.py` | my measured arm: FK of the 2-bone and 3-bone chains, local angles recomputed from the photo's pixels |
+| `godot_check.py` | parses the lines Godot prints (`ARM_*`, `BASIS`, `GIMBAL`, `CURVE`, `MYARM`, `WALKER`, `KNIGHT_WALK`, `RIG_*`) and checks them against the Python code |
+| `figures.py` | every PNG in `../docs/` (the only matplotlib user) |
+| `tests.py` | E1-E4, my chain, IK limits and 20 000 random targets, matrices vs angle sums, my path, file copies, Euler orders, quaternion algebra, foot-slide fix and pitfall (c), the Godot checker, stdlib-only imports |
+| `data/my_chain.json`, `data/my_path.json` | my arm (29 / 24 / 20 cm, photo IMG_9035) and my 6-point camera path around the horse statue |
+| `godot_project/` | my room from Module 3, the spline camera on my path, my arm as a `Skeleton3D`, the CC0 KayKit Knight walking by root motion, and the course demos (FK/IK arm, foot-slide walker, gimbal lock); `tools/` holds the headless measuring scripts |
+
+## Findings
+
+| | Finding | Proof |
 |---|---|---|
-| `fk.py` | forward kinematics for an n-bone planar chain | Running example (shoulder/elbow/hand) |
-| `ik.py` | analytic 2-bone IK (law of cosines) + FK-based verification | IK running example, target (4,1) |
-| `spline.py` | Catmull-Rom point evaluation + full-path sampler + `camera_path.json` loader | Spline running example, q(0.5)=(3,1) |
-| `quaternion.py` | quaternion construction, slerp, axis-angle extraction, Euler-vs-quaternion gimbal-lock demo | Slerp running example; gimbal-lock invariance |
-| `foot_slide_bug.py` | root-motion-speed vs. animation-stride-rate mismatch, diagnosed from the growing displacement gap | Lab 2 diagnose-and-fix |
-| `data/camera_path.json` | 5 control points, a semicircular flyover of the temple (radius 8, height 3) | Case Study camera path |
-| `tests.py` | every running example + the IK-reachability exception + the gimbal-lock invariance, asserted exactly | MASTER Sec 11.2 |
-| `godot_project/` | the same four primitives (arm FK/IK, spline camera, gimbal-lock cubes, foot-slide walker) inside Godot 4, plus a procedural temple blockout | Lab 3 "ship" deliverable |
-
-## What `python tests.py` asserts
-
-- **E1** -- FK: shoulder `(0,0)`, elbow `(2.598, 1.500)` at global angle
-  `30 deg`, hand `(2.598, 3.500)` at global angle `90 deg`.
-- **E2** -- IK: target `(4,1)`, lengths `3, 2` -> `theta1 = -13.18 deg`,
-  `theta2 = 70.53 deg`; plugging the solution back through `fk.py` reproduces
-  the target to float precision. An out-of-reach target raises
-  `UnreachableTarget` rather than silently clamping.
-- **E3** -- Catmull-Rom: control points `(0,0),(2,0),(4,2),(6,2)`,
-  `q(0.5) = (3.0, 1.0)` on the `P1`-`P2` segment. `camera_path.json` has 5
-  points; the clamped-end sampler starts and ends exactly on the first/last
-  control point.
-- **E4** -- `slerp(identity, yaw90, t=0.4) = (0.9511, 0, 0.3090, 0)`, i.e. a
-  `36 deg` rotation about `+Y` (`0.4 x 90 = 36`, the expected linear-in-angle
-  result for two rotations sharing an axis); `t=0`/`t=1` return the endpoints
-  exactly. The gimbal-lock demo: at `yaw=90 deg`, three different
-  `(pitch, roll)` pairs that all keep `pitch - roll = 10 deg` produce
-  *bit-identical* rotation matrices -- one degree of freedom is provably gone.
-- **Foot-slide** -- at a scripted speed of `1.5 m/s` against a `1.0 m/s`
-  animation stride, the foot-plant gap grows to `2.5 m` after 5 s and
-  increases every second; at the corrected speed (`1.0 m/s`) the gap is `0`
-  at every sample.
-
-## Notes on fixes applied while verifying
-
-- The first draft of `gimbal_lock_demo()` pinned **pitch** at `90 deg` and
-  varied `(yaw, roll)` holding their **sum** constant, on the assumption that
-  gimbal lock always "feels like" the first axis. Running it showed matrix
-  differences of `0.09`-`0.17`, not `~0` -- **not** locked. The actual lock
-  axis depends on the composition order: this engine applies
-  `M = Rz(roll) @ Ry(yaw) @ Rx(pitch)`, so it is the **middle** axis (`yaw`)
-  that locks, and the invariant combination at `yaw=90 deg` is
-  `pitch - roll`, not `pitch + roll`. Fixed and re-verified to `~1e-16`. This
-  is exactly the kind of "which axis, which sign, which order" trap
-  Sec.\,Pitfalls warns about, and it is kept in the module as evidence that
-  the derivation, not the intuition, is what should be trusted.
-- No other fixes were needed; every other running example matched its
-  hand-derivation on the first run.
+| T1 | the starter runs clean; on this Mac `ik.py` prints error `4.44e-16` (as the PDF), a Linux run printed `0.00e+00` | Fase 0 transcript |
+| T2 | the gimbal-lock matrices are equal to rounding, not bit-identical | `1.11e-16`, `1.06e-17`; `==` is False |
+| T3 | the docstring said intrinsic X -> Y -> Z, but the code computes `Rz Ry Rx` (extrinsic X, Y, Z) | `max|RzRyRx - RxRyRz| = 0.360` at (20, 30, 40) |
+| T4 | the starter's Godot gimbal cube was **not locked**: it pinned yaw = 90, but Godot's YXZ locks at pitch = 90 | Godot `Basis`: 0.0865 / 0.174 at yaw 90, 4.4e-8 at pitch 90; fixed (pitch 90, cube moves 1.2e-7 while yaw goes 12 -> 30 deg) |
+| T5 | `arm_kinematics.gd` clamped unreachable targets and printed nothing | now prints, warns in red; matches `ik.py` to 3e-13 |
+| T6 | `foot_slide_bug.py` printed its own fix; the tests used typed 1.5 / 1.0 | `--diagnose` + tests computed from the constants |
+| T7 | the "elbow up" solution puts the elbow **below** the shoulder-target line for (4, 1) | elbow (2.921, -0.684), line at 14.04 deg |
+| T8 | equal t steps are not equal distances (0.373-0.719 m on `camera_path.json`); `Curve3D` points have no handles | `sample_spacing()`; `my_path.png` |
+| T9 | renderer `mobile` cannot export to the Web | switched to `gl_compatibility` |
+| T10 | `requirements.txt` used `>=` for a script that is not in the zip | pinned with `==` |
+| T11 | the Godot walker slid **31.5 cm per step** at the "fixed" speed `stride x rate = 1.0` (its legs cover 1.60 m per cycle), its planted foot rose 9.2 cm, and the footfall markers sat 45 cm behind the real foot | `tools/cek_walker.gd`; fixed by root motion from the planted foot: 2.4e-7 m |
+| T12 | the inner reach limit was untested; no quaternion product / normalise | tests added; `quat_mul`, `quat_normalize` |
+| T13 | the two `camera_path.json` copies agreed only by hand | test; `my_path.json` and `my_chain.json` copies tested too |
+| T14 | at 1.5 m/s the walker slides 7-10 cm already in the first step (< 0.75 s), not "within two seconds" | `tools/cek_walker.gd` |
+| T15 | the starter names no AI tool; one em dash in the starter README | this README has none |
+| new | law of cosines at the shoulder too gave IK errors up to 1.4e-7 near full reach | 20 000 targets; the atan2 form gives 1.4e-12 |
+| new | a constant "correct" speed still slides 4.75 cm inside every step when the baked foot speed varies; sampling every 0.5 s hides it | `walk()` at 60 fps |
+| new | `Quaternion.get_angle()` returns 240 deg for a 120 deg rotation (no shortest-arc) | `tools/cek_euler_rig.gd` |
+| new | `Vector2` / `Vector3` / `Basis` are 32-bit in Godot; the arm agrees with Python to 6e-6 deg only until it is computed with plain (64-bit) floats | 6.3e-6 -> 3e-13 |
 
 ## Known deviations from the course plan
 
-1. **No Godot binary on the authoring host.** `godot_project/` (`project.godot`,
-   `scenes/Main.tscn`, five `.gd` scripts) is hand-authored, syntactically
-   reviewed GDScript/text-`.tscn`, but has **not been opened in the Godot 4
-   editor or run**. All geometry is built procedurally in each script's
-   `_ready()` (capsule/box/cylinder primitive meshes) specifically so the
-   `.tscn` itself stays small and free of hand-typed mesh/material
-   sub-resources -- the most failure-prone part of hand-writing Godot's scene
-   format blind. **Resolved 2026-09-29:** opened and run in Godot 4.7.2
-   (see item 4 and "Verified").
-2. **No external rigged asset.** Rather than depend on a downloaded CC0
-   `character.glb` (a network dependency this authoring host cannot verify),
-   the FK/IK arm and the foot-slide walker are built from Godot's built-in
-   primitive meshes (`CapsuleMesh`, `BoxMesh`, `CylinderMesh`) -- "a bone is
-   just a node in a transform hierarchy" stays literally true without an
-   imported skeleton. Students who rig a real free/AI model get full credit
-   for the richer version; the primitive-mesh project is the documented
-   fallback (MASTER Sec 3.2 item 1/5).
-3. **Temple case-study artifact.** `temple_blockout.gd` procedurally builds a
-   stacked-box temple silhouette (matching Module 1/3's "deterministic
-   generator, no binary asset" rule) rather than importing
-   `Module3/data/pusaka_model.obj` across a project boundary. A student's own
-   textured model from Module 3 is a straightforward drop-in (`.obj`/`.glb`
-   import + `MeshInstance3D`).
-4. **Godot project fixes after the first real run (2026-09-29, Godot 4.7.2).**
-   - **Nothing showed in the editor**, only when playing: every mesh is built
-     in `_ready()`, which the editor does not run. All five scripts are now
-     `@tool`, with `Engine.is_editor_hint()` guards so nothing animates,
-     walks or reacts to keys in the editor. The meshes still have no owner, so
-     they are never saved into `Main.tscn`.
-   - **Wrong camera:** `OverviewCamera` was `current`, so the spline camera never
-     showed. `PathCamera` is now current; press **C** to switch.
-   - **Camera faced along the path**, not at the temple: `PathFollow3D`
-     `rotation_mode = 0` and `spline_camera.gd` calls `look_at(look_target)`.
-   - **Path circled the wrong centre:** the temple sat at (0, 0, −6) while the
-     path is centred on the origin. The temple is now at the origin; the arm
-     (−7.5, 0, 3.6), walker lane (z = 4.6) and gimbal cubes (z = 6.5) were
-     moved so nothing overlaps (they all used to sit at the origin, inside it).
-   - **Path file outside the project:** `res://../data/camera_path.json` is
-     above the project root, so the built-in fallback points were used. The
-     project now has its own copy, `godot_project/data/camera_path.json` —
-     **keep it identical to `data/camera_path.json`**. For an exported build,
-     add `*.json` to Project → Export → Resources → "Filters to export
-     non-resource files".
-   - **41 samples like `spline.py`:** `samples_per_segment` was 20 (81 points);
-     it is now 10, as the module text says.
-   - **The walker:** the capsule is now a stick figure whose legs actually swing
-     (the script's own comment always described a leg-swing); footfall markers
-     are children of the walker, so they land under its feet wherever the
-     node is placed; the walk restarts every `loop_seconds` (8 s).
+1. **Path and Godot version.** The PDF says `code/Module4/` and "Godot 4.2+". The project uses `.uid` files
+   (Godot 4.4+) and `config/features "4.7"`; it was verified with **Godot 4.7.2 stable** only.
+2. **Renderer.** `gl_compatibility` instead of `mobile`, because the Web export needs WebGL 2.0.
+3. **`foot_slide_bug.py --diagnose`.** Added so the diagnosis could be written from numbers before the fix
+   (committed first, `docs/prediksi/diagnosis-foot-slide.md`).
+4. **The scene.** The temple blockout is replaced by my Module 3 room (`temple_blockout.gd` is kept as a
+   fallback, unused). The course demos moved to a `Lab` node 7 m to the side; my path is open (300 deg), so the
+   camera goes there and back (`ping_pong`) instead of jumping from the last point to the first.
+5. **Gimbal demo.** Pinned at pitch = 90 (Godot's middle axis) instead of yaw = 90.
+6. **Walker.** Root motion from the planted foot by default; `F` switches back to the starter behaviour.
+7. **Asset.** KayKit (CC0) instead of Kenney: Kenney's download needs a browser button. Source, commit, size,
+   SHA-256 and the licence text are in `godot_project/assets/`.
 
 ## Verified
 
 | Item | Status | Date | Toolchain |
 |---|---|---|---|
-| `Module4_EN.tex` compiles | **yes** -- Tectonic 0.17.0, no overfull hbox > 14 pt, 25 pp | 2026-09-06 | Windows 11 |
-| `python tests.py` | **ALL CHECKS PASSED (40 ok)** | 2026-09-06 | Python 3.11.9 (stdlib only) |
-| `fk.py` / `ik.py` / `spline.py` / `quaternion.py` / `foot_slide_bug.py` | **run green**, transcripts in `Module4_EN.tex` are the actual output | 2026-09-06 | same |
-| `../../figures/make_figures_m4.py` | **run green** -- writes `m4_fig1_fk_ik_arm.pdf`, `m4_fig2_gimbal_lock.pdf`, `m4_fig3_spline_path.pdf` | 2026-09-06 | same |
-| `godot_project/` | **authored, not editor-verified on this host** (no Godot binary) | 2026-09-06 | Godot 4.2+ (target) |
-| `godot_project/` after the item-4 fixes | **runs with no errors or warnings** (headless, 300 frames); a headless check script confirms: `PathCamera` current, curve 41 points (8,3,0) → (−8,3,0), path camera faces the temple (dot 1.0000), footfall gap 0.62 m at t = 1.25 s (= 1.5·t − 1.0·t); the editor reopens `Main.tscn` with the `@tool` scripts and no errors. Not checked by eye in the windowed editor | 2026-09-29 | Godot 4.7.2 stable (win64) |
+| starter code before any change | `tests.py` 40 ok, all five scripts match the PDF | 2026-10-30 | macOS 27.0.1, Apple M5, Python 3.11.8 |
+| `python tests.py` | **ALL CHECKS PASSED (134 ok)** | 2026-10-30 | same, matplotlib 3.11.2 |
+| new code vs the starter, 2000 random inputs per function | max difference 1.2e-13 (IK, deg), 0 (Euler matrices) | 2026-10-30 | same |
+| `godot_project/` headless, editor import and run | exit 0, no error or warning, no starter file rewritten | 2026-10-30 | Godot 4.7.2 stable (macOS) |
+| Godot numbers vs Python (`godot_check.py`) | 13 scene lines + 16 `Basis` + 4 walker + 1 Knight + 8 prediction lines, all within tolerance | 2026-10-30 | same |
+| windowed run, Compatibility renderer | `OpenGL API 4.1 Metal ... Compatibility`, screenshots correct | 2026-10-30 | same, Apple M5 |
+| Web build (`Module4/build/web/`, 40 MB) | re-export with the same `.godot/` import cache byte-identical; local server `127.0.0.1:8000`: no console error, 13 lines from the browser console match Python | 2026-10-30 | Chrome 156 headless, WebGL 2.0, ANGLE Metal, Apple M5 |
+| Web build opened by hand | loads and runs | 2026-10-30 | Safari 27.0.1, same Mac |
+| fresh clone from GitHub (commit `418d846`) + new `.venv` | `pip freeze` = `requirements.txt`; `tests.py` 134 ok; editor import and 300-frame run exit 0 with no error or missing script; `godot_check.py` 13 lines ok; `git status` clean | 2026-10-30 | same Mac, Godot 4.7.2 |
+| GitHub Pages URL | the 4 main files 200 with the right MIME type and identical to the repo; no console error; 13 lines from the browser console match Python | 2026-10-30 | Chrome 156 headless, Apple M5 |
+| export after a fresh import | `index.wasm` / `index.js` identical, but the imported `Knight.glb` and `Main.scn` differ by 89 / 56 bytes between two fresh imports (likely random sub-resource ids); same behaviour | 2026-10-30 | same |
+| other GPUs, Windows, Linux | **not tested** | | |

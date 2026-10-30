@@ -384,7 +384,7 @@ $ $GODOT --headless --path godot_project --export-release "Web" ../../build/web/
 | lainnya (html, ikon, audio worklet) | 54.816 B |
 | **total** | **sekitar 40 MB** |
 
-Isi game sendiri hanya 1,6 MB. Sisanya adalah engine, yang ukurannya sama untuk proyek Godot apa pun. Saya mengecek isi `index.pck`: ketiga file JSON ada, dan tidak ada satu pun file dari `tools/`. Ekspor kedua ke folder lain menghasilkan kesembilan file yang **identik byte per byte** dengan ekspor pertama, jadi build ulang dengan Godot dan isi proyek yang sama tidak menambah ukuran repo.
+Isi game sendiri hanya 1,6 MB. Sisanya adalah engine, yang ukurannya sama untuk proyek Godot apa pun. Saya mengecek isi `index.pck`: ketiga file JSON ada, dan tidak ada satu pun file dari `tools/`. Ekspor kedua ke folder lain menghasilkan kesembilan file yang **identik byte per byte** dengan ekspor pertama. Catatan dari Fase 6: ini berlaku selama cache impor `.godot/` sama. Setelah impor dari nol (misalnya di clone), hasil impor `Knight.glb` dan `Main.scn` berbeda beberapa puluh byte, kemungkinan besar karena id acak sub-resource. `index.wasm` tetap identik, jadi build ulang paling banyak menambah sekitar 1,6 MB (`index.pck`).
 
 ### Uji di server lokal
 
@@ -405,6 +405,20 @@ Uji dengan browser yang saya buka sendiri dicatat terpisah, beserta nama dan ver
 
 ### Hosting (K16)
 
-Dari empat pilihan (GitHub Pages dari `main`, branch terpisah, itch.io, atau tanpa Web), saya memilih **GitHub Pages dari `main`**, sama dengan Modul 3 yang sudah memakai Pages di repo ini. Untungnya: paling sederhana, dan penilai cukup membuka satu link. Ruginya: repo bertambah sekitar 40 MB. Karena hasil ekspornya deterministik, build ulang yang isinya sama tidak menambah ukuran lagi. Baris `Module4/build/` di `.gitignore` root saya buang supaya `Module4/build/web/` ikut ter-commit. Repo sudah punya `.nojekyll`, dan semua file build tidak diawali garis bawah, jadi Jekyll tidak akan membuang apa pun. Ukuran file terbesar (39,5 MB) masih di bawah batas 100 MB per file GitHub.
+Dari empat pilihan (GitHub Pages dari `main`, branch terpisah, itch.io, atau tanpa Web), saya memilih **GitHub Pages dari `main`**, sama dengan Modul 3 yang sudah memakai Pages di repo ini. Untungnya: paling sederhana, dan penilai cukup membuka satu link. Ruginya: repo bertambah sekitar 40 MB. Build ulang dengan cache impor yang sama menghasilkan file yang identik, dan `index.wasm` (39,5 MB) selalu identik, jadi build ulang paling banyak menambah sekitar 1,6 MB. Baris `Module4/build/` di `.gitignore` root saya buang supaya `Module4/build/web/` ikut ter-commit. Repo sudah punya `.nojekyll`, dan semua file build tidak diawali garis bawah, jadi Jekyll tidak akan membuang apa pun. Ukuran file terbesar (39,5 MB) masih di bawah batas 100 MB per file GitHub.
 
 Link yang diharapkan setelah push: `https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/build/web/`. Link ini baru saya uji setelah di-push.
+
+## 12. Refleksi: apa yang diambil alih engine, dan apa yang tetap harus saya pikirkan (Lab 3 no 6)
+
+Godot mengambil alih banyak pekerjaan yang di Python saya tulis sendiri. `Skeleton3D` menyusun pose lokal setiap tulang menjadi pose global, jadi FK lengan saya cukup diisi panjang dan sudut, dan hasilnya sama dengan `fk.py` sampai 5e-8 m. `Basis` dan `Quaternion` menangani perkalian dan `slerp`. `Curve3D` dan `PathFollow3D` menyimpan jalur dan menggerakkan kamera menurut panjang busur. `AnimationPlayer` memutar 76 klip Knight, dan game loop memanggil semuanya setiap frame. Saya tidak perlu menulis perkalian matriks atau rumus slerp lagi.
+
+Tapi setiap kesalahan yang saya temukan di Fase 5 bukan kesalahan engine. Semuanya kesalahan keputusan yang tetap harus dipikirkan manusia:
+
+- **Urutan dan sumbu yang terkunci.** Demo gimbal starter menyalin angka Python (yaw 90°) ke Godot, padahal Godot memakai YXZ dengan sumbu tengah x. Engine menghitung `Basis` dengan benar, tapi kubusnya tidak terkunci sama sekali (selisih 0,174, T4). Sumbu mana yang terkunci harus diturunkan dari urutannya, bukan ditebak dari nama "yaw".
+- **Representasi.** Godot menyediakan Euler di inspector dan quaternion di kode. Engine tidak memilihkan. Pengukuran di bagian 9 menunjukkan Euler kehilangan satu arah putaran di pitch 90°, dan jalur interpolasinya 6% lebih panjang. Keputusan memakai quaternion untuk sendi bebas tetap keputusan saya.
+- **Sinkron langkah dan kecepatan.** Engine tidak tahu bahwa `stride_per_cycle = 1,0` adalah angka yang salah. Walker starter terseret 31,5 cm per langkah justru di kecepatan yang dianggap benar (T11), dan Knight akan tergelincir kalau didorong dengan kecepatan tetap. Root motion dari kaki yang menapak harus saya rancang dan ukur sendiri.
+- **Konvensi lokal dan global, dan jenis angka.** Posisi kaki walker harus dihitung di ruang badan, bukan dari posisi global, karena walker berada di dalam node lain yang digeser. Engine juga menyimpan `Vector2`, `Vector3`, dan `Basis` dalam float 32-bit, jadi angka Godot berbeda dengan Python sampai 1e-7 kecuali hitungannya dibuat dengan float 64-bit. `Quaternion.get_angle()` pun mengembalikan 240° untuk putaran 120°.
+- **Jalur kamera (T8).** `Curve3D` dari sampel tanpa handle hanyalah garis-garis lurus pendek, dan jalur saya terbuka, jadi saya sendiri yang harus memilih kamera bolak-balik supaya tidak meloncat.
+
+Kesimpulan saya: engine menghemat pekerjaan menghitung, tetapi tidak menghemat pekerjaan memutuskan. Bagian yang paling sering salah justru bagian yang tampak "sudah diurus engine", dan satu-satunya cara saya menemukannya adalah mencetak angka dari Godot lalu membandingkannya dengan Python.
