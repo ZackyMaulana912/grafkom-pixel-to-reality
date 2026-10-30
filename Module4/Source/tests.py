@@ -12,7 +12,7 @@ import random
 from fk import Bone, bone_matrices, forward_kinematics, running_example as fk_running_example
 from ik import fk_error, solve_two_bone_ik, UnreachableTarget, running_example as ik_running_example
 from spline import (
-    catmull_rom_point, catmull_rom_weights, sample_path, load_camera_path, load_my_path, load_path,
+    catmull_rom_weights, sample_path, load_camera_path, load_my_path, load_path,
     running_example as spline_running_example,
 )
 from quaternion import (
@@ -20,7 +20,10 @@ from quaternion import (
     running_example_slerp, euler_to_matrix, mat_max_diff, quat_mul, quat_norm, quat_rotate,
     quat_to_matrix, axis_matrix, lock_rule,
 )
-from foot_slide_bug import foot_slide_at, diagnose
+from foot_slide_bug import (
+    diagnose, matched_speed, root_motion_distance, animation_authored_distance, REPORTED_SPEED,
+    STRIDE_PER_CYCLE, CYCLE_RATE, SWAY, STRIDE_CHANGE, walk, constant_speed, root_motion,
+)
 from my_chain import load_chain, angles_from_photo
 
 _checks = 0
@@ -243,17 +246,41 @@ def test_quaternion_algebra():
 
 
 def test_foot_slide_bug():
-    buggy = foot_slide_at(5.0, 1.5)
-    fixed = foot_slide_at(5.0, 1.0)
-    check("foot-slide bug, buggy speed, t=5s", buggy, 2.5)
-    check("foot-slide bug, fixed speed, t=5s", fixed, 0.0, tol=1e-9)
-    # the gap must grow monotonically over time in the buggy case
-    samples = diagnose(1.5)
-    diffs = [b[1] - a[1] for a, b in zip(samples, samples[1:])]
-    assert all(d > 0 for d in diffs), "foot-slide gap should grow every second in the buggy case"
-    print("[ok] foot-slide gap grows monotonically in the buggy case")
-    global _checks
-    _checks += 1
+    """Before vs after the fix; the right speed is computed from the clip's constants, not typed in (T6)."""
+    v = matched_speed()
+    check("matched speed = STRIDE_PER_CYCLE x CYCLE_RATE", v, STRIDE_PER_CYCLE * CYCLE_RATE, tol=0.0)
+    buggy = diagnose(REPORTED_SPEED, dt=0.5)
+    check("foot-slide bug, reported speed, t=5s", buggy[-1][1], (REPORTED_SPEED - v) * 5.0, tol=1e-12)
+    worst = max(abs(g - (REPORTED_SPEED - v) * t) for t, g in buggy)
+    check("buggy gap = (scripted_speed - stride x rate) t at every sample", worst, 0.0, tol=1e-12)
+    diffs = [b[1] - a[1] for a, b in zip(buggy, buggy[1:])]
+    check("buggy gap grows at every sample", all(d > 0 for d in diffs), True)
+    for dt in (0.5, 0.1, 1.0 / 60.0):
+        after = diagnose(v, dt=dt)
+        check(f"after the fix the gap is exactly 0.0 at all {len(after)} samples (dt={dt:.4f})",
+              all(g == 0.0 for _, g in after), True)
+    rnd = random.Random(3)
+    clips = [(rnd.uniform(0.1, 3.0), rnd.uniform(0.1, 3.0), rnd.uniform(0.0, 100.0)) for _ in range(1000)]
+    check("fixed gap is exactly 0.0 for 1000 random clips (stride, rate, t)",
+          all(root_motion_distance(matched_speed(s, r), t) - animation_authored_distance(t, s, r) == 0.0
+              for s, r, t in clips), True)
+
+
+def test_pitfall_c_root_motion():
+    """Pitfall (c): speed read from the baked curve keeps the gap at zero when the stride or rate changes."""
+    curve = walk(STRIDE_CHANGE, root_motion(STRIDE_CHANGE))
+    # 300 frame deltas are summed, so rounding of ~1e-14 can build up; a real slide is centimetres
+    check("root-motion curve, stride 1.0 -> 0.8 at 2.5 s: max |gap| over 300 frames", max(abs(r[3]) for r in curve),
+          0.0, tol=1e-12)
+    flat = walk(STRIDE_CHANGE, constant_speed(matched_speed()))
+    check("constant 1.0 m/s after the stride change: gap at 5 s = (1.0 - 0.8) x 2.5", flat[-1][3], 0.5, tol=1e-9)
+    inside = max(abs(r[3]) for r in flat if r[0] <= 2.5)
+    check("constant speed still slides inside each cycle by about SWAY / (2 pi) m", inside, SWAY / (2 * math.pi),
+          tol=1e-3)
+    rate_change = [(0.0, 1.0, 1.0), (1.7, 1.0, 1.25), (3.3, 0.9, 0.8)]
+    other = walk(rate_change, root_motion(rate_change))
+    check("root-motion curve with rate and stride changes mid-cycle: max |gap|", max(abs(r[3]) for r in other), 0.0,
+          tol=1e-12)
 
 
 if __name__ == "__main__":
@@ -270,4 +297,5 @@ if __name__ == "__main__":
     test_euler_orders()
     test_stdlib_only()
     test_foot_slide_bug()
+    test_pitfall_c_root_motion()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")

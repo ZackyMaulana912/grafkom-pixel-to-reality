@@ -23,6 +23,9 @@ from matplotlib.patches import Arc, Circle, FancyArrowPatch, FancyBboxPatch  # n
 from fk import Bone, forward_kinematics  # noqa: E402
 from ik import solve_two_bone_ik  # noqa: E402
 from quaternion import quat_dot, quat_from_axis_angle, quat_to_axis_angle, slerp  # noqa: E402
+from foot_slide_bug import (  # noqa: E402
+    REPORTED_SPEED, STRIDE_CHANGE, constant_speed, diagnose, matched_speed, root_motion, walk,
+)
 from my_chain import angles_from_photo, load_chain  # noqa: E402
 from spline import load_camera_path, load_my_path, sample_path, sample_spacing  # noqa: E402
 
@@ -255,7 +258,8 @@ def fig_game_loop(out_dir):
     ax.text(3.9, 3.85, "Update (dt)", ha="center", fontsize=10.5, color=BONE2, weight="bold")
     _box(ax, (2.4, 2.85), 1.45, 0.7, "AI / logika\ngame", "#ffffff", 9)
     _box(ax, (4.0, 2.85), 1.45, 0.7, "Fisika", "#ffffff", 9)
-    _box(ax, (2.4, 1.55), 3.05, 1.0, "Animasi: sampel kurva → pose lokal\nFK root → leaf = matriks world\ntiap bone (IK di sini juga)",
+    _box(ax, (2.4, 1.55), 3.05, 1.0,
+         "Animasi: sampel kurva → pose lokal\nFK root → leaf = matriks world\ntiap bone (IK di sini juga)",
          "#fde7cc", 8.5)
     ax.add_patch(FancyBboxPatch((6.1, 1.35), 2.4, 2.7, boxstyle="round,pad=0.02,rounding_size=0.1",
                                 fc="#eef5ff", ec=BONE1, lw=1.6, ls="--"))
@@ -348,7 +352,8 @@ def fig_my_path(out_dir):
     a1.set_title("Jalur saya dilihat dari atas, tinggi 1,15 m", fontsize=10)
     mine = sample_spacing(path)
     theirs = sample_spacing(sample_path(load_camera_path(), samples_per_segment=10))
-    a2.plot(range(len(mine)), [g / max(mine) for g in mine], color=BONE1, marker=".", label=f"my_path (maks {max(mine):.3f} m)")
+    a2.plot(range(len(mine)), [g / max(mine) for g in mine], color=BONE1, marker=".",
+            label=f"my_path (maks {max(mine):.3f} m)")
     a2.plot(range(len(theirs)), [g / max(theirs) for g in theirs], color=BONE2, marker=".",
             label=f"camera_path dosen (maks {max(theirs):.3f} m)")
     a2.set_ylim(0, 1.1)
@@ -393,10 +398,41 @@ def fig_ik_my_arm(out_dir):
     save(fig, out_dir, "ik_my_arm.png")
 
 
+def fig_foot_slide(out_dir):
+    """Foot-slide gap before/after the fix, and pitfall (c): constant speed vs baked root-motion curve."""
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 4.0))
+    dt = 1.0 / 60.0
+    before = diagnose(REPORTED_SPEED, dt=dt)
+    after = diagnose(matched_speed(), dt=dt)
+    a1.plot([t for t, _ in before], [g for _, g in before], color=BAD, lw=2.2,
+            label=f"sebelum: {REPORTED_SPEED} m/s diketik di kode")
+    a1.plot([t for t, _ in after], [g for _, g in after], color=GOOD, lw=2.2,
+            label=f"sesudah: stride x rate = {matched_speed()} m/s")
+    a1.axhline(0.05, color=MUTED, ls=":", lw=1)
+    a1.text(3.2, 0.1, "5 cm", color=MUTED, fontsize=8.5)
+    a1.set_xlabel("t (s)")
+    a1.set_ylabel("celah root - kaki (m)")
+    a1.set_title("Perbaikan: celah tepat 0 di setiap sampel", fontsize=10)
+    a1.legend(fontsize=8.5, loc="upper left")
+    flat = walk(STRIDE_CHANGE, constant_speed(matched_speed()))
+    curve = walk(STRIDE_CHANGE, root_motion(STRIDE_CHANGE))
+    a2.plot([r[0] for r in flat], [100 * r[3] for r in flat], color=BONE2, lw=1.8, label="kecepatan konstan 1,0 m/s")
+    a2.plot([r[0] for r in curve], [100 * r[3] for r in curve], color=BONE1, lw=2.2,
+            label="dibaca dari kurva root motion")
+    a2.axvline(STRIDE_CHANGE[1][0], color=MUTED, ls="--", lw=1)
+    a2.text(STRIDE_CHANGE[1][0] + 0.08, 30, f"stride {STRIDE_CHANGE[0][1]:g} → {STRIDE_CHANGE[1][1]:g} m",
+            fontsize=8.5, color=MUTED)
+    a2.set_xlabel("t (s), 60 fps")
+    a2.set_ylabel("celah root - kaki (cm)")
+    a2.set_title("Pitfall (c): stride berubah di tengah jalan", fontsize=10)
+    a2.legend(fontsize=8.5, loc="upper left")
+    save(fig, out_dir, "foot_slide_before_after.png")
+
+
 SETS = {
     "studi": (fig_fk_chain, fig_ik_two_solutions, fig_spline_vs_linear, fig_gimbal_lock,
               fig_slerp_vs_linear, fig_game_loop),
-    "readme": (fig_my_chain, fig_ik_my_arm, fig_my_path),
+    "readme": (fig_my_chain, fig_ik_my_arm, fig_my_path, fig_foot_slide),
 }
 
 
