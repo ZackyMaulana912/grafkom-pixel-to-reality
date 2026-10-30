@@ -9,9 +9,10 @@ extends SceneTree
 
 const FPS := 60
 const SECONDS := 4.0
-# 1.5 = starter "buggy", 1.0 = starter "fixed" (stride_per_cycle x cycle_rate),
-# 1.601 = what the leg geometry covers per cycle: 2 stances x 2 x 0.92 m x sin(0.45 rad)
-const SPEEDS := [1.5, 1.0, 1.601]
+# Constant speeds (use_root_motion off): 1.5 = starter "buggy", 1.0 = starter "fixed"
+# (stride_per_cycle x cycle_rate), 1.601 = what the leg geometry covers per cycle:
+# 2 stances x 2 x 0.92 m x sin(0.45 rad). Speed -1 means use_root_motion on.
+const SPEEDS := [1.5, 1.0, 1.601, -1.0]
 
 var _done := false
 
@@ -27,11 +28,12 @@ func _process(_delta: float) -> bool:
 
 func _measure(speed: float) -> void:
 	var walker: Node3D = load("res://scripts/foot_slide_demo.gd").new()
-	walker.scripted_speed = speed
+	walker.use_root_motion = speed < 0.0
+	walker.scripted_speed = maxf(speed, 0.0)
 	walker.loop_seconds = 1000.0
 	root.add_child(walker)
 	walker.set_process(false)  # driven by hand below, one fixed step per frame
-	walker._next_footfall_t = INF  # no marker nodes; the marker position is computed below
+	walker.show_markers = false  # no marker nodes; the marker position is computed below
 	var feet: Array[Node3D] = []
 	for knee in walker._knees:
 		for c in knee.get_children():
@@ -46,6 +48,7 @@ func _measure(speed: float) -> void:
 			var p := feet[i].global_position
 			track[i].append([frame * dt, p.x, p.y, walker._knees[i].rotation.z == 0.0])
 	var slides := []
+	var rises := []
 	for i in 2:
 		var start := -1
 		for k in track[i].size():
@@ -58,7 +61,8 @@ func _measure(speed: float) -> void:
 					var t0: float = track[i][start][0]
 					var x0: float = track[i][start][1]
 					var x1: float = track[i][end][1]
-					var marker_x: float = walker.stride_per_cycle * walker.cycle_rate * t0
+					# starter markers come from the formula; root-motion markers sit at the landing point
+					var marker_x: float = x0 if walker.use_root_motion else walker.stride_per_cycle * walker.cycle_rate * t0
 					var y_lo := INF
 					var y_hi := -INF
 					for q in range(start, end + 1):
@@ -67,9 +71,15 @@ func _measure(speed: float) -> void:
 					print("STANCE speed=%.3f foot=%d t0=%.4f t1=%.4f x0=%.4f x1=%.4f slide=%.4f rise=%.4f marker_x=%.4f marker_off=%.4f" % [
 						speed, i, t0, track[i][end][0], x0, x1, x1 - x0, y_hi - y_lo, marker_x, x0 - marker_x])
 					slides.append(absf(x1 - x0))
+					rises.append(y_hi - y_lo)
 				start = -1
 	var worst := 0.0
-	for s in slides:
-		worst = maxf(worst, s)
-	print("WALKER speed=%.3f stances=%d max_abs_slide=%.4f" % [speed, slides.size(), worst])
+	var worst_rise := 0.0
+	for k in slides.size():
+		worst = maxf(worst, slides[k])
+		worst_rise = maxf(worst_rise, rises[k])
+	var travelled: float = walker._body.position.x
+	print("WALKER mode=%s speed=%.3f stances=%d max_abs_slide=%.9f max_rise=%.9f travelled_4s=%.4f" % [
+		"root_motion" if walker.use_root_motion else "scripted", speed, slides.size(), worst, worst_rise,
+		travelled])
 	walker.free()

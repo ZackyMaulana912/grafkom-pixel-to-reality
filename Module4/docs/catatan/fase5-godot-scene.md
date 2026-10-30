@@ -221,3 +221,42 @@ Langkah pertama tiap kecepatan sedikit berbeda (misalnya -33,0 cm untuk 1,0 m/s)
 4. **Penanda footfall tidak menunjukkan posisi kaki.** Penanda ditaruh di `stride_per_cycle × cycle_rate × t`, padahal kaki menapak di depan pinggul, sejauh 0,06 · cos 0,45 + 0,92 · sin 0,45 = 0,454 m (terukur 0,452). Akibatnya, bahkan di 1,0 m/s penanda berwarna hijau ("tidak sliding"), padahal kakinya terseret 31,5 cm setiap langkah. Warna penanda hanya membandingkan dua rumus, bukan kaki.
 
 Perbaikannya saya buat sebagai commit terpisah: kecepatan root dan tinggi pinggul akan diturunkan dari kaki yang sedang menapak, dan penanda akan ditaruh di posisi kaki yang sebenarnya.
+
+## 7. Perbaikan walker: root motion dari kaki yang menapak
+
+Ada tiga cara memperbaiki temuan T11:
+- **Ganti `stride_per_cycle` dengan 1,601 m** (stride dari geometri kaki). Perubahannya paling kecil, tapi menurut pengukuran di atas kaki masih bergeser 2,5 cm per langkah dan tetap naik-turun 9,2 cm.
+- **Ubah animasinya** supaya kaki bergerak rata. Hasilnya tidak lagi mirip orang berjalan, dan stride tetap harus ditulis ulang setiap kali animasinya diubah.
+- **Root motion:** setiap frame, badan dipindah sejauh kaki yang menapak bergerak mundur relatif terhadap badan di frame itu, lalu badan diangkat atau diturunkan supaya kaki itu tetap di lantai. Ini cara yang sama dengan pitfall (c) di Fase 4: kecepatan dibaca dari animasinya sendiri, bukan diketik.
+
+Saya memilih **root motion**, karena hanya cara ini yang membuat geser dan naik-turun kaki menjadi nol. Cara ini juga tetap benar kalau sudut ayunan atau panjang kaki diubah.
+
+### Yang diubah di `foot_slide_demo.gd`
+
+- `_root_motion_step()`: menentukan kaki yang menapak (yang lututnya lurus di fase baru), menghitung posisi kaki itu di ruang badan sebelum dan sesudah pose diperbarui, lalu menggeser badan sebesar selisih x-nya. Tinggi badan diatur supaya kaki itu berada di ketinggian berdiri awal. Posisi kaki di ruang badan dihitung dengan menyusun transform lokal dari kaki ke atas sampai badan (`_foot_local()`), rantai FK yang sama dengan `fk.py`. Versi pertama saya memakai posisi global, dan itu keliru karena walker berada di dalam node `Lab` yang digeser 7 m.
+- Penanda footfall diletakkan di **tempat kaki benar-benar mendarat**, dan berwarna merah kalau kaki itu kemudian bergeser lebih dari 5 cm sebelum terangkat.
+- Label di atas walker menampilkan mode dan geser kaki langkah terakhir. Tombol **F** berpindah ke perilaku starter (kecepatan tetap `scripted_speed` dengan penanda dari rumus) dan kembali, supaya bug dan perbaikannya bisa dibandingkan saat dimainkan.
+- `show_markers` untuk mematikan penanda saat diukur oleh `tools/cek_walker.gd`.
+
+### Bukti
+
+```
+$ $GODOT --headless --path godot_project --script res://tools/cek_walker.gd | .venv/bin/python godot_check.py
+[ok] walker kecepatan tetap 1.500 m/s: geser 0.096 m (pembanding, tidak dinilai)
+[ok] walker kecepatan tetap 1.000 m/s: geser 0.330 m (pembanding, tidak dinilai)
+[ok] walker kecepatan tetap 1.601 m/s: geser 0.049 m (pembanding, tidak dinilai)
+[ok] walker root motion: kaki menapak geser 2.4e-07 m, naik-turun 1.8e-07 m
+```
+
+| Mode | Geser kaki per langkah (maks) | Naik-turun kaki (maks) |
+|---|---|---|
+| kecepatan tetap 1,0 m/s (starter "fixed") | 33,0 cm | 9,2 cm |
+| kecepatan tetap 1,5 m/s (starter "buggy") | 9,6 cm | 9,2 cm |
+| kecepatan tetap 1,601 m/s (stride geometri) | 4,9 cm | 9,2 cm |
+| **root motion** | **2,4e-7 m** | **1,8e-7 m** |
+
+Sisa 2e-7 m adalah pembulatan `Vector3` 32-bit pada posisi sejauh sekitar 6 m (jarak antar angka float 32-bit di sekitar 6 adalah 4,8e-7). Di mode root motion, posisi mendarat kaki kiri berurutan 2,3994, 4,0000, dan 5,6007 m, jadi satu siklus menempuh 1,6006 sampai 1,6007 m, sama dengan geometri kaki 4 × 0,92 × sin 0,45 = 1,6007 m. Kecepatan rata-ratanya kini muncul dari kaki sendiri, tidak ditulis di mana pun.
+
+Saya juga menguji walker di scene utama dengan waktu frame yang sungguhan (tidak selalu tepat 1/60 detik), di salinan proyek: selama 400 frame geser terbesar yang tampil di label adalah 4,8e-7 m, dan keenam penanda berwarna hijau. Uji ini sempat menemukan bug di versi pertama saya: geser diukur sampai frame pertama setelah kaki terangkat, saat kaki sudah mulai mengayun, sehingga label menampilkan -1,2 cm. Sekarang geser diukur sampai frame terakhir kaki masih menapak, sama dengan alat ukurnya. Setelah tombol F ditekan, label menampilkan `scripted_speed 1.50 m/s` dan penanda dari rumus starter muncul kembali.
+
+Catatan T14: dengan kecepatan tetap 1,5 m/s, kaki sudah bergeser 7 sampai 10 cm di langkah pertama, yang selesai sebelum 0,75 detik. Jadi bug ini terlihat sejak langkah pertama, jauh sebelum "dua detik" seperti tulisan PDF. Walker diulang setiap 8 detik, sedangkan kamera sekarang bolak-balik dalam 16 detik. Keduanya berjalan sendiri-sendiri, jadi panjang loop tidak memengaruhi hasil di atas.

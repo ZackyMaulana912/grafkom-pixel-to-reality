@@ -271,6 +271,12 @@ def test_godot_check_parser():
     check("godot_check: still Euler cube + moving quaternion cube passes", diff <= tol, True)
     _, diff, tol = check_line("GIMBAL euler_cube_max_change=0.08 quat_cube_max_change=0.99")
     check("godot_check: a moving Euler cube (the starter demo) is flagged", diff > tol, True)
+    still = ("WALKER mode=root_motion speed=-1.000 stances=7 max_abs_slide=0.000000476 max_rise=0.000000000 "
+             "travelled_4s=6.3")
+    _, diff, tol = check_line(still)
+    check("godot_check: root-motion walker with a planted foot passes", diff <= tol, True)
+    _, diff, tol = check_line(still.replace("max_abs_slide=0.000000476", "max_abs_slide=0.024"))
+    check("godot_check: root-motion walker whose foot slides 2.4 cm is flagged", diff > tol, True)
 
 
 def test_foot_slide_bug():

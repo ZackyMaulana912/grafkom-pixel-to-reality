@@ -91,6 +91,15 @@ def check_line(line):
             return f"rig lengan saya: {len(joints)} sendi, Python {len(positions)}", 1.0, TOL_BASIS
         diff = max(math.dist(j, (p[0], p[1], 0.0)) for j, p in zip(joints, positions))
         return f"rig lengan saya (Skeleton3D, {len(joints)} sendi) vs fk.py", diff, TOL_BASIS
+    if tag == "WALKER":
+        slide, rise = float(f["max_abs_slide"]), float(f["max_rise"])
+        if f["mode"] == "root_motion":
+            # the planted foot must not move at all, up to 32-bit rounding of positions near 6 m
+            ok = slide <= TOL_BASIS and rise <= TOL_BASIS
+            return f"walker root motion: kaki menapak geser {slide:.1e} m, naik-turun {rise:.1e} m", \
+                0.0 if ok else 1.0, TOL_BASIS
+        return f"walker kecepatan tetap {f['speed']} m/s: geser {slide:.3f} m (pembanding, tidak dinilai)", 0.0, \
+            TOL_BASIS
     if tag == "GIMBAL":
         euler, quat = float(f["euler_cube_max_change"]), float(f["quat_cube_max_change"])
         # the red cube must stand still (float32 rounding only) while the blue one really turns
