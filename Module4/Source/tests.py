@@ -3,14 +3,22 @@ hand-worked number. Run: python tests.py -> ALL CHECKS PASSED (N ok)
 """
 from __future__ import annotations
 
+import ast
+import json
 import math
+import os
+import random
 
-from fk import Bone, forward_kinematics, running_example as fk_running_example
-from ik import solve_two_bone_ik, UnreachableTarget, running_example as ik_running_example
-from spline import catmull_rom_point, sample_path, load_camera_path, running_example as spline_running_example
+from fk import Bone, bone_matrices, forward_kinematics, running_example as fk_running_example
+from ik import fk_error, solve_two_bone_ik, UnreachableTarget, running_example as ik_running_example
+from spline import (
+    catmull_rom_point, catmull_rom_weights, sample_path, load_camera_path, load_my_path, load_path,
+    running_example as spline_running_example,
+)
 from quaternion import (
     quat_from_axis_angle, slerp, quat_to_axis_angle, gimbal_lock_demo,
-    running_example_slerp,
+    running_example_slerp, euler_to_matrix, mat_max_diff, quat_mul, quat_norm, quat_rotate,
+    quat_to_matrix, axis_matrix, lock_rule,
 )
 from foot_slide_bug import foot_slide_at, diagnose
 from my_chain import load_chain, angles_from_photo
@@ -52,6 +60,9 @@ def test_my_chain():
     check("my chain fingertip global angle", angles[2], 107.3)
     two, _ = forward_kinematics(bones[:2])
     check_point("my 2-bone chain ends at the wrist", two[-1], positions[2], tol=1e-12)
+    t1, t2 = solve_two_bone_ik(bones[0].length, bones[1].length, positions[2])
+    check("IK of my measured wrist gives back the shoulder angle", t1, bones[0].local_angle_deg, tol=1e-9)
+    check("IK of my measured wrist gives back the elbow angle", t2, bones[1].local_angle_deg, tol=1e-9)
     # the JSON angles are the photo angles rounded to 0.1 deg
     _, from_photo = angles_from_photo(data)
     for i, (b, a) in enumerate(zip(bones, from_photo)):
@@ -100,8 +111,135 @@ def test_quaternion():
     check_point("slerp t=1 -> q1", slerp(identity, yaw90, 1.0), yaw90, tol=1e-9)
 
     d12, d13 = gimbal_lock_demo()
-    check("gimbal lock: pitch/roll trade-off invisible (pair 1)", d12, 0.0, tol=1e-9)
-    check("gimbal lock: pitch/roll trade-off invisible (pair 2)", d13, 0.0, tol=1e-9)
+    check("gimbal lock: pitch/roll trade-off invisible (pair 1)", d12, 0.0, tol=1e-12)
+    check("gimbal lock: pitch/roll trade-off invisible (pair 2)", d13, 0.0, tol=1e-12)
+
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+FROM_SCRATCH = ("fk.py", "ik.py", "spline.py", "quaternion.py", "foot_slide_bug.py", "my_chain.py")
+ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse", "fk", "ik", "spline",
+                   "quaternion"}
+
+
+def test_stdlib_only():
+    """The from-scratch files may import only the standard library and each other (K2)."""
+    for name in FROM_SCRATCH:
+        tree = ast.parse(open(os.path.join(HERE, name)).read(), name)
+        found = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                found |= {a.name.split(".")[0] for a in node.names}
+            elif isinstance(node, ast.ImportFrom):
+                found.add((node.module or "").split(".")[0])
+        check(f"{name} imports only {sorted(ALLOWED_IMPORTS & found)}", sorted(found - ALLOWED_IMPORTS), [])
+
+
+def test_fk_matrices():
+    """Positions from the matrix product agree with the angle-sum definition."""
+    rnd = random.Random(1)
+    worst_pos = worst_ang = 0.0
+    for _ in range(500):
+        bones = [Bone(rnd.uniform(0.1, 5.0), rnd.uniform(-180.0, 180.0)) for _ in range(rnd.randint(1, 6))]
+        positions, angles = forward_kinematics(bones)
+        x = y = total = 0.0
+        for bone, m, p, a in zip(bones, bone_matrices(bones), positions[1:], angles):
+            total += bone.local_angle_deg
+            x += bone.length * math.cos(math.radians(total))
+            y += bone.length * math.sin(math.radians(total))
+            worst_pos = max(worst_pos, math.hypot(p[0] - x, p[1] - y))
+            diff = (math.degrees(math.atan2(m[1][0], m[0][0])) - a + 180.0) % 360.0 - 180.0
+            worst_ang = max(worst_ang, abs(diff))
+    check("fk matrix product = angle sum (positions, 500 random chains)", worst_pos, 0.0, tol=1e-9)
+    check("fk matrix rotation = summed global angle (deg)", worst_ang, 0.0, tol=1e-9)
+
+
+def test_ik_more():
+    """Both reach limits, and IK -> FK lands on the target everywhere, also right at the limits."""
+    for target in ((0.5, 0.0), (0.999, 0.0), (5.001, 0.0), (0.0, -6.0)):
+        try:
+            solve_two_bone_ik(3.0, 2.0, target)
+        except UnreachableTarget:
+            pass
+        else:
+            raise AssertionError(f"expected UnreachableTarget for {target}")
+    print("[ok] inner and outer limits both raise UnreachableTarget (3, 2): d = 0.5, 0.999, 5.001, 6")
+    global _checks
+    _checks += 1
+    check("arm fully straight at d = l1 + l2: theta2", solve_two_bone_ik(3.0, 2.0, (5.0, 0.0))[1], 0.0, tol=1e-9)
+    check("arm fully folded at d = |l1 - l2|: theta2", solve_two_bone_ik(3.0, 2.0, (1.0, 0.0))[1], 180.0,
+          tol=1e-9)
+    rnd = random.Random(7)
+    worst = 0.0
+    for _ in range(20000):
+        l1, l2 = rnd.uniform(0.2, 4.0), rnd.uniform(0.2, 4.0)
+        lo, hi = abs(l1 - l2), l1 + l2
+        d = rnd.choice((rnd.uniform(lo, hi), hi * (1 - 1e-12), lo + (hi - lo) * 1e-12))
+        a = rnd.uniform(-math.pi, math.pi)
+        target = (d * math.cos(a), d * math.sin(a))
+        try:
+            t1, t2 = solve_two_bone_ik(l1, l2, target)
+        except UnreachableTarget:
+            continue  # d rounded just past a limit when turned into x, y
+        worst = max(worst, fk_error(l1, l2, t1, t2, target)[0])
+    check("ik -> fk worst error over 20000 targets incl. near the limits", worst, 0.0, tol=1e-9)
+
+
+def test_my_path():
+    """My camera path: 6 points -> 51 samples, passing every control point at t = 0 of its segment."""
+    cps = load_my_path()
+    check("my_path.json control point count", len(cps), 6)
+    path = sample_path(cps, samples_per_segment=10)
+    check("my_path.json sample count", len(path), 51)
+    for i, cp in enumerate(cps):
+        check_point(f"my path passes control point {i}", path[10 * i], cp, tol=1e-12)
+    # Module 3 room: left wall at x = -1.0, cabinet front at x = 0.6, end walls at z = -2.0 and 2.0
+    dense = sample_path(cps, samples_per_segment=100)
+    clearance = min(min(p[0] + 1.0, 0.6 - p[0], p[2] + 2.0, 2.0 - p[2]) for p in dense)
+    check("my path keeps >= 0.2 m from the walls and the cabinet", clearance >= 0.2, True)
+    centre = json.load(open(os.path.join(HERE, "data", "my_path.json")))["centre"]
+    r = [math.hypot(p[0] - centre[0], p[2] - centre[2]) for p in dense]
+    print(f"     (clearance {clearance:.3f} m, distance to the statue {min(r):.3f} .. {max(r):.4f} m)")
+    for t in (0.0, 0.3, 0.5, 1.0):
+        check(f"catmull-rom weights sum to 1 at t={t}", sum(catmull_rom_weights(t)), 1.0, tol=1e-12)
+
+
+def test_camera_path_copies():
+    """Godot cannot read res://../, so it has its own copy: control points must stay identical (K11)."""
+    a = load_camera_path()
+    b = load_path(os.path.join(HERE, "godot_project", "data", "camera_path.json"))
+    check("data/ and godot_project/data/ camera_path.json control points identical", a == b, True)
+
+
+def test_euler_orders():
+    """The locked axis is the middle one of each order (derivation in docs/catatan/fase3-primitif.md)."""
+    xzy = gimbal_lock_demo("XZY")
+    check("XZY at roll = 90: pitch - yaw kept, pair 1", xzy[0], 0.0, tol=1e-12)
+    check("XZY at roll = 90: pitch - yaw kept, pair 2", xzy[1], 0.0, tol=1e-12)
+    m = lambda p, y, r: euler_to_matrix(p, y, r, "XZY")  # noqa: E731
+    check("XZY at yaw = 90 is NOT locked (pitch - roll kept)", mat_max_diff(m(20, 90, 10), m(10, 90, 0)) > 0.1, True)
+    yxz = gimbal_lock_demo("YXZ")
+    check("Godot default YXZ at pitch = 90: yaw - roll kept", max(yxz), 0.0, tol=1e-12)
+    g = lambda p, y, r: euler_to_matrix(p, y, r, "YXZ")  # noqa: E731
+    check("YXZ at yaw = 90 is NOT locked (the starter Godot demo)", mat_max_diff(g(20, 90, 10), g(10, 90, 0)) > 0.1,
+          True)
+    check("lock_rule ZYX", lock_rule("ZYX"), ("Y", "Z", "X", -1))
+    check("lock_rule XZY", lock_rule("XZY"), ("Z", "X", "Y", -1))
+    check("lock_rule YXZ", lock_rule("YXZ"), ("X", "Y", "Z", -1))
+
+
+def test_quaternion_algebra():
+    """Product composes rotations, rotation matches the axis matrices, norm scales the result."""
+    q = quat_mul(quat_from_axis_angle((0, 0, 1), 30.0), quat_from_axis_angle((0, 0, 1), 60.0))
+    check_point("q(z,30) * q(z,60) = q(z,90)", q, quat_from_axis_angle((0, 0, 1), 90.0), tol=1e-12)
+    for axis, v in (("X", (1, 0, 0)), ("Y", (0, 1, 0)), ("Z", (0, 0, 1))):
+        check(f"quat_to_matrix = R{axis.lower()}(37)", mat_max_diff(quat_to_matrix(quat_from_axis_angle(v, 37.0)),
+                                                                   axis_matrix(axis, 37.0)), 0.0, tol=1e-12)
+    big = tuple(1.01 * c for c in quat_from_axis_angle((0, 0, 1), 30.0))
+    check("|q| = 1.01 scales a rotated unit vector by 1.0201", math.hypot(*quat_rotate(big, (1.0, 0.0, 0.0))),
+          1.0201, tol=1e-12)
+    check("slerp result stays unit length", quat_norm(slerp((1.0, 0.0, 0.0, 0.0),
+                                                           quat_from_axis_angle((1, 2, 3), 170.0), 0.37)), 1.0,
+          tol=1e-12)
 
 
 def test_foot_slide_bug():
@@ -122,7 +260,14 @@ if __name__ == "__main__":
     test_fk()
     test_my_chain()
     test_ik()
+    test_ik_more()
+    test_fk_matrices()
     test_spline()
+    test_my_path()
+    test_camera_path_copies()
     test_quaternion()
+    test_quaternion_algebra()
+    test_euler_orders()
+    test_stdlib_only()
     test_foot_slide_bug()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")

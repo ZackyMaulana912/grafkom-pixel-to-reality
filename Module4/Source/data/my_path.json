@@ -1,0 +1,15 @@
+{
+  "_comment": "Jalur kamera saya: 6 titik kontrol mengelilingi patung kuda di model ruangan Modul 3 (Module3/Source/data/mymodel.obj, meter, y ke atas, origin di tengah lantai). Patung di x = -0.2, z = 0; dinding kiri x = -1.0; muka lemari x = 0.6. Jari-jari 0.6 m, sudut 0/60/120/180/240/300 derajat dari +z (sisi pintu masuk), tinggi 1.15 m sama dengan mata kamera scene Modul 3. Disetujui 30 Okt 2026.",
+  "unit": "m",
+  "centre": [-0.2, 0.0, 0.0],
+  "radius": 0.6,
+  "look_target": [-0.2, 0.25, 0.0],
+  "control_points": [
+    [-0.20, 1.15, 0.60],
+    [0.32, 1.15, 0.30],
+    [0.32, 1.15, -0.30],
+    [-0.20, 1.15, -0.60],
+    [-0.72, 1.15, -0.30],
+    [-0.72, 1.15, 0.30]
+  ]
+}

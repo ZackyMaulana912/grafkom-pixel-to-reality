@@ -24,7 +24,7 @@ from fk import Bone, forward_kinematics  # noqa: E402
 from ik import solve_two_bone_ik  # noqa: E402
 from quaternion import quat_dot, quat_from_axis_angle, quat_to_axis_angle, slerp  # noqa: E402
 from my_chain import angles_from_photo, load_chain  # noqa: E402
-from spline import sample_path  # noqa: E402
+from spline import load_camera_path, load_my_path, sample_path, sample_spacing  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_OUT = {
@@ -321,10 +321,82 @@ def fig_my_chain(out_dir):
     save(fig, out_dir, "my_chain_fk.png")
 
 
+def fig_my_path(out_dir):
+    """My camera path seen from above inside the Module 3 room, plus the spacing of its samples (T8)."""
+    cps = load_my_path()
+    path = sample_path(cps, samples_per_segment=10)
+    dense = sample_path(cps, samples_per_segment=100)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.6, 5.6), gridspec_kw={"width_ratios": [1, 1.25]})
+    # room outline from Module3/Source/data/mymodel_ukuran.json (x right, z towards the entrance)
+    a1.add_patch(plt.Rectangle((-1.0, -2.0), 2.0, 4.0, fill=False, color=INK, lw=1.5))
+    a1.add_patch(plt.Rectangle((0.6, -2.0), 0.4, 4.0, color="#c9b38f", alpha=0.6, label="lemari (0,4 m)"))
+    a1.add_patch(plt.Rectangle((-0.5, 1.99), 1.59, 0.27, color=MUTED, alpha=0.5, label="sekat"))
+    a1.add_patch(plt.Rectangle((-0.24, -0.15), 0.08, 0.30, color=BAD, label="patung kuda"))
+    a1.plot([p[0] for p in dense], [p[2] for p in dense], color=BONE1, lw=1.5, label="Catmull-Rom")
+    a1.plot([p[0] for p in path], [p[2] for p in path], ".", color=BONE1, ms=4, label="51 sampel")
+    a1.plot([p[0] for p in cps], [p[2] for p in cps], "o", color=BONE2, ms=8, label="6 titik kontrol")
+    for i, p in enumerate(cps):
+        a1.annotate(f"P{i}", (p[0], p[2]), xytext=(6, 4), textcoords="offset points", fontsize=9, color=BONE2)
+    a1.annotate("awal", (path[0][0], path[0][2]), xytext=(-30, 12), textcoords="offset points", fontsize=8.5)
+    a1.annotate("akhir", (path[-1][0], path[-1][2]), xytext=(-34, 8), textcoords="offset points", fontsize=8.5)
+    a1.set_xlim(-1.2, 1.2)
+    a1.set_ylim(-2.2, 2.5)
+    a1.set_aspect("equal")
+    a1.set_xlabel("x (m)")
+    a1.set_ylabel("z (m), + ke arah pintu masuk")
+    a1.legend(loc="lower left", fontsize=7.5)
+    a1.set_title("Jalur saya dilihat dari atas, tinggi 1,15 m", fontsize=10)
+    mine = sample_spacing(path)
+    theirs = sample_spacing(sample_path(load_camera_path(), samples_per_segment=10))
+    a2.plot(range(len(mine)), [g / max(mine) for g in mine], color=BONE1, marker=".", label=f"my_path (maks {max(mine):.3f} m)")
+    a2.plot(range(len(theirs)), [g / max(theirs) for g in theirs], color=BONE2, marker=".",
+            label=f"camera_path dosen (maks {max(theirs):.3f} m)")
+    a2.set_ylim(0, 1.1)
+    a2.set_xlabel("nomor langkah antar sampel")
+    a2.set_ylabel("jarak langkah / jarak langkah terbesar")
+    a2.legend(fontsize=8.5, loc="lower center")
+    a2.set_title("Langkah t sama besar, jarak tempuh tidak (T8)", fontsize=10)
+    save(fig, out_dir, "my_path.png")
+
+
+def fig_ik_my_arm(out_dir):
+    """IK on my own arm: the wrist measured in the photo is the target, IK must return the photo angles."""
+    bones, data = load_chain()
+    l1, l2 = bones[0].length, bones[1].length
+    wrist = forward_kinematics(bones[:2])[0][-1]
+    t1, t2 = solve_two_bone_ik(l1, l2, wrist)
+    to_target = math.degrees(math.atan2(wrist[1], wrist[0]))
+    fig, ax = plt.subplots(figsize=(6.6, 6.0))
+    ax.add_patch(Circle((0, 0), l1 + l2, color=GOOD, alpha=0.10))
+    ax.add_patch(Circle((0, 0), abs(l1 - l2), color="white"))
+    ax.add_patch(Circle((0, 0), l1 + l2, fill=False, color=GOOD, ls="--", lw=1))
+    ax.add_patch(Circle((0, 0), abs(l1 - l2), fill=False, color=BAD, ls="--", lw=1))
+    ax.text(0, -(l1 + l2) + 2.0, f"terjangkau: {abs(l1 - l2):g} cm ≤ d ≤ {l1 + l2:g} cm", ha="center",
+            color=GOOD, fontsize=9)
+    for (a1, a2), color, ls, label in (((t1, t2), BONE1, "-", "hasil IK"),
+                                       ((2 * to_target - t1, -t2), MUTED, "--", "solusi cermin")):
+        (s, e, h), _ = forward_kinematics([Bone(l1, a1), Bone(l2, a2)])
+        ax.plot([s[0], e[0], h[0]], [s[1], e[1], h[1]], color=color, ls=ls, lw=3.5 if ls == "-" else 2,
+                label=f"{label}: θ1 = {a1:.2f}°, θ2 = {a2:.2f}°")
+    ax.add_patch(Circle((0, 0), 0.9, color=INK, zorder=6))
+    ax.plot(*wrist, marker="*", ms=16, color=BAD, zorder=6)
+    ax.annotate(f"target = pergelangan di foto\n({wrist[0]:.3f}, {wrist[1]:.3f}) cm", wrist, xytext=(10, 6),
+                textcoords="offset points", fontsize=9)
+    ax.set_xlim(-56, 56)
+    ax.set_ylim(-56, 56)
+    ax.set_aspect("equal")
+    ax.set_xlabel("x (cm)")
+    ax.set_ylabel("y (cm)")
+    ax.legend(loc="upper left", fontsize=8.5)
+    ax.set_title(f"IK lengan saya ({l1:g} cm, {l2:g} cm) mengembalikan sudut foto "
+                 f"({bones[0].local_angle_deg:+.1f}°, {bones[1].local_angle_deg:+.1f}°)", fontsize=10)
+    save(fig, out_dir, "ik_my_arm.png")
+
+
 SETS = {
     "studi": (fig_fk_chain, fig_ik_two_solutions, fig_spline_vs_linear, fig_gimbal_lock,
               fig_slerp_vs_linear, fig_game_loop),
-    "readme": (fig_my_chain,),
+    "readme": (fig_my_chain, fig_ik_my_arm, fig_my_path),
 }
 
 
