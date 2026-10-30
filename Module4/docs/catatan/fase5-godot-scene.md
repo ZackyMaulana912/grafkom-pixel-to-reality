@@ -260,3 +260,38 @@ Sisa 2e-7 m adalah pembulatan `Vector3` 32-bit pada posisi sejauh sekitar 6 m (j
 Saya juga menguji walker di scene utama dengan waktu frame yang sungguhan (tidak selalu tepat 1/60 detik), di salinan proyek: selama 400 frame geser terbesar yang tampil di label adalah 4,8e-7 m, dan keenam penanda berwarna hijau. Uji ini sempat menemukan bug di versi pertama saya: geser diukur sampai frame pertama setelah kaki terangkat, saat kaki sudah mulai mengayun, sehingga label menampilkan -1,2 cm. Sekarang geser diukur sampai frame terakhir kaki masih menapak, sama dengan alat ukurnya. Setelah tombol F ditekan, label menampilkan `scripted_speed 1.50 m/s` dan penanda dari rumus starter muncul kembali.
 
 Catatan T14: dengan kecepatan tetap 1,5 m/s, kaki sudah bergeser 7 sampai 10 cm di langkah pertama, yang selesai sebelum 0,75 detik. Jadi bug ini terlihat sejak langkah pertama, jauh sebelum "dua detik" seperti tulisan PDF. Walker diulang setiap 8 detik, sedangkan kamera sekarang bolak-balik dalam 16 detik. Keduanya berjalan sendiri-sendiri, jadi panjang loop tidak memengaruhi hasil di atas.
+
+## 8. Knight berjalan dengan root motion dari animasinya sendiri
+
+Animasi `Walking_A` milik Knight adalah animasi di tempat: kakinya mengayun, tetapi tulang `root` tidak pernah bergerak (track posisi `root` hanya punya satu key). Kalau Knight digeser dengan kecepatan yang diketik, kakinya pasti tergelincir, sama seperti stick figure. Jadi saya memakai cara yang sama dengan bagian 7, kali ini dengan data animasi KayKit.
+
+### Yang diubah di `knight_actor.gd`
+
+- Dengan `walk = true`, AnimationPlayer diatur ke mode manual (`ANIMATION_CALLBACK_MODE_PROCESS_MANUAL`), sehingga animasi hanya maju saat script memanggil `advance(delta)`. Urutan per frame jadi pasti: baca posisi kaki, majukan animasi, baca lagi.
+- Kaki yang menapak adalah kaki yang lebih rendah di ruang skeleton (`planted_foot()`). Setiap frame, Knight maju sejauh kaki itu bergerak mundur di sumbu z skeleton (+z adalah arah depan Knight). Perpindahan itu dikalikan `basis` Knight, yang membawa arah hadap dan skala 0,16-nya.
+- Knight berjalan bolak-balik di samping patung, dari (0,15; 0; -0,6) ke (0,15; 0; 0,6). Di setiap ujung, Knight berbalik 180° terhadap sumbu y dalam 0,6 detik sambil tetap melangkah di tempat. Putarannya hanya terhadap satu sumbu, jadi tidak ada urutan Euler yang bisa terkunci.
+
+### Bukti
+
+`tools/cek_knight.gd` menjalankan Knight 60 langkah per detik selama 9 detik, di bagian lurus sebelum berbalik. Untuk setiap fase menapak dicatat geseran kaki di lantai (koordinat dunia), juga geseran yang akan terjadi kalau Knight didorong dengan kecepatan tetap sebesar kecepatan rata-ratanya:
+
+```
+$ $GODOT --headless --path godot_project --script res://tools/cek_knight.gd
+KNIGHT clip=Walking_A length=1.066667 scale=0.16
+STANCE foot=foot.r t0=2.6333 t1=3.1333 slide_root_motion=0.000000007 slide_constant_speed=-0.007470 rise=0.007303
+STANCE foot=foot.l t0=3.1500 t1=3.6833 slide_root_motion=0.000000000 slide_constant_speed=-0.002498 rise=0.009074
+...
+KNIGHT_WALK stances=15 travelled=0.926874 avg_speed=0.102986 max_slide_root_motion=0.000000060 max_slide_constant=0.007470 max_rise=0.009074
+[ok] Knight root motion: kaki menapak geser 6.0e-08 m (kecepatan tetap: 0.0075 m)
+```
+
+| | Root motion | Kecepatan tetap 0,103 m/s |
+|---|---|---|
+| Geser kaki menapak per langkah | 6e-8 m | 2,5 sampai 7,5 mm (setara 1,6 sampai 4,7 cm kalau Knight seukuran aslinya, karena skalanya 0,16) |
+
+Ada tiga hal yang perlu dicatat:
+- Kecepatan rata-ratanya (0,103 m/s, atau 0,110 m per siklus 1,0667 detik) tidak ditulis di mana pun. Angka itu muncul dari kaki di animasinya.
+- Kaki yang menapak masih naik 7 sampai 9 mm. Yang diukur adalah tulang `foot` (pergelangan kaki), dan di animasi aslinya pergelangan memang naik saat telapak berguling dari tumit ke jari. Itu gerakan yang dibuat animatornya, bukan tergelincir, jadi tidak saya ubah. Perbaikan saya hanya untuk arah horizontal.
+- Saat berbalik di ujung jalur, Knight berputar di tempat sambil melangkah, jadi selama 0,6 detik itu kakinya ikut berputar dan bergeser. Pengukuran di atas hanya untuk bagian jalan lurus.
+
+Uji di scene utama dengan waktu frame sungguhan, di salinan proyek, selama 30 detik: Knight tetap di garis x = 0,15 (simpangan 0), bergerak antara z = -0,616 dan 0,600, dan berbalik tiga kali. Kelebihan 1,6 cm di ujung terjadi karena Knight baru berbalik setelah langkah yang melewati titik tujuan.

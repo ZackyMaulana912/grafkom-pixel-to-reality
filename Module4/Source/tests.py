@@ -277,6 +277,12 @@ def test_godot_check_parser():
     check("godot_check: root-motion walker with a planted foot passes", diff <= tol, True)
     _, diff, tol = check_line(still.replace("max_abs_slide=0.000000476", "max_abs_slide=0.024"))
     check("godot_check: root-motion walker whose foot slides 2.4 cm is flagged", diff > tol, True)
+    knight = ("KNIGHT_WALK stances=15 travelled=0.93 avg_speed=0.10 max_slide_root_motion=0.000000060 "
+              "max_slide_constant=0.007470 max_rise=0.009")
+    _, diff, tol = check_line(knight)
+    check("godot_check: walking Knight with planted feet passes", diff <= tol, True)
+    _, diff, tol = check_line(knight.replace("max_slide_root_motion=0.000000060", "max_slide_root_motion=0.0075"))
+    check("godot_check: walking Knight whose foot slides 7.5 mm is flagged", diff > tol, True)
 
 
 def test_foot_slide_bug():

@@ -100,6 +100,10 @@ def check_line(line):
                 0.0 if ok else 1.0, TOL_BASIS
         return f"walker kecepatan tetap {f['speed']} m/s: geser {slide:.3f} m (pembanding, tidak dinilai)", 0.0, \
             TOL_BASIS
+    if tag == "KNIGHT_WALK":
+        slide = float(f["max_slide_root_motion"])
+        return f"Knight root motion: kaki menapak geser {slide:.1e} m (kecepatan tetap: " \
+               f"{float(f['max_slide_constant']):.4f} m)", 0.0 if slide <= TOL_BASIS else 1.0, TOL_BASIS
     if tag == "GIMBAL":
         euler, quat = float(f["euler_cube_max_change"]), float(f["quat_cube_max_change"])
         # the red cube must stand still (float32 rounding only) while the blue one really turns
