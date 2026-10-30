@@ -13,6 +13,7 @@ from quaternion import (
     running_example_slerp,
 )
 from foot_slide_bug import foot_slide_at, diagnose
+from my_chain import load_chain, angles_from_photo
 
 _checks = 0
 
@@ -39,6 +40,22 @@ def test_fk():
     check_point("E1 fk hand", hand, (2.598, 3.500))
     check("E1 fk elbow global angle", angles[0], 30.0)
     check("E1 fk hand global angle", angles[1], 90.0)
+
+
+def test_my_chain():
+    """My arm (data/my_chain.json) against the hand calculation in docs/catatan/fase2-rantai-saya.md."""
+    bones, data = load_chain()
+    positions, angles = forward_kinematics(bones)
+    check_point("my chain elbow (hand calc)", positions[1], (28.970, -1.316))
+    check_point("my chain wrist (hand calc)", positions[2], (32.807, 22.376))
+    check_point("my chain fingertip (hand calc)", positions[3], (26.860, 41.471))
+    check("my chain fingertip global angle", angles[2], 107.3)
+    two, _ = forward_kinematics(bones[:2])
+    check_point("my 2-bone chain ends at the wrist", two[-1], positions[2], tol=1e-12)
+    # the JSON angles are the photo angles rounded to 0.1 deg
+    _, from_photo = angles_from_photo(data)
+    for i, (b, a) in enumerate(zip(bones, from_photo)):
+        check(f"my chain bone {i + 1} angle matches the photo", b.local_angle_deg, a, tol=0.05)
 
 
 def test_ik():
@@ -103,6 +120,7 @@ def test_foot_slide_bug():
 
 if __name__ == "__main__":
     test_fk()
+    test_my_chain()
     test_ik()
     test_spline()
     test_quaternion()

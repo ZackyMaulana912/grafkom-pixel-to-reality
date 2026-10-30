@@ -6,6 +6,7 @@ code it illustrates. Nothing in those modules imports this file.
 
 Run (from Source/):
   .venv/bin/python figures.py --set studi    -> ../docs/studi-pendahuluan/img/*.png
+  .venv/bin/python figures.py --set readme   -> ../docs/img/*.png
 """
 from __future__ import annotations
 
@@ -22,10 +23,14 @@ from matplotlib.patches import Arc, Circle, FancyArrowPatch, FancyBboxPatch  # n
 from fk import Bone, forward_kinematics  # noqa: E402
 from ik import solve_two_bone_ik  # noqa: E402
 from quaternion import quat_dot, quat_from_axis_angle, quat_to_axis_angle, slerp  # noqa: E402
+from my_chain import angles_from_photo, load_chain  # noqa: E402
 from spline import sample_path  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_OUT = {"studi": os.path.join(HERE, "..", "docs", "studi-pendahuluan", "img")}
+DEFAULT_OUT = {
+    "studi": os.path.join(HERE, "..", "docs", "studi-pendahuluan", "img"),
+    "readme": os.path.join(HERE, "..", "docs", "img"),
+}
 
 INK = "#222222"
 BONE1 = "#2f6db5"
@@ -268,9 +273,58 @@ def fig_game_loop(out_dir):
     save(fig, out_dir, "q5_game_loop.png")
 
 
+def fig_my_chain(out_dir):
+    """My arm: joint points on the cropped photo (left) and FK of data/my_chain.json in cm (right)."""
+    bones, data = load_chain()
+    photo = data["photo"]
+    x0, y0, x1, y1 = photo["crop_box_px"]
+    w, h = photo["cropped_size_px"]
+    sx, sy = w / (x1 - x0), h / (y1 - y0)
+    to_crop = {k: ((p[0] - x0) * sx, (p[1] - y0) * sy) for k, p in photo["points_px"].items()}
+    img = plt.imread(os.path.join(HERE, "data", photo["cropped_file"]))
+    globals_deg, _ = angles_from_photo(data)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 6.2), gridspec_kw={"width_ratios": [1, 1.15]})
+    a1.imshow(img)
+    a, b = to_crop["upper_arm_axis_a"], to_crop["upper_arm_axis_b"]
+    a1.plot([a[0], b[0]], [a[1], b[1]], color="yellow", lw=2.5)
+    e, wr, f = to_crop["elbow"], to_crop["wrist"], to_crop["fingertip"]
+    a1.plot([e[0], wr[0]], [e[1], wr[1]], color=BONE2, lw=2.5)
+    a1.plot([wr[0], f[0]], [wr[1], f[1]], color=GOOD, lw=2.5)
+    for p, name in ((e, "siku"), (wr, "pergelangan"), (f, "ujung jari")):
+        a1.plot(*p, "o", ms=9, mfc="none", mec=BAD, mew=2.2)
+        a1.annotate(name, p, xytext=(8, 4), textcoords="offset points", color="white", fontsize=9,
+                    bbox={"fc": "black", "alpha": 0.55, "lw": 0, "pad": 1.5})
+    a1.annotate("arah lengan atas\n(bahu di luar foto)", a, xytext=(0, -38), textcoords="offset points",
+                color="white", fontsize=8.5, bbox={"fc": "black", "alpha": 0.55, "lw": 0, "pad": 1.5})
+    a1.set_axis_off()
+    a1.set_title("Foto IMG_9035 (dipotong): titik sendi", fontsize=10)
+    positions, angles = forward_kinematics(bones)
+    colors = (BONE1, BONE2, GOOD)
+    for i, color in enumerate(colors):
+        p, q = positions[i], positions[i + 1]
+        a2.plot([p[0], q[0]], [p[1], q[1]], color=color, lw=5, solid_capstyle="round",
+                label=f"{data['bones'][i]['name']}: {bones[i].length:g} cm, lokal {bones[i].local_angle_deg:+.1f}°")
+    for p, name in zip(positions, ("bahu", "siku", "pergelangan", "ujung jari")):
+        a2.add_patch(Circle(p, 0.7, color=INK, zorder=5))
+        a2.annotate(f"{name}\n({p[0]:.3f}, {p[1]:.3f})", p, xytext=(10, -2), textcoords="offset points",
+                    fontsize=9, va="top")
+    a2.axhline(0, color=MUTED, lw=0.8)
+    a2.axvline(0, color=MUTED, lw=0.8)
+    a2.set_xlim(-4, 48)
+    a2.set_ylim(-8, 46)
+    a2.set_aspect("equal")
+    a2.set_xlabel("x (cm)")
+    a2.set_ylabel("y (cm)")
+    a2.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), fontsize=8)
+    a2.set_title(f"FK dari my_chain.json (global {angles[0]:.1f}°, {angles[1]:.1f}°, {angles[2]:.1f}°)", fontsize=10)
+    assert all(abs(g - a) < 0.05 for g, a in zip(globals_deg, angles))  # JSON angles = photo angles, 0.1 deg
+    save(fig, out_dir, "my_chain_fk.png")
+
+
 SETS = {
     "studi": (fig_fk_chain, fig_ik_two_solutions, fig_spline_vs_linear, fig_gimbal_lock,
               fig_slerp_vs_linear, fig_game_loop),
+    "readme": (fig_my_chain,),
 }
 
 
