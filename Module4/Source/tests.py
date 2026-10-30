@@ -25,6 +25,7 @@ from foot_slide_bug import (
     STRIDE_PER_CYCLE, CYCLE_RATE, SWAY, STRIDE_CHANGE, walk, constant_speed, root_motion,
 )
 from my_chain import load_chain, angles_from_photo
+from godot_check import check_line
 
 _checks = 0
 
@@ -119,8 +120,9 @@ def test_quaternion():
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FROM_SCRATCH = ("fk.py", "ik.py", "spline.py", "quaternion.py", "foot_slide_bug.py", "my_chain.py")
-ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse", "fk", "ik", "spline",
+FROM_SCRATCH = ("fk.py", "ik.py", "spline.py", "quaternion.py", "foot_slide_bug.py", "my_chain.py",
+                "godot_check.py")
+ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse", "sys", "fk", "ik", "spline",
                    "quaternion"}
 
 
@@ -245,6 +247,24 @@ def test_quaternion_algebra():
           tol=1e-12)
 
 
+def test_godot_check_parser():
+    """godot_check.py accepts Godot lines that match Python and flags ones that do not."""
+    (_, elbow, hand), _ = forward_kinematics([Bone(3.0, 30.0), Bone(2.0, 60.0)])
+    good = f"ARM_FK local=30,60 elbow={elbow[0]!r},{elbow[1]!r} hand={hand[0]!r},{hand[1]!r}"
+    _, diff, tol = check_line(good)
+    check("godot_check: matching FK line passes", diff <= tol, True)
+    bad = f"ARM_FK local=30,60 elbow={elbow[0] + 1e-6!r},{elbow[1]!r} hand={hand[0]!r},{hand[1]!r}"
+    _, diff, tol = check_line(bad)
+    check("godot_check: FK line off by 1e-6 is above the 1e-9 tolerance", diff > tol, True)
+    m = euler_to_matrix(20, 90, 10, "YXZ")
+    basis = "BASIS x order=2 deg=20,90,10 m=" + ",".join(repr(v) for row in m for v in row)
+    _, diff, tol = check_line(basis)
+    check("godot_check: Godot order 2 is YXZ = Ry Rx Rz", diff <= tol, True)
+    swapped = "BASIS x order=5 deg=20,90,10 m=" + ",".join(repr(v) for row in m for v in row)
+    _, diff, tol = check_line(swapped)
+    check("godot_check: the same matrix read as order 5 (ZYX) is flagged", diff > tol, True)
+
+
 def test_foot_slide_bug():
     """Before vs after the fix; the right speed is computed from the clip's constants, not typed in (T6)."""
     v = matched_speed()
@@ -295,6 +315,7 @@ if __name__ == "__main__":
     test_quaternion()
     test_quaternion_algebra()
     test_euler_orders()
+    test_godot_check_parser()
     test_stdlib_only()
     test_foot_slide_bug()
     test_pitfall_c_root_motion()

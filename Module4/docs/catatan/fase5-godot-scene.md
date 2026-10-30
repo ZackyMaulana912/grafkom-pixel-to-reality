@@ -1,0 +1,94 @@
+# Fase 5: Godot, dari reproduksi angka sampai scene saya
+
+Semua perintah dijalankan dari `Module4/Source` dengan Godot 4.7.2 (`$GODOT` = `/Applications/Godot.app/Contents/MacOS/Godot`).
+
+## 1. Membuka proyek di editor tanpa mengubah file
+
+Sebelum mengubah apa pun di scene, saya membuka proyek dengan editor Godot dalam mode tanpa jendela, supaya semua file diimpor seperti saat dibuka biasa:
+
+```
+$GODOT --headless --editor --path godot_project --quit
+```
+
+Hasilnya: kode keluar 0, tidak ada baris error atau warning di log, dan `git status` tidak menunjukkan satu pun file dosen yang berubah (`project.godot`, `Main.tscn`, dan kelima script tetap sama). Editor hanya membuat folder cache `.godot/` (di-ignore) dan `tools/cek_basis.gd.uid` untuk script pemeriksa baru saya. File `.uid` itu ikut di-commit, karena Godot 4.4 ke atas memakainya untuk mengenali script. Ini membuktikan proyek starter cocok dengan Godot 4.7.2 tanpa konversi otomatis. Tampilannya di jendela editor tetap harus saya cek sendiri dengan mata.
+
+## 2. Reproduksi FK/IK di Godot (Lab 2 no 3)
+
+### Yang saya ubah di `arm_kinematics.gd`
+
+- **Angka dicetak dan ditampilkan.** Saat game jalan, script mencetak baris `ARM_FK`, `ARM_IK`, dan `ARM_REACH` ke log, dan sebuah `Label3D` di bawah lengan menampilkan sudut serta posisi siku dan tangan untuk pose yang sedang aktif. Starter tidak mencetak angka apa pun (T5).
+- **Target tak terjangkau tidak lagi di-clamp diam-diam (T5).** Starter memaksa jarak target masuk ke rentang terjangkau (`d = clamp(...)`), jadi lengan seolah "berhasil" mencapai target yang mustahil. Sekarang `is_reachable()` mengecek `|l1 - l2| ≤ d ≤ l1 + l2` lebih dulu, sama dengan `ik.py`. Kalau target di luar jangkauan, lengan diluruskan ke arah target, bola target menjadi merah, dan label menulis `TARGET DI LUAR JANGKAUAN` beserta jarak dan batasnya. Clamp pada `acos` hanya tersisa untuk pembulatan float, setelah reachability dicek. Tombol **U** memindahkan target ke (5,5; 0) dan kembali, supaya peringatan ini bisa dilihat saat dimainkan.
+- **Rumus IK disamakan dengan `ik.py`**, yaitu θ2 dari sudut dalam siku dan θ1 dari arah target dikurangi arah jangkauan.
+- **Hitungan memakai float 64-bit.** Versi pertama saya mengembalikan sudut sebagai `Vector2`. Ternyata `Vector2` di Godot menyimpan float 32-bit, dan `Vector2.length()` juga dihitung 32-bit, sehingga θ2 berbeda 6,3e-6 derajat dari Python. Angka itu masih di bawah 1e-5, tapi penyebabnya penyimpanan, bukan rumus. Setelah semua hitungan memakai `float` biasa GDScript (64-bit, sama dengan Python) dan hasilnya dikumpulkan di `PackedFloat64Array`, selisihnya turun ke 3e-13, yang hanya sisa pembulatan karena dicetak dengan 12 desimal. `Vector3` (32-bit) sekarang hanya dipakai untuk meletakkan mesh di layar.
+
+### Bukti
+
+```
+$ $GODOT --headless --path godot_project --quit-after 30 | .venv/bin/python godot_check.py
+[ok] FK lokal 30/60: siku dan tangan: selisih 3.17e-13 (toleransi 1e-09)
+[ok] IK target (4.0, 1.0): theta1, theta2, tangan vs target: selisih 3.13e-13 (toleransi 1e-09)
+[ok] jangkauan (5.5, 0) = false: selisih 0.00e+00 (toleransi 1e-09)
+[ok] jangkauan (0.5, 0) = false: selisih 0.00e+00 (toleransi 1e-09)
+[ok] jangkauan (4, 1) = true: selisih 0.00e+00 (toleransi 1e-09)
+5 baris dibandingkan, 0 di atas toleransinya
+```
+
+Baris log dari Godot yang dibandingkan:
+
+```
+ARM_FK local=30.000000000000,60.000000000000 elbow=2.598076211353,1.500000000000 hand=2.598076211353,3.500000000000
+ARM_IK target=4.000000000000,1.000000000000 theta=-13.178679239300,70.528779365509 hand=4.000000000000,1.000000000000
+ARM_REACH target=5.500000000000,0.000000000000 reachable=false
+ARM_REACH target=0.500000000000,0.000000000000 reachable=false
+ARM_REACH target=4.000000000000,1.000000000000 reachable=true
+```
+
+| | Godot 4.7.2 | Python (`fk.py`, `ik.py`) |
+|---|---|---|
+| siku FK | (2,598076211353; 1,500000000000) | (2,598076211353316; 1,4999999999999998) |
+| tangan FK | (2,598076211353; 3,500000000000) | (2,598076211353316; 3,5) |
+| θ1, θ2 IK | -13,178679239300; 70,528779365509 | -13,178679239299779; 70,52877936550931 |
+| (5,5; 0) dan (0,5; 0) | tidak terjangkau | `UnreachableTarget` |
+
+Tombol Space dan U juga saya uji tanpa jendela. Di sebuah **salinan** proyek (bukan di repo), script pemeriksa mengirim tekanan tombol palsu dengan `Input.parse_input_event`, lalu membaca isi `Label3D` dan warna bola target:
+
+```
+f=3   FK  lokal 30.0 / 60.0 deg / siku (2.598, 1.500)  tangan (2.598, 3.500)    target tidak tampil
+f=13  IK  theta1 -13.18  theta2 70.53 deg / siku (2.921, -0.684)  tangan (4.000, 1.000)    target hijau
+f=23  IK  TARGET DI LUAR JANGKAUAN / d = 5.500, batas [1.000, 5.000]    target merah
+f=33  IK  theta1 -13.18  theta2 70.53 deg / siku (2.921, -0.684)  tangan (4.000, 1.000)    target hijau
+```
+
+Urutannya: awal (FK), setelah Space (IK), setelah U (target di luar jangkauan), dan setelah U sekali lagi (kembali ke target semula). Siku IK di (2,921; -0,684) berada di bawah garis bahu-target, sama dengan Python (T7). Yang belum terbukti dengan cara ini adalah tampilannya di layar, yaitu posisi label dan apakah lengan terlihat jelas. Itu saya cek sendiri di editor.
+
+**Toleransi.** `godot_check.py` memakai dua toleransi, karena Godot punya dua jenis angka. Hitungan lengan memakai float 64-bit, sama dengan Python, jadi harus cocok sampai 1e-9. Komponen `Basis`, `Vector2`, dan `Vector3` disimpan sebagai float 32-bit, yang membulatkan angka sebesar paling banyak 1 dengan galat sekitar 6e-8, jadi `Basis` dibandingkan dengan toleransi 1e-5. Batas ini masih jauh di bawah perbedaan yang sungguhan: pasangan T4 yang tidak terkunci berselisih lebih dari 0,08. Saya juga membuktikan pembandingnya bisa gagal: baris FK yang sengaja saya geser 0,002 ditandai `BEDA` dan programnya keluar dengan kode 1. `tests.py` juga punya test untuk ini (`test_godot_check_parser`).
+
+## 3. Bukti T4 dari Godot sendiri
+
+Di Fase 3 saya memprediksi dari matriks Python bahwa urutan bawaan Godot (intrinsic YXZ = Ry · Rx · Rz) terkunci di **pitch** = 90°, sehingga demo starter, yang mematok **yaw** = 90° dan menjaga pitch - roll tetap, tidak terkunci. Sekarang saya mengambil buktinya dari Godot.
+
+Script `tools/cek_basis.gd` membuat sebuah `Node3D`, mengisi `rotation` dengan beberapa kombinasi sudut, lalu mencetak `Basis` yang dibangun Godot, untuk urutan bawaan dan untuk `EULER_ORDER_ZYX`:
+
+```
+$ $GODOT --headless --path godot_project --script res://tools/cek_basis.gd
+CEK rotation_order_default=2 EULER_ORDER_YXZ=2 EULER_ORDER_ZYX=5
+BASIS yaw90_beda10 order=2 deg=20.0,90.0,10.0 m=0.059391126,0.336824059,0.939692616,...
+BASIS yaw90_beda10 order=2 deg=15.0,90.0,5.0 m=0.022557521,0.257834166,0.965925813,...
+BASIS yaw90_beda10 order=2 deg=10.0,90.0,0.0 m=-0.000000044,0.173648179,0.984807730,...
+...
+```
+
+Pertama, `rotation_order` bawaan sebuah `Node3D` memang 2, yaitu `EULER_ORDER_YXZ`, sesuai dokumentasi. Kedua, setiap `Basis` dari Godot cocok dengan `euler_to_matrix` Python untuk urutan yang sesuai ("YXZ" untuk 2, "ZYX" untuk 5). Selisih terbesar dari 16 matriks adalah 7,6e-8, sebesar pembulatan float 32-bit. Jadi urutan Godot terbukti sama dengan `Ry · Rx · Rz`.
+
+Selisih antar pasangan, dihitung dari matriks Godot:
+
+| Urutan Godot | Pasangan | Selisih terhadap pasangan pertama | Artinya |
+|---|---|---|---|
+| bawaan (YXZ) | yaw = 90°, (pitch, roll) = (20, 10), (15, 5), (10, 0) | 0,0865 dan 0,174 | **tidak terkunci** |
+| bawaan (YXZ) | pitch = 90°, (yaw, roll) = (20, 10), (15, 5), (10, 0) | 4,4e-8 dan 3,0e-8 | terkunci |
+| ZYX | yaw = 90°, (pitch, roll) = (20, 10), (15, 5), (10, 0) | 4,4e-8 dan 3,0e-8 | terkunci |
+| ZYX | pitch = 90°, (yaw, roll) = (20, 10), (15, 5), (10, 0) | 0,0865 dan 0,174 | tidak terkunci |
+
+**T4 terbukti.** Kubus Euler di demo starter mengisi `rotation = (pitch, 90°, roll)` dengan pitch - roll = 10° tetap, meniru `quaternion.py`. Tetapi dengan urutan bawaan Godot, sumbu tengahnya x, bukan y, jadi kubus itu tetap berputar sungguhan, dan tidak memperlihatkan gimbal lock sama sekali. Angka 0,0865 dan 0,174 sama dengan simulasi Python di Fase 3. Perbaikannya saya kerjakan sebagai commit terpisah.
+
+Temuan kecil lain di script yang sama: komentarnya menyebut "two cubes driven by Euler angles ... while a third cube", padahal kodenya hanya membuat satu kubus Euler dan satu kubus quaternion. Ini cocok dengan pemeriksaan Fase 0 (`gimbal_children=2`).
