@@ -1,20 +1,13 @@
-"""Diagnose-and-fix: root-motion / animation-speed mismatch ("foot sliding").
+"""Foot-slide case study: a walking character whose feet slip on the floor.
 
-A walk-cycle clip is *authored* to move the character forward by
-STRIDE_PER_CYCLE metres over one full cycle (this is baked into the
-animation -- e.g. read from the clip's root-motion curve, or, as here,
-computed from the foot's forward excursion). The game code separately
-drives the character's root node forward at SCRIPTED_SPEED m/s while the
-animation plays at CYCLE_RATE cycles/s.
-
-If SCRIPTED_SPEED != STRIDE_PER_CYCLE * CYCLE_RATE, the root moves faster
-(or slower) than the legs are actually covering ground in the animation --
-visually the feet slip against the floor ("foot sliding" / "ice skating").
-We compute the two displacement curves (root vs. authored-animation) over
-time and report the growing gap -- that gap, not a screenshot, is the
-"evidence" a marker/automated test can check.
+The root node is moved by game code at a scripted speed while a walk-cycle clip
+plays. `--diagnose` prints only the evidence (root distance, animation distance and
+their gap over time) for the reported speed; the cause and the fix are written up
+in docs/prediksi/diagnosis-foot-slide.md.
 """
 from __future__ import annotations
+
+import argparse
 
 
 STRIDE_PER_CYCLE = 1.0   # metres of forward travel the animation clip authored per cycle
@@ -50,7 +43,26 @@ def diagnose(scripted_speed: float, t_end: float = 5.0, dt: float = 1.0):
     return samples
 
 
+REPORTED_SPEED = 1.5    # scripted root speed in the build where the feet were seen sliding
+
+
+def print_diagnosis(scripted_speed=REPORTED_SPEED, t_end=5.0, dt=0.5):
+    """Evidence only: the two distance curves and their gap, no fix and no assertions."""
+    print(f"scripted_speed = {scripted_speed} m/s (root node, set by game code)")
+    print(f"animation clip: STRIDE_PER_CYCLE = {STRIDE_PER_CYCLE} m per cycle, CYCLE_RATE = {CYCLE_RATE} cycles/s")
+    print(f"{'t (s)':>6} {'cycles':>7} {'root (m)':>9} {'animation (m)':>14} {'gap (m)':>8}")
+    for t, gap in diagnose(scripted_speed, t_end, dt):
+        print(f"{t:6.1f} {CYCLE_RATE * t:7.2f} {root_motion_distance(scripted_speed, t):9.3f} "
+              f"{animation_authored_distance(t):14.3f} {gap:+8.3f}")
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="foot-slide case study")
+    parser.add_argument("--diagnose", action="store_true", help="print the evidence only (no fix)")
+    if parser.parse_args().diagnose:
+        print_diagnosis()
+        raise SystemExit(0)
+
     BUGGY_SPEED = 1.5   # scripted speed does not match the animation's own stride rate
     FIXED_SPEED = STRIDE_PER_CYCLE * CYCLE_RATE  # = 1.0 m/s: matches the animation exactly
 
