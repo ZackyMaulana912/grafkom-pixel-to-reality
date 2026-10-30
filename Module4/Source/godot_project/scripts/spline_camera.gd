@@ -17,12 +17,19 @@ extends Path3D
 ## res://../ points outside the project folder; samples_per_segment is 10, as
 ## spline.py uses (5 control points -> 41 samples); PathFollow3D's own
 ## rotation is off and the camera looks at the temple instead of along the path.
+##
+## Module 4 (mine): the path is my_path.json around the horse statue. That path is
+## open (300 deg, it does not join back to its start), so with `ping_pong` the
+## camera goes there and back with a cosine ease instead of jumping from the last
+## point to the first. progress_ratio follows arc length, so the camera moves
+## evenly even though the 51 samples are not evenly spaced (T8).
 
 @export var control_points_json: String = "res://data/camera_path.json"
 @export var seconds_per_lap: float = 12.0
 @export var samples_per_segment: int = 10
 @export var look_target: Vector3 = Vector3(0, 2, 0)          # the temple, world space
 @export var overview_camera_path: NodePath = ^"../OverviewCamera"
+@export var ping_pong: bool = false
 
 var _follow: PathFollow3D
 var _camera: Camera3D
@@ -35,6 +42,9 @@ func _ready() -> void:
 	for p in _sample_catmull_rom(control_points, samples_per_segment):
 		curve.add_point(p)
 
+	if not Engine.is_editor_hint():
+		_print_check()
+
 	_follow = get_node_or_null("PathFollow3D")
 	_camera = get_node_or_null("PathFollow3D/PathCamera")
 
@@ -45,7 +55,7 @@ func _process(delta: float) -> void:
 	if _follow == null or curve == null or curve.get_baked_length() <= 0.0:
 		return
 	_t = fmod(_t + delta / seconds_per_lap, 1.0)
-	_follow.progress_ratio = _t
+	_follow.progress_ratio = 0.5 - 0.5 * cos(TAU * _t) if ping_pong else _t
 	if _camera != null:
 		_camera.look_at(look_target, Vector3.UP)
 
@@ -61,6 +71,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			overview.make_current()
 		else:
 			_camera.make_current()
+
+
+## The baked curve points, parsed by Source/godot_check.py and compared with spline.py.
+func _print_check() -> void:
+	var parts := []
+	for i in curve.point_count:
+		var p := curve.get_point_position(i)
+		parts.append("%.6f,%.6f,%.6f" % [p.x, p.y, p.z])
+	print("CURVE file=%s points=%s" % [control_points_json.get_file(), ";".join(parts)])
 
 
 func _load_control_points(path: String) -> Array:

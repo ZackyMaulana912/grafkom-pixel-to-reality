@@ -10,7 +10,9 @@ Two tolerances, because Godot has two kinds of numbers:
 - Basis (and Vector2/Vector3) components are stored as 32-bit floats. A matrix entry
   is at most 1 in size, so storing it rounds by at most 2^-24 ~ 6e-8; TOL_BASIS = 1e-5
   leaves a wide margin above that and is still far below any real difference (the
-  T4 pairs that are NOT locked differ by more than 0.02).
+  T4 pairs that are NOT locked differ by more than 0.02). Curve points and skeleton
+  joints are Vector3 too (values up to 8 m, rounding below 1e-6 m), so they use
+  TOL_BASIS as well, in metres.
 """
 from __future__ import annotations
 
@@ -19,7 +21,9 @@ import sys
 
 from fk import Bone, forward_kinematics
 from ik import solve_two_bone_ik
+from my_chain import load_chain
 from quaternion import euler_to_matrix, mat_max_diff
+from spline import load_camera_path, load_my_path, sample_path
 
 TOL_FLOAT64 = 1e-9
 TOL_BASIS = 1e-5
@@ -70,6 +74,23 @@ def check_line(line):
         godot = [m[0:3], m[3:6], m[6:9]]
         diff = mat_max_diff(godot, euler_to_matrix(p, y, r, order))
         return f"Basis {order} ({p:g}, {y:g}, {r:g}) vs euler_to_matrix", diff, TOL_BASIS
+    if tag == "CURVE":
+        pts = [tuple(float(v) for v in p.split(",")) for p in f["points"].split(";")]
+        cps = load_my_path() if f["file"] == "my_path.json" else load_camera_path()
+        want = sample_path(cps, samples_per_segment=10)
+        if len(pts) != len(want):
+            return f"kurva {f['file']}: {len(pts)} titik, Python {len(want)}", 1.0, TOL_BASIS
+        diff = max(math.dist(a, b) for a, b in zip(pts, want))
+        return f"kurva {f['file']}: {len(pts)} titik vs spline.py", diff, TOL_BASIS
+    if tag == "MYARM":
+        joints = [tuple(float(v) for v in p.split(",")) for p in f["joints"].split(";")]
+        bones, data = load_chain()
+        k = 0.01 if data["unit"] == "cm" else 1.0
+        positions, _ = forward_kinematics([Bone(b.length * k, b.local_angle_deg) for b in bones])
+        if len(joints) != len(positions):
+            return f"rig lengan saya: {len(joints)} sendi, Python {len(positions)}", 1.0, TOL_BASIS
+        diff = max(math.dist(j, (p[0], p[1], 0.0)) for j, p in zip(joints, positions))
+        return f"rig lengan saya (Skeleton3D, {len(joints)} sendi) vs fk.py", diff, TOL_BASIS
     if tag == "GIMBAL":
         euler, quat = float(f["euler_cube_max_change"]), float(f["quat_cube_max_change"])
         # the red cube must stand still (float32 rounding only) while the blue one really turns

@@ -1,0 +1,27 @@
+{
+  "_comment": "Rantai lengan saya sendiri: bahu -> siku -> pergelangan -> ujung jari tengah. Panjang dari pengukuran saya, sudut lokal satu pose dibaca dari foto samping IMG_9035 (versi potong di Module4/docs/rantai/). Konvensi sama dengan fk.py: sudut lokal relatif terhadap arah bone induk, derajat, berlawanan jarum jam positif, bone pertama diukur dari +x (arah kanan foto).",
+  "name": "lengan saya",
+  "unit": "cm",
+  "bones": [
+    {"name": "lengan atas (bahu ke siku)", "length": 29.0, "local_angle_deg": -2.6},
+    {"name": "lengan bawah (siku ke pergelangan)", "length": 24.0, "local_angle_deg": 83.4},
+    {"name": "tangan (pergelangan ke ujung jari tengah)", "length": 20.0, "local_angle_deg": 26.5}
+  ],
+  "two_bone": "dua bone pertama (bahu, siku, pergelangan)",
+  "three_bone": "ketiga bone (sampai ujung jari tengah)",
+  "angle_uncertainty_deg": 4.0,
+  "photo": {
+    "original": "IMG_9035.jpg, 2754 x 4896 px, tidak di-commit (ada wajah dan GPS)",
+    "cropped_file": "../../docs/rantai/lengan_9035_potong.jpg",
+    "crop_box_px": [350, 450, 2754, 3750],
+    "cropped_size_px": [720, 988],
+    "points_px": {
+      "upper_arm_axis_a": [1000, 3215],
+      "upper_arm_axis_b": [1800, 3251],
+      "elbow": [2060, 3210],
+      "wrist": [2300, 1730],
+      "fingertip": [1960, 636]
+    },
+    "_points_comment": "Koordinat pixel di foto asli, y ke bawah. Bahu ada di luar frame, jadi arah lengan atas diambil dari garis tengah dua tepi lengan atas: tepi atas y 2908 dan 3020, tepi bawah y 3522 dan 3482, pada x 1000 dan 1800."
+  }
+}

@@ -126,3 +126,55 @@ frames 10..200: euler max change=0.000000119 quat max change=0.887561
 ```
 
 Selama yaw naik dari 12,2° ke 29,7°, `Basis` kubus Euler hanya berubah 1,2e-7, sebesar pembulatan float 32-bit, sedangkan kubus quaternion berubah 0,89. Sebagai pembanding, demo starter dengan urutan yang sama berselisih sampai 0,174 (bagian 3). Bahwa di layar kubus merah memang terlihat diam dan kubus biru terlihat berputar, itu masih harus saya lihat sendiri di editor.
+
+## 5. Scene saya: ruangan, jalur kamera, rig, dan aset (Lab 3 no 1 dan 2)
+
+### Aset
+
+- **Bangunan:** model ruangan patung kuda dari Modul 3, disalin tanpa diubah ke `godot_project/assets/ruangan/mymodel.obj` (SHA-256 sama dengan file di `Module3`). Texture atlas foto saya disimpan ulang sebagai PNG, karena Godot tidak bisa mengimpor PPM, dan isi pixelnya identik. `temple_blockout.gd` dari starter tidak lagi dipasang di scene, tapi file-nya tetap ada sebagai cadangan.
+- **Karakter ter-rig:** KayKit Knight karya Kay Lousberg, lisensi CC0, diunduh 30 Oktober 2026 dari repo GitHub resminya. Sumber, commit, ukuran, SHA-256, dan teks lisensinya dicatat di `godot_project/assets/LICENSE.md` dan `assets/kaykit/LICENSE.txt`. Pilihan awal saya adalah Kenney, tapi unduhan Kenney harus lewat tombol di browser, jadi saya memakai KayKit, yang lisensinya sama (CC0) dan bisa diunduh langsung.
+- Ukuran total aset sekitar 4 MB, di bawah batas 10 MB yang saya tetapkan (K5).
+
+Editor Godot (mode tanpa jendela) mengimpor ketiga aset tanpa error, lalu membuat file `.import` di samping masing-masing file. File `.import` ikut di-commit karena berisi pengaturan impor. Godot juga mengeluarkan texture yang tertanam di `Knight.glb` menjadi `Knight_knight_texture.png`.
+
+### Susunan scene
+
+Scene `Main.tscn` sekarang terbagi menjadi dua bagian:
+
+- **Ruangan saya di titik nol** (node `Ruangan`): model ruangan dengan lampu di langit-langit, rig lengan saya (`MyArm`), dan Knight yang diperkecil menjadi 0,16 kali (tingginya sekitar 0,4 m, kira-kira setinggi patung) dan memainkan animasi `Idle`. Pack KayKit memasang semua senjata dan perisai pada rig sekaligus, jadi `knight_actor.gd` hanya menampilkan bagian tubuhnya.
+- **Area demo dosen** (node `Lab`, 7 m di samping ruangan): lengan FK/IK berukuran 3 dan 2 m, walker stick figure, dan kubus gimbal lock. Ukurannya berskala candi, jadi tidak muat di dalam ruangan 2 × 4 m. Area ini dilihat dengan kamera overview (tombol C).
+
+### Kamera spline di jalur saya
+
+`CameraPath` sekarang memakai `res://data/my_path.json` (salinan `Source/data/my_path.json`; `tests.py` memastikan kedua file sama persis) dan selalu melihat ke tengah patung (-0,2; 0,25; 0). Field of view-nya 55°, sama dengan kamera Modul 3. Jalur saya terbuka (300°), jadi kalau diputar terus, kamera akan meloncat dari P5 kembali ke P0 setiap putaran. Karena itu saya menambah pilihan `ping_pong`: kamera bergerak pergi lalu pulang, dengan `progress_ratio = 0,5 - 0,5 · cos(2π t)`, sehingga melambat dengan halus di kedua ujung. Satu putaran pergi-pulang 16 detik.
+
+Kurva di Godot dibandingkan titik per titik dengan `spline.py`:
+
+```
+[ok] kurva my_path.json: 51 titik vs spline.py: selisih 2.72e-16 (toleransi 1e-05)
+```
+
+Selisihnya hampir nol karena dengan t = k/10 dan titik kontrol 2 desimal, setiap titik sampel tepat berupa angka desimal dengan paling banyak 5 angka di belakang koma, dan Godot mencetaknya dengan 6 desimal.
+
+Satu hal tentang T8: `Curve3D.add_point` di `spline_camera.gd` tidak diberi handle, jadi kurva Godot berupa 50 garis lurus pendek di antara 51 sampel, bukan kurva Bezier. Dengan jarak antar sampel 3,7 sampai 7,2 cm, tekukan di setiap sambungan sangat kecil. `PathFollow3D.progress_ratio` bergerak menurut panjang busur, jadi kecepatan kamera rata walaupun jarak antar sampelnya tidak sama (grafik di catatan Fase 3).
+
+### Rig lengan saya (Skeleton3D)
+
+`my_arm_rig.gd` membaca `res://data/my_chain.json` dan membangun sebuah `Skeleton3D` dengan empat tulang: lengan atas, lengan bawah, tangan, dan satu tulang ujung jari. Rest setiap tulang adalah "maju sepanjang tulang induk di sumbu x induk", dan pose-nya adalah putaran terhadap sumbu z sebesar sudut lokal dari foto. Artinya posisi global yang dihitung `Skeleton3D` sendiri adalah forward kinematics. Kapsul berwarna dipasang dengan `BoneAttachment3D`. Hasil `get_bone_global_pose()` dicetak dan dibandingkan dengan `fk.py` (dalam meter):
+
+```
+[ok] rig lengan saya (Skeleton3D, 4 sendi) vs fk.py: selisih 5.31e-08 (toleransi 1e-05)
+```
+
+Jadi FK yang dihitung engine untuk lengan saya sama dengan FK yang saya hitung dengan tangan di Fase 2. Selisih 5e-8 m berasal dari penyimpanan `Vector3` 32-bit.
+
+### Bukti
+
+```
+$ $GODOT --headless --editor --path godot_project --quit          # impor aset: kode 0, tanpa error
+$ $GODOT --headless --path godot_project --quit-after 60 | .venv/bin/python godot_check.py
+...
+13 baris dibandingkan, 0 di atas toleransinya
+```
+
+Saya juga merender screenshot di salinan proyek (Godot dibuka dengan jendela sebentar, lalu gambar viewport disimpan) dari empat posisi kamera spline dan dari kamera overview. Ruangan bertexture, patung kuda, rig lengan saya, dan Knight terlihat dari jalur kamera, sedangkan area demo terlihat dari kamera overview. Screenshot untuk README saya buat di akhir fase. Kesan saat game dimainkan, yaitu gerak kamera yang halus dan animasi Knight, tetap harus saya lihat sendiri di editor.

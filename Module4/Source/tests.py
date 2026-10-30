@@ -122,8 +122,8 @@ def test_quaternion():
 HERE = os.path.dirname(os.path.abspath(__file__))
 FROM_SCRATCH = ("fk.py", "ik.py", "spline.py", "quaternion.py", "foot_slide_bug.py", "my_chain.py",
                 "godot_check.py")
-ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse", "sys", "fk", "ik", "spline",
-                   "quaternion"}
+ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse", "sys",
+                   "fk", "ik", "spline", "quaternion", "my_chain"}
 
 
 def test_stdlib_only():
@@ -213,6 +213,10 @@ def test_camera_path_copies():
     a = load_camera_path()
     b = load_path(os.path.join(HERE, "godot_project", "data", "camera_path.json"))
     check("data/ and godot_project/data/ camera_path.json control points identical", a == b, True)
+    for name in ("my_path.json", "my_chain.json"):
+        same = open(os.path.join(HERE, "data", name)).read() == open(os.path.join(HERE, "godot_project", "data",
+                                                                                   name)).read()
+        check(f"data/{name} and godot_project/data/{name} are the same file", same, True)
 
 
 def test_euler_orders():
