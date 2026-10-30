@@ -178,3 +178,46 @@ $ $GODOT --headless --path godot_project --quit-after 60 | .venv/bin/python godo
 ```
 
 Saya juga merender screenshot di salinan proyek (Godot dibuka dengan jendela sebentar, lalu gambar viewport disimpan) dari empat posisi kamera spline dan dari kamera overview. Ruangan bertexture, patung kuda, rig lengan saya, dan Knight terlihat dari jalur kamera, sedangkan area demo terlihat dari kamera overview. Screenshot untuk README saya buat di akhir fase. Kesan saat game dimainkan, yaitu gerak kamera yang halus dan animasi Knight, tetap harus saya lihat sendiri di editor.
+
+## 6. Walker stick figure: posisi kaki yang sebenarnya (T11)
+
+Di Python (Fase 4) celah foot-slide dihitung dari dua rumus jarak. Walker di Godot punya kaki sungguhan yang diayunkan oleh `_pose()`, jadi saya mengukur apakah kaki itu benar-benar diam saat menapak.
+
+### Cara mengukur
+
+`tools/cek_walker.gd` membuat walker sendirian, mematikan `_process` otomatisnya, lalu menjalankannya secara manual 60 langkah per detik selama 4 detik. Di setiap frame, posisi dunia kedua kaki (kotak kaki di ujung tulang kering) dicatat. Kaki dianggap **menapak** sesuai rancangan animasinya sendiri: `_pose()` hanya menekuk lutut saat kaki sedang mengayun (`max(0, cos(fase kaki)) > 0`), jadi kaki yang lututnya lurus adalah kaki yang menapak. Untuk setiap fase menapak dicatat:
+- `slide`: geseran horizontal kaki dari awal sampai akhir menapak;
+- `rise`: seberapa jauh kaki naik-turun selama menapak;
+- `marker_off`: jarak antara posisi kaki sungguhan saat mulai menapak dan penanda footfall yang dihitung script dari rumus `stride_per_cycle × cycle_rate × t`.
+
+Pembuatan node penanda dimatikan selama pengukuran, karena node itu ditambahkan secara tertunda dan meninggalkan peringatan "leaked" saat walker dihapus. Posisi penanda tetap dihitung dengan rumus yang sama.
+
+Versi pertama alat ini memakai definisi "kaki dalam 2 mm dari titik terendahnya", dan hanya menangkap 2 sampai 3 frame per langkah. Dari situlah saya tahu kaki stick figure ternyata naik-turun selama menapak (lihat `rise` di bawah).
+
+### Hasil
+
+```
+$ $GODOT --headless --path godot_project --script res://tools/cek_walker.gd
+STANCE speed=1.000 foot=0 t0=2.2667 t1=2.7500 x0=2.7189 x1=2.4039 slide=-0.3150 rise=0.0919 marker_x=2.2667 marker_off=0.4522
+STANCE speed=1.000 foot=1 t0=2.7667 t1=3.2500 x0=3.2189 x1=2.9039 slide=-0.3150 rise=0.0919 marker_x=2.7667 marker_off=0.4522
+WALKER speed=1.000 stances=7 max_abs_slide=0.3296
+WALKER speed=1.500 stances=7 max_abs_slide=0.0962
+WALKER speed=1.601 stances=7 max_abs_slide=0.0491
+```
+
+| Kecepatan root | Asal angkanya | Geseran kaki per langkah (stabil) | Naik-turun kaki | Penanda vs kaki sungguhan |
+|---|---|---|---|---|
+| 1,0 m/s | "fixed" starter, `stride_per_cycle × cycle_rate` | **-31,5 cm** | 9,2 cm | penanda 45 cm di belakang kaki |
+| 1,5 m/s | "buggy" starter | -7,3 cm | 9,2 cm | penanda 1,8 sampai 2,1 m di belakang |
+| 1,601 m/s | geometri kaki: 2 langkah × 2 × 0,92 m × sin 0,45 | -2,5 cm | 9,2 cm | penanda 2,1 sampai 2,4 m di belakang |
+
+Langkah pertama tiap kecepatan sedikit berbeda (misalnya -33,0 cm untuk 1,0 m/s), karena gerakan dimulai dari fase nol dan batas fase jatuh di antara dua frame. Tabel di atas memakai langkah yang sudah stabil.
+
+### Yang terbukti
+
+1. **T11 terbukti, dan lebih parah dari dugaan.** Dengan kecepatan yang dianggap "sudah benar" oleh starter (1,0 m/s = `stride_per_cycle × cycle_rate`), kaki yang menapak justru terseret ke belakang 31,5 cm setiap langkah. Itu lebih buruk daripada kecepatan "buggy" 1,5 m/s (7,3 cm). Penyebabnya, `stride_per_cycle = 1,0` hanyalah angka yang ditulis, tidak dihitung dari kaki. Kaki stick figure sepanjang 0,92 m (pinggul ke kotak kaki) yang berayun ±0,45 rad menempuh 2 × 0,92 × sin 0,45 = 0,80 m per langkah, atau 1,60 m per siklus. Perkiraan kasar saya di run awal adalah 1,57 m.
+2. **Kecepatan konstan berapa pun tidak bisa membuat kaki diam.** Bahkan di 1,601 m/s kaki masih bergeser 2,5 cm per langkah. Posisi kaki relatif terhadap pinggul adalah 0,92 · sin(0,45 · sin φ), jadi kecepatannya naik-turun di dalam satu langkah, sedangkan root bergerak rata. Ini sama dengan temuan pitfall (c) di Fase 4.
+3. **Kaki yang menapak juga tidak menempel di lantai: ia naik-turun 9,2 cm.** Kaki diayunkan dengan lutut lurus, jadi tingginya berubah 0,92 · (1 - cos 0,45) = 9,2 cm, sedangkan pinggul hanya naik-turun 3 cm. Cocok dengan angka terukur 0,0919 m.
+4. **Penanda footfall tidak menunjukkan posisi kaki.** Penanda ditaruh di `stride_per_cycle × cycle_rate × t`, padahal kaki menapak di depan pinggul, sejauh 0,06 · cos 0,45 + 0,92 · sin 0,45 = 0,454 m (terukur 0,452). Akibatnya, bahkan di 1,0 m/s penanda berwarna hijau ("tidak sliding"), padahal kakinya terseret 31,5 cm setiap langkah. Warna penanda hanya membandingkan dua rumus, bukan kaki.
+
+Perbaikannya saya buat sebagai commit terpisah: kecepatan root dan tinggi pinggul akan diturunkan dari kaki yang sedang menapak, dan penanda akan ditaruh di posisi kaki yang sebenarnya.
