@@ -27,6 +27,15 @@ from spline import load_camera_path, load_my_path, sample_path
 
 TOL_FLOAT64 = 1e-9
 TOL_BASIS = 1e-5
+# Angles read back from 32-bit quaternions with acos: near w = 1, acos turns a rounding of
+# ~6e-8 in w into ~3e-4 rad, so single angles are compared to 0.01 deg and sums of 120 steps to 0.2 deg.
+TOL_ANGLE_DEG = 0.01
+TOL_PATH_DEG = 0.2
+
+
+def _matrix_angle_deg(m):
+    trace = m[0][0] + m[1][1] + m[2][2]
+    return math.degrees(math.acos(max(-1.0, min(1.0, (trace - 1.0) / 2.0))))
 GODOT_ORDER = {0: "XYZ", 1: "XZY", 2: "YXZ", 3: "YZX", 4: "ZXY", 5: "ZYX"}  # @GlobalScope.EulerOrder
 # Godot's intrinsic order X, Y, Z means rotating about local X first, i.e. M = Rx Ry Rz,
 # which is exactly the left-to-right product order string used by quaternion.euler_to_matrix.
@@ -104,6 +113,26 @@ def check_line(line):
         slide = float(f["max_slide_root_motion"])
         return f"Knight root motion: kaki menapak geser {slide:.1e} m (kecepatan tetap: " \
                f"{float(f['max_slide_constant']):.4f} m)", 0.0 if slide <= TOL_BASIS else 1.0, TOL_BASIS
+    if tag == "RIG_LOCK":
+        same, other, y = (float(f[k]) for k in ("yaw_minus_roll_pairs_max_diff", "yaw_plus_roll_pair_diff",
+                                                "arm_dir_max_abs_y"))
+        ok = same <= TOL_BASIS and other > 0.01 and y <= TOL_BASIS
+        return f"bahu di pitch 90: yaw-roll tetap {same:.1e} m, yaw+roll {other:.3f} m, arah lengan y {y:.1e}", \
+            0.0 if ok else 1.0, TOL_BASIS
+    if tag == "RIG_INTERP":
+        t = float(f["t"])
+        euler = _matrix_angle_deg(euler_to_matrix(90 * t, 0, 90 * t, "YXZ"))
+        diff = max(abs(float(f["euler_angle"]) - euler), abs(float(f["slerp_angle"]) - 120 * t))
+        return f"interpolasi t={t:g}: Euler {euler:.4f} deg, slerp {120 * t:.4f} deg (Python)", diff, TOL_ANGLE_DEG
+    if tag == "RIG_PATH":
+        # Rx(a) Rz(a) turns at |x + Rx(a) z| = sqrt(2) times da/dt, so the Euler path is 90 sqrt(2) deg long
+        diff = max(abs(float(f["euler_path_deg"]) - 90 * math.sqrt(2)), abs(float(f["slerp_path_deg"]) - 120.0))
+        return f"panjang jalur: Euler {float(f['euler_path_deg']):.3f} vs 90 sqrt(2) = {90 * math.sqrt(2):.3f}, " \
+               f"slerp {float(f['slerp_path_deg']):.3f} vs 120", diff, TOL_PATH_DEG
+    if tag == "RIG_LIFT":
+        y = _nums(f["dir_after"])[1]
+        return f"angkat 10 deg dengan quaternion dari B: arah lengan y = {y:.6f}", \
+            abs(abs(y) - math.sin(math.radians(10))), TOL_BASIS
     if tag == "GIMBAL":
         euler, quat = float(f["euler_cube_max_change"]), float(f["quat_cube_max_change"])
         # the red cube must stand still (float32 rounding only) while the blue one really turns

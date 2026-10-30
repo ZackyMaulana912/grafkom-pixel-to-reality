@@ -8,9 +8,8 @@ Module1/Source/data/*
 !Module1/Source/data/manifest.csv
 Module1/Source/photos/original/
 
-# cache editor Godot (bisa dibuat ulang) dan hasil ekspor Modul 4
+# cache editor Godot (bisa dibuat ulang); build Web Modul 4 sengaja ikut di-commit untuk GitHub Pages
 .godot/
-Module4/build/
 
 # sementara fokus Modul 4, modul berikutnya belum dikerjakan
 /Module5/

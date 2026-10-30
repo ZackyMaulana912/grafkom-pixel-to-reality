@@ -295,3 +295,116 @@ Ada tiga hal yang perlu dicatat:
 - Saat berbalik di ujung jalur, Knight berputar di tempat sambil melangkah, jadi selama 0,6 detik itu kakinya ikut berputar dan bergeser. Pengukuran di atas hanya untuk bagian jalan lurus.
 
 Uji di scene utama dengan waktu frame sungguhan, di salinan proyek, selama 30 detik: Knight tetap di garis x = 0,15 (simpangan 0), bergerak antara z = -0,616 dan 0,600, dan berbalik tiga kali. Kelebihan 1,6 cm di ujung terjadi karena Knight baru berbalik setelah langkah yang melewati titik tujuan.
+
+## 9. Pengukuran prediksi Euler vs quaternion, dan rekonsiliasinya (Lab 3 no 3)
+
+Prediksinya di-commit lebih dulu (`docs/prediksi/prediksi-euler-rig.md`, commit `dfd6064`). Baru setelah itu saya menulis `tools/cek_euler_rig.gd`. Alat ini memutar bahu rig lengan saya (`bone_0` di `my_arm_rig.gd`) dengan dua cara: lewat `Node3D.rotation` (urutan bawaan Godot, YXZ), lalu `Basis`-nya diambil sebagai quaternion; dan lewat `Quaternion` / `slerp`. Sendi lain tetap memakai sudut dari foto.
+
+```
+$ $GODOT --headless --path godot_project --script res://tools/cek_euler_rig.gd
+RIG_LOCK pitch=90 yaw_minus_roll_pairs_max_diff=0.000000030 yaw_plus_roll_pair_diff=0.171597 arm_dir_max_abs_y=0.000000060
+RIG_B angle_deg=120.000000 get_angle_deg=240.000007
+RIG_INTERP t=0.2500 euler_angle=31.716890 slerp_angle=30.000006 between=14.473744
+RIG_INTERP t=0.5000 euler_angle=62.799424 slerp_angle=60.000004 between=19.471258
+RIG_INTERP t=0.7500 euler_angle=92.527180 slerp_angle=90.000002 between=14.473744
+RIG_INTERP t=1.0000 euler_angle=120.000000 slerp_angle=120.000000 between=0.000000
+RIG_STEPS frames=120 euler_first_step_speed=127.307773 euler_min=1.058682 euler_max=1.061636 slerp_min=0.999354 slerp_max=1.002482
+RIG_PATH euler_path_deg=127.251664 slerp_path_deg=120.089156 net_angle_deg=120.000000
+RIG_LIFT dir_b=0.000000,0.000000,1.000000 dir_after=0.000000,-0.173648,0.984808
+```
+
+`godot_check.py` mencocokkan setiap baris dengan perhitungan Python yang dibuat terpisah: sudut Euler dihitung dari `euler_to_matrix(90t, 0, 90t, "YXZ")`, sudut slerp dari 120° · t, dan panjang jalur dari rumus 90 · √2. Kedelapan barisnya `[ok]`.
+
+### Rekonsiliasi
+
+| Prediksi | Hasil ukur | Tepat? |
+|---|---|---|
+| 1(a) di pitch 90°, arah lengan selalu mendatar (y = 0) | y terbesar 6,0e-8 dari enam pasangan (yaw, roll) | tepat |
+| 1(b) pasangan yaw - roll tetap memberi posisi sama, yaw + roll tetap berbeda | 3,0e-8 m vs 0,172 m | tepat |
+| 2 sudut B = 120° | 120,000000° | tepat |
+| 2 slerp naik rata 120° · t, langkah per frame sama | 30,000, 60,000, 90,000, 120,000°; langkah 0,9994 sampai 1,0025° | tepat (lihat catatan float di bawah) |
+| 2 Euler di t = 0,5 adalah 62,8° | 62,7994° | tepat |
+| 2 Euler di awal 127,3° per durasi | 127,31° per durasi | tepat |
+| 2 Euler pasti melambat di akhir, rasio langkah jauh di atas 1 | langkah 1,0587 sampai 1,0616°, hampir rata | **meleset** |
+| 2 jalur Euler dan slerp berbeda di tengah (sudut antara keduanya > 0) | 19,47° di t = 0,5 | tepat |
+| 3 dari B, putaran quaternion 10° mengubah y arah lengan sebesar ±0,174 | y = -0,173648 | tepat |
+
+**Bagian yang meleset dan kenapa.** Saya menganggap total yang ditempuh Euler sama dengan sudut bersihnya, 120°. Karena gerakan awalnya lebih cepat dari slerp, saya menyimpulkan geraknya pasti melambat di akhir. Ternyata asumsi itu salah. Jalur Euler bukan jalur terpendek, jadi panjang jalurnya lebih dari sudut bersihnya. Kecepatan sudut `Rx(a) · Rz(a)` adalah besarnya `ex · ȧ + Rx(a) ez · ȧ`, yaitu |(1, 0, 0) + (0, -sin a, cos a)| · ȧ = √2 · ȧ, **konstan**. Artinya blend Euler ini bergerak rata di 127,3° per durasi, dan menempuh 90 · √2 = 127,28° untuk mencapai orientasi yang hanya berjarak 120°. Python mengonfirmasinya: dengan 100.000 langkah, panjang jalur Euler 127,2792°, dan Godot mengukur 127,25°. Jadi masalah blend Euler di sini bukan kecepatannya yang naik-turun, melainkan **jalurnya yang memutar 6% lebih jauh dan menyimpang sampai 19,5° dari jalur terpendek**. Prediksi saya tentang sudut di t = 0,5 dan kecepatan awal tetap tepat, karena keduanya diturunkan langsung dari rumus θ(t), bukan dari asumsi tadi.
+
+**Catatan float.** Langkah slerp tidak tepat 1,0000° tetapi 0,9994 sampai 1,0025°, dan total jalurnya 120,09°, bukan 120°. Godot menyimpan quaternion dalam float 32-bit, dan sudut kecil dibaca kembali dengan `acos(w)` di dekat w = 1. Di daerah itu, galat pembulatan 6e-8 pada w menjadi sekitar 3e-4 rad (0,02°) pada sudut. Karena itu sudut tunggal dibandingkan dengan toleransi 0,01° dan jumlah 120 langkah dengan 0,2°. Sebagai pembanding, `slerp()` Python saya (float 64-bit) untuk A ke B yang sama memberi langkah 0,999999999997 sampai 1,000000000004° (selebar 7e-12°) dengan cara baca `acos` yang sama.
+
+**Temuan kecil di Godot.** `Quaternion.get_angle()` untuk B mengembalikan 240°, bukan 120°. Fungsi itu menghitung 2 · acos(w) tanpa memilih jalan terpendek, padahal q dan -q adalah putaran yang sama. Saya memakai 2 · acos(|w|). Di Python, `slerp()` saya sudah membalik tanda quaternion untuk alasan yang sama.
+
+### Keputusan representasi rotasi (LO8)
+
+Untuk sendi rig yang berputar bebas, seperti bahu, saya memakai **quaternion**, dan angka di atas alasannya:
+1. Dengan Euler YXZ, di pitch 90° satu arah putaran hilang. Lengan tidak bisa diangkat dengan yaw atau roll (y tetap 0 sampai 6e-8), padahal dengan quaternion lengan langsung terangkat 0,174 dari orientasi yang sama.
+2. Interpolasi Euler menempuh jalur 6% lebih panjang dan menyimpang sampai 19,5° dari jalur terpendek, sedangkan slerp tepat di jalur terpendek dengan kecepatan sudut rata.
+
+Euler tetap berguna sebagai angka yang mudah dibaca manusia di inspector, asalkan tidak dipakai untuk interpolasi atau untuk sendi yang bisa mencapai sumbu tengahnya.
+
+## 10. Renderer Compatibility (K15)
+
+Dokumentasi resmi Godot menulis "Godot 4 can only target WebGL 2.0 (using the Compatibility rendering method)", sedangkan starter memakai `rendering_method="mobile"` dengan fitur "Forward Plus" (T9). Jadi sebelum ekspor Web, `project.godot` saya ubah:
+
+- `renderer/rendering_method="gl_compatibility"` (ditambah `rendering_method.mobile` dengan nilai yang sama), dan `config/features` menjadi `"4.7", "GL Compatibility"`;
+- `config/name` dan `config/description` disesuaikan dengan isi proyek sekarang, yaitu ruangan patung kuda, bukan lagi candi Pusaka3D.
+
+Bukti bahwa versi desktop tetap jalan:
+- editor (mode tanpa jendela) membuka proyek dengan kode keluar 0 tanpa error, dan tidak menulis ulang `project.godot`;
+- dijalankan dengan jendela di salinan proyek, Godot mencetak `OpenGL API 4.1 Metal - 91.7 - Compatibility - Using Device: Apple - Apple M5`, dan `RenderingServer` melaporkan `gl_compatibility` dengan driver `opengl3`;
+- screenshot dari dua posisi kamera spline dan dari kamera overview menunjukkan ruangan bertexture, patung, rig lengan, Knight, dan area demo seperti sebelumnya. Penanda footfall root motion di area demo semuanya hijau;
+- `godot_check.py` tetap `13 baris dibandingkan, 0 di atas toleransinya` untuk scene utama.
+
+Rencana awal memisahkan perubahan renderer ke commit sendiri. Atas permintaan, perubahan ini digabung dengan pengukuran dan ekspor dalam satu commit, jadi buktinya saya tulis di sini.
+
+## 11. Ekspor Web, ukuran, dan hosting (Lab 3 no 4)
+
+### Export template
+
+Export template resmi Godot 4.7.2 (`Godot_v4.7.2-stable_export_templates.tpz`, 1.281.349.702 byte) saya unduh dari halaman rilis GitHub `godotengine/godot`. SHA-256-nya, `f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011`, sama dengan angka yang tercantum di rilis itu. Dari paket itu saya hanya memasang yang dibutuhkan untuk Web tanpa thread (`version.txt`, `web_nothreads_release.zip`, `web_nothreads_debug.zip`, masing-masing sekitar 10 MB) ke `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`, di luar repo.
+
+### Preset dan ekspor
+
+`godot_project/export_presets.cfg` berisi satu preset **Web**:
+- `variant/thread_support=false`, supaya build tidak butuh header `Cross-Origin-Opener-Policy` dan `Cross-Origin-Embedder-Policy` yang belum tentu dikirim GitHub Pages (K16);
+- `include_filter="*.json"`, supaya `my_path.json`, `my_chain.json`, dan `camera_path.json` ikut terbawa. Godot tidak membawa file non-resource kecuali diminta;
+- `exclude_filter="tools/*"`, supaya script pemeriksa saya tidak ikut ke build;
+- tujuan `../../build/web/index.html`, yaitu `Module4/build/web/`.
+
+```
+$ $GODOT --headless --path godot_project --export-release "Web" ../../build/web/index.html     # kode keluar 0
+```
+
+| File | Ukuran |
+|---|---|
+| `index.wasm` (engine Godot) | 39.514.754 B |
+| `index.pck` (scene, script, aset, JSON) | 1.566.920 B |
+| `index.js` | 279.815 B |
+| lainnya (html, ikon, audio worklet) | 54.816 B |
+| **total** | **sekitar 40 MB** |
+
+Isi game sendiri hanya 1,6 MB. Sisanya adalah engine, yang ukurannya sama untuk proyek Godot apa pun. Saya mengecek isi `index.pck`: ketiga file JSON ada, dan tidak ada satu pun file dari `tools/`. Ekspor kedua ke folder lain menghasilkan kesembilan file yang **identik byte per byte** dengan ekspor pertama, jadi build ulang dengan Godot dan isi proyek yang sama tidak menambah ukuran repo.
+
+### Uji di server lokal
+
+```
+.venv/bin/python -m http.server 8000 --bind 127.0.0.1 -d ../build/web
+```
+
+`lsof` menunjukkan `TCP 127.0.0.1:8000 (LISTEN)`, jadi server hanya bisa dibuka dari laptop ini. `curl` mendapat kode 200 untuk keempat file utama, dan `index.wasm` dikirim sebagai `application/wasm`.
+
+Lalu build saya buka dengan Google Chrome 156 tanpa jendela, dikendalikan lewat Chrome DevTools Protocol dari sebuah script Node sementara di luar repo. Script itu menunggu 50 detik, mencatat semua pesan console, dan mengambil screenshot:
+- WebGL: `WebGL 2.0 (OpenGL ES 3.0 Chromium)`, `ANGLE (Apple, ANGLE Metal Renderer: Apple M5)`;
+- Godot mencetak `Compatibility - Using Device: WebKit - WebKit WebGL` dan `single-threaded, no GDExtension support`;
+- tidak ada exception atau error di console;
+- baris pengecekan yang dicetak game di console browser (`CURVE`, `ARM_*`, `BASIS`, `GIMBAL`, `MYARM`) saya alirkan ke `godot_check.py`, hasilnya `13 baris dibandingkan, 0 di atas toleransinya`. Jadi di browser pun angkanya sama dengan Python;
+- screenshot setelah 50 detik memperlihatkan ruangan bertexture, patung kuda, rig lengan saya, dan Knight dari kamera spline.
+
+Uji dengan browser yang saya buka sendiri dicatat terpisah, beserta nama dan versi browsernya.
+
+### Hosting (K16)
+
+Dari empat pilihan (GitHub Pages dari `main`, branch terpisah, itch.io, atau tanpa Web), saya memilih **GitHub Pages dari `main`**, sama dengan Modul 3 yang sudah memakai Pages di repo ini. Untungnya: paling sederhana, dan penilai cukup membuka satu link. Ruginya: repo bertambah sekitar 40 MB. Karena hasil ekspornya deterministik, build ulang yang isinya sama tidak menambah ukuran lagi. Baris `Module4/build/` di `.gitignore` root saya buang supaya `Module4/build/web/` ikut ter-commit. Repo sudah punya `.nojekyll`, dan semua file build tidak diawali garis bawah, jadi Jekyll tidak akan membuang apa pun. Ukuran file terbesar (39,5 MB) masih di bawah batas 100 MB per file GitHub.
+
+Link yang diharapkan setelah push: `https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/build/web/`. Link ini baru saya uji setelah di-push.

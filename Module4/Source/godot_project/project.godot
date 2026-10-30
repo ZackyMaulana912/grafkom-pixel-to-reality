@@ -14,12 +14,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Pusaka3D Temple Tour"
-config/description="Module 4 reference project: FK/IK arm demo, Catmull-Rom camera fly-through of the Pusaka3D temple, and a walking figure used for the foot-slide diagnose-and-fix task."
+config/name="Modul 4 Ruangan Patung Kuda"
+config/description="Module 4: my room with the horse statue (from Module 3), a Catmull-Rom camera on my own path, my arm as a Skeleton3D, a CC0 Knight walking by root motion, and the course demos (FK/IK arm, foot-slide walker, gimbal lock) checked against the Python code."
 run/main_scene="res://scenes/Main.tscn"
-config/features=PackedStringArray("4.7", "Forward Plus")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [rendering]
 
-renderer/rendering_method="mobile"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.06, 0.08, 0.12, 1)

@@ -283,6 +283,14 @@ def test_godot_check_parser():
     check("godot_check: walking Knight with planted feet passes", diff <= tol, True)
     _, diff, tol = check_line(knight.replace("max_slide_root_motion=0.000000060", "max_slide_root_motion=0.0075"))
     check("godot_check: walking Knight whose foot slides 7.5 mm is flagged", diff > tol, True)
+    lock = "RIG_LOCK pitch=90 yaw_minus_roll_pairs_max_diff=0.000000030 yaw_plus_roll_pair_diff=0.171597 " \
+           "arm_dir_max_abs_y=0.000000060"
+    _, diff, tol = check_line(lock)
+    check("godot_check: locked shoulder (arm stays level) passes", diff <= tol, True)
+    _, diff, tol = check_line(lock.replace("arm_dir_max_abs_y=0.000000060", "arm_dir_max_abs_y=0.3"))
+    check("godot_check: a shoulder that can still lift the arm at pitch 90 is flagged", diff > tol, True)
+    _, diff, tol = check_line("RIG_INTERP t=0.5000 euler_angle=60.000000 slerp_angle=60.000000 between=0")
+    check("godot_check: an Euler blend claiming the slerp angle at t=0.5 is flagged", diff > tol, True)
 
 
 def test_foot_slide_bug():
