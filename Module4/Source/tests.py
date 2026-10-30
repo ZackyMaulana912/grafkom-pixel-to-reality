@@ -263,6 +263,10 @@ def test_godot_check_parser():
     swapped = "BASIS x order=5 deg=20,90,10 m=" + ",".join(repr(v) for row in m for v in row)
     _, diff, tol = check_line(swapped)
     check("godot_check: the same matrix read as order 5 (ZYX) is flagged", diff > tol, True)
+    _, diff, tol = check_line("GIMBAL euler_cube_max_change=0.000000060 quat_cube_max_change=0.99")
+    check("godot_check: still Euler cube + moving quaternion cube passes", diff <= tol, True)
+    _, diff, tol = check_line("GIMBAL euler_cube_max_change=0.08 quat_cube_max_change=0.99")
+    check("godot_check: a moving Euler cube (the starter demo) is flagged", diff > tol, True)
 
 
 def test_foot_slide_bug():

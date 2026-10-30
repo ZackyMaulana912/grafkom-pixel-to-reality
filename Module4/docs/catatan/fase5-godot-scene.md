@@ -92,3 +92,37 @@ Selisih antar pasangan, dihitung dari matriks Godot:
 **T4 terbukti.** Kubus Euler di demo starter mengisi `rotation = (pitch, 90°, roll)` dengan pitch - roll = 10° tetap, meniru `quaternion.py`. Tetapi dengan urutan bawaan Godot, sumbu tengahnya x, bukan y, jadi kubus itu tetap berputar sungguhan, dan tidak memperlihatkan gimbal lock sama sekali. Angka 0,0865 dan 0,174 sama dengan simulasi Python di Fase 3. Perbaikannya saya kerjakan sebagai commit terpisah.
 
 Temuan kecil lain di script yang sama: komentarnya menyebut "two cubes driven by Euler angles ... while a third cube", padahal kodenya hanya membuat satu kubus Euler dan satu kubus quaternion. Ini cocok dengan pemeriksaan Fase 0 (`gimbal_children=2`).
+
+## 4. Perbaikan demo gimbal lock (T4)
+
+Ada dua cara memperbaikinya:
+
+- **(a) Ganti urutan kubus ke ZYX** (`rotation_order = EULER_ORDER_ZYX`), supaya sama dengan `quaternion.py`. Untungnya, demo dan Python memakai angka yang persis sama (yaw = 90°, pitch - roll tetap). Ruginya, demo itu tidak lagi menunjukkan perilaku bawaan Godot. Orang yang memutar node di inspector Godot memakai YXZ, jadi mereka akan terkunci di pitch, bukan di yaw.
+- **(b) Pertahankan urutan bawaan Godot (YXZ) dan pindahkan sudut yang dipatok ke sumbu tengahnya**, yaitu pitch = 90°, dengan yaw - roll tetap. Untungnya, demo ini memperlihatkan gimbal lock yang benar-benar akan dialami di Godot. Ruginya, angkanya berbeda dari contoh Python, jadi saat membandingkan saya harus selalu menyebut urutannya.
+
+Saya memilih **(b)**, karena pelajaran utamanya justru bahwa sumbu yang terkunci bergantung pada urutan engine. Konstanta urutannya saya cek dari Godot, bukan ditebak: `rotation_order` bawaan bernilai 2 = `EULER_ORDER_YXZ` (baris `CEK` di atas).
+
+Kubus merah sekarang memakai pitch = 90°, roll = 20° · sin t, dan yaw = roll + 10°. Angka yaw dan roll terus berubah, tapi karena di pitch = 90° hanya yaw - roll yang terlihat, kubus itu **diam total**. Label di bawahnya menampilkan ketiga sudut saat game jalan, supaya terlihat bahwa angkanya bergerak sementara kubusnya tidak. Kubus biru tetap melakukan slerp antara dua orientasi. Komentar starter yang menyebut tiga kubus saya ganti dengan penjelasan yang sesuai kode.
+
+Bukti dari log headless, dibandingkan dengan Python oleh `godot_check.py`:
+
+```
+BASIS gimbal_demo order=2 deg=90.0000025044782,9.99999970909292,0.0 m=0.984807730,0.173648179,-0.000000008,...
+BASIS gimbal_demo order=2 deg=90.0000025044782,29.949901397264,19.9498999806238 m=0.984807789,0.173648208,-0.000000022,...
+GIMBAL euler_cube_max_change=0.000000060 quat_cube_max_change=0.997726381
+[ok] Basis YXZ (90, 29.9499, 19.9499) vs euler_to_matrix: selisih 4.03e-08 (toleransi 1e-05)
+[ok] kubus Euler diam (6.0e-08), kubus quaternion bergerak (0.998): selisih 0.00e+00 (toleransi 1e-05)
+11 baris dibandingkan, 0 di atas toleransinya
+```
+
+Pitch terbaca 90,0000025°, bukan tepat 90°, karena sudut disimpan di `Vector3` 32-bit. Python menghitung matriksnya dari angka yang sama persis, jadi perbandingannya tetap adil.
+
+Saya juga mengukur kubus yang sebenarnya saat game berjalan. Di salinan proyek, sebuah script pemeriksa membaca `Basis` kedua kubus dari frame 10 sampai frame 200:
+
+```
+f=10   label: Euler YXZ: pitch 90  yaw 12.2  roll 2.2 / yaw - roll = 10.0 -> kubus diam
+f=200  label: Euler YXZ: pitch 90  yaw 29.7  roll 19.7 / yaw - roll = 10.0 -> kubus diam
+frames 10..200: euler max change=0.000000119 quat max change=0.887561
+```
+
+Selama yaw naik dari 12,2° ke 29,7°, `Basis` kubus Euler hanya berubah 1,2e-7, sebesar pembulatan float 32-bit, sedangkan kubus quaternion berubah 0,89. Sebagai pembanding, demo starter dengan urutan yang sama berselisih sampai 0,174 (bagian 3). Bahwa di layar kubus merah memang terlihat diam dan kubus biru terlihat berputar, itu masih harus saya lihat sendiri di editor.

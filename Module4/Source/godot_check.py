@@ -70,6 +70,11 @@ def check_line(line):
         godot = [m[0:3], m[3:6], m[6:9]]
         diff = mat_max_diff(godot, euler_to_matrix(p, y, r, order))
         return f"Basis {order} ({p:g}, {y:g}, {r:g}) vs euler_to_matrix", diff, TOL_BASIS
+    if tag == "GIMBAL":
+        euler, quat = float(f["euler_cube_max_change"]), float(f["quat_cube_max_change"])
+        # the red cube must stand still (float32 rounding only) while the blue one really turns
+        ok = euler <= TOL_BASIS and quat > 0.1
+        return f"kubus Euler diam ({euler:.1e}), kubus quaternion bergerak ({quat:.3f})", 0.0 if ok else 1.0, TOL_BASIS
     return None
 
 
