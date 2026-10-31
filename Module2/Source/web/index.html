@@ -27,7 +27,10 @@
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
-<!-- SVG colour-vision-deficiency simulation filters -->
+<!-- SVG colour-vision-deficiency simulation filters. The numbers are colorjack.com's "ColorMatrix"
+     Channel Mixer values (archived 2008-12-18), not a Vienot/Brettel model; cvd_check.mjs also checks
+     the legend with Machado et al. 2009, and both give the same verdict. Applied in linear light
+     (color-interpolation-filters defaults to linearRGB). -->
 <svg width="0" height="0" style="position:absolute">
   <filter id="deuteranopia">
     <feColorMatrix type="matrix" values="

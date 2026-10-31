@@ -12,6 +12,11 @@
  * Distance = Euclidean distance between two simulated colours in sRGB codes,
  * the measure and the threshold (20) of Module 1's legend guard.
  *
+ * Source of the page's matrices (traced on 31 Oct 2026, Module 1 notes): colorjack.com's
+ * "ColorMatrix" Channel Mixer values (Wayback 2008-12-18), fitted to Matthew Wickline's
+ * formulas, not Vienot/Brettel. MACHADO_2009 below (Machado, Oliveira & Fernandes 2009,
+ * IEEE TVCG 15(6), Table 1, severity 1.0) is the published model the legend is also checked with.
+ *
  *   node cvd_check.mjs [--plan myplan.json]
  */
 import { readFileSync } from "node:fs";
@@ -65,6 +70,17 @@ export function views() {
   };
 }
 
+// Machado et al. 2009, Table 1, severity 1.0 (dichromacy); same numbers as Module 1's cvd.py
+export const MACHADO_2009 = {
+  deuteranopia: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]],
+  protanopia: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+};
+
+/** the two dichromacy views with Machado's matrices, applied in linear light like the page's */
+export function machadoViews() {
+  return { deuteranopia: inLinear(MACHADO_2009.deuteranopia), protanopia: inLinear(MACHADO_2009.protanopia) };
+}
+
 // a hue-only red/green palette, the kind Module 1 rejects; it must FAIL here
 export const BAD = [[200, 40, 40], [40, 170, 40], [210, 150, 30], [150, 90, 40], [90, 160, 40]];
 
@@ -83,8 +99,15 @@ if (process.argv[1] && process.argv[1].endsWith("cvd_check.mjs")) {
   }
   const codes = minPair(cols.map(onCodes(M.deuteranopia)), labels);
   console.log(`for comparison, the same deuteranopia matrix on sRGB codes: min distance ${codes.d.toFixed(1)} (${codes.pair})`);
+  for (const [name, f] of Object.entries(machadoViews())) {
+    const m = minPair(cols.map(f), labels);
+    ok &&= m.d >= THRESH;
+    console.log(`${(name + " (Machado 2009)").padEnd(28)} min distance ${m.d.toFixed(1).padStart(6)} (${m.pair})`);
+  }
   const bad = Object.fromEntries(Object.entries(V).map(([n, f]) => [n, minPair(BAD.map(f), BAD.map(String)).d.toFixed(1)]));
   console.log(`negative control, red/green palette: ${JSON.stringify(bad)}`);
+  const badM = Object.fromEntries(Object.entries(machadoViews()).map(([n, f]) => [n, minPair(BAD.map(f), BAD.map(String)).d.toFixed(1)]));
+  console.log(`negative control under Machado 2009: ${JSON.stringify(badM)}`);
   console.log(ok ? `legend distinct in every view (>= ${THRESH})` : "LEGEND COLLAPSES in at least one view");
   process.exit(ok ? 0 : 1);
 }

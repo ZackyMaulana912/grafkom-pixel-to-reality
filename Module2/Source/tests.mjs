@@ -9,7 +9,7 @@ import { pixelStats } from "./metrics.mjs";
 import { asterisk } from "./draw_asterisk.mjs";
 import { sweep, REFS } from "./make_tri_ref.mjs";
 import { encodePNG } from "./export_png.mjs";
-import { views, minPair, BAD } from "./cvd_check.mjs";
+import { views, minPair, BAD, MACHADO_2009, machadoViews } from "./cvd_check.mjs";
 import { GPU_REFS, drawRef, gpuSweep } from "./gpu_rule_check.mjs";
 import { existsSync, mkdirSync } from "node:fs";
 import { inflateSync } from "node:zlib";
@@ -243,6 +243,18 @@ check("legend -- all 5 categories stay >= 20 apart under the page's CVD filters;
     assert(m.d >= 20, `${name}: ${m.pair} only ${m.d.toFixed(1)} apart`);
   }
   assert(minPair(BAD.map(V.deuteranopia), BAD.map(String)).d < 20, "the red/green control should collapse");
+});
+
+check("legend -- Machado et al. 2009 (published model) gives the same verdict as the page's matrices", () => {
+  const legend = legendOf(loadPlan("myplan.json"));
+  const labels = legend.map((e) => e.label), cols = legend.map((e) => e.rgb);
+  for (const [kind, M] of Object.entries(MACHADO_2009))
+    for (const row of M) assert(Math.abs(row[0] + row[1] + row[2] - 1) < 2e-6, `${kind}: white must stay white`);
+  for (const [name, f] of Object.entries(machadoViews())) {
+    const m = minPair(cols.map(f), labels);
+    assert(m.d >= 20, `Machado ${name}: ${m.pair} only ${m.d.toFixed(1)} apart`);
+    assert(minPair(BAD.map(f), BAD.map(String)).d < 20, `Machado ${name}: the red/green control should collapse`);
+  }
 });
 
 check("export_png -- the PNG encoder round-trips a raster through node:zlib", () => {

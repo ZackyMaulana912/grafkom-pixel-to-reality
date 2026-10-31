@@ -20,7 +20,7 @@ passed so the total `edge(A,B,C) > 0`; "inside" = all three edge functions
 cd Module2/Source            # in this repo the module's code/Module2 lives here
 nvm use                      # Node version from .nvmrc (22.23.4)
 npm ci                       # exact three + serve from package-lock.json
-npm test                     # -> ALL CHECKS PASSED (22 ok, 0 fail)
+npm test                     # -> ALL CHECKS PASSED (23 ok, 0 fail)
 npm run square               # the Fully Worked Example
 npm run bug                  # diagnose-and-fix: shared-edge cracks/doubles
 npm run plan                 # MY floor plan (myplan.json), from scratch -> out/plan_scratch.ppm
@@ -107,6 +107,7 @@ safe `serve`).
 | `npm run serve` | 127.0.0.1:4173 only (checked with `lsof`); `/web/`, `/web/viewer.mjs`, `/myplan.json` all 200 | 2026-10-28 | same |
 | Viewer vs from-scratch (`myplan.json`, fill on) | 479929/480000 identical, PSNR 52.7 dB, SSIM 1.000; every mismatch is a line end/joint (25) or diagonal antialiasing (46) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
 | Legend under CVD filters | min distance 36.9 (deuteranopia), 46.4 (protanopia), 69.3 (CSS grayscale); browser pixels match the Node model within 1 code | 2026-10-28 | same |
+| Legend vs Machado et al. 2009 (31 Oct) | the page's matrices are colorjack.com's "ColorMatrix" values, not Vienot/Brettel; with Machado 2009 (Table 1, severity 1.0, linear light) the legend stays 82.2 / 92.1 apart and the red/green control collapses (4.7 / 10.1), same as Module 1; `npm test` 23 ok | 2026-10-31 | Node 22.23.4, same Mac |
 | Clean copy reproduction | see `../docs/laporan/laporan-modul2.md`, section 8 | 2026-10-28 | same |
 | GitHub Pages (`https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/`) | every file 200 with the right type (`.mjs` as `text/javascript`, `cvd.css`, `myplan.json`, three.js from jsDelivr); 0 console errors (only the browser's own `/favicon.ico` 404); 5 legend rows; each of the 4 toggles changes the picture and switching it back restores it exactly; Export PPM byte-identical to the local export (479929/480000 vs from-scratch) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
 | Fresh clone from GitHub (commit `cceae00`) | `npm ci` 0 vulnerabilities, `npm test` 22 ok; every regenerated image and reference identical to the 33 committed ones; viewer export from the clone identical to the working copy (479929/480000 vs from-scratch) | 2026-10-28 | same |

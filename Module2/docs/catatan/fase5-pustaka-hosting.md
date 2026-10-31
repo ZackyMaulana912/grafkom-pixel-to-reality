@@ -179,6 +179,19 @@ Saya mengambil warna di tengah setiap swatch dari screenshot Chrome dengan filte
 
 **Sumber matriks.** Angka 0,625 / 0,375 / 0,7 / ... di `index.html` sama dengan yang di `cvd.py` Modul 1, yang di komentarnya disebut "Vienot / Brettel-style". Saya belum menemukan publikasi asli angka-angka ini, jadi asal-usulnya saya tulis sebagai belum pasti.
 
+**Pembaruan 31 Oktober 2026: asal matriks sudah ditemukan.** Angka-angka itu adalah nilai Channel Mixer dari halaman "ColorMatrix" milik colorjack.com (saya baca dari arsip Wayback Machine 18 Desember 2008), yang dicocokkan dari rumus Matthew Wickline. Jadi sumbernya bukan model Viénot atau Brettel. Penelusurannya ada di catatan Fase 4 Modul 1. Matriks dosen di `index.html` tidak saya ubah. Saya hanya menambah keterangan di komentar HTML, dan `cvd_check.mjs` sekarang juga menguji legenda dengan model yang dipublikasikan, yaitu Machado, Oliveira & Fernandes (2009), Tabel 1, tingkat keparahan 1,0, diterapkan di linear light seperti filter halaman:
+
+```
+$ node cvd_check.mjs
+...
+deuteranopia (Machado 2009)  min distance   82.2 (patung / lemari)
+protanopia (Machado 2009)    min distance   92.1 (lemari / dinding)
+negative control under Machado 2009: {"deuteranopia":"4.7","protanopia":"10.1"}
+legend distinct in every view (>= 20)
+```
+
+Legenda denah saya tetap aman (82,2 dan 92,1, jauh di atas 20), dan palet merah-hijau tetap runtuh (4,7 dan 10,1). Angkanya sama persis dengan hitungan Python di Modul 1, karena warnanya sama (viridis). Jadi implementasi Node dan Python saling mengonfirmasi. Test baru di `tests.mjs` mengecek bahwa baris matriks Machado berjumlah 1, legenda saya tidak runtuh, dan palet merah-hijau runtuh. Kalau matriks Machado diganti matriks identitas, jarak merah-hijau menjadi 51,0, sehingga test itu gagal seperti seharusnya.
+
 ## 6. GitHub Pages (Lab 3 no 5)
 
 Repo `ZackyMaulana912/grafkom-pixel-to-reality` sudah publik (dicek: halaman repo memberi status 200). Setelah push, GitHub Pages saya nyalakan dengan langkah berikut:

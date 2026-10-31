@@ -12,7 +12,7 @@ Halaman WebGL: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Modu
 cd Module2/Source
 nvm use          # Node 22.23.4 dari .nvmrc
 npm ci
-npm test         # ALL CHECKS PASSED (22 ok, 0 fail)
+npm test         # ALL CHECKS PASSED (23 ok, 0 fail)
 npm run plan     # denah saya, from scratch -> out/plan_scratch.ppm
 npm run serve    # buka http://127.0.0.1:4173/web/
 ```

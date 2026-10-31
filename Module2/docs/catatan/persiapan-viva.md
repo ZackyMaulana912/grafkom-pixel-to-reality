@@ -9,7 +9,7 @@ Viva meminta empat hal:
 
 ## Urutan demo (sekitar 3 menit)
 
-1. `cd Module2/Source`, lalu `nvm use` dan `node tests.mjs`. Tunjukkan 22 baris `OK` dan `ALL CHECKS PASSED (22 ok, 0 fail)`.
+1. `cd Module2/Source`, lalu `nvm use` dan `node tests.mjs`. Tunjukkan 23 baris `OK` dan `ALL CHECKS PASSED (23 ok, 0 fail)`.
 2. Buka https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/. Tunjukkan denah ruangan, lalu nyalakan "Simulasi deuteranopia": kelima kategori masih bisa dibedakan dari kecerahan, label, dan bentuk marker-nya.
 3. Kalau diminta test yang bisa gagal: `node triangle_gap_bug.mjs --diagnose` menunjukkan 6 pixel dobel dan 6 celah tanpa aturan. Ceritakan juga bahwa 4 test baru terbukti gagal kalau `triangle()` starter dipasang kembali.
 
