@@ -12,7 +12,7 @@ Build Web: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/
 cd Module4/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python tests.py            # ALL CHECKS PASSED (134 ok)
+python tests.py            # ALL CHECKS PASSED (171 ok)
 ```
 
 Lalu buka `Module4/Source/godot_project/project.godot` di Godot 4.7.2 dan tekan Play. Tombolnya: **C** mengganti kamera spline dan kamera overview, **Space** dan **U** untuk lengan FK/IK, **F** untuk walker (root motion atau perilaku starter). Perintah lainnya ada di [Source/README.md](Source/README.md).
@@ -45,9 +45,15 @@ IK lengan saya mengembalikan tepat sudut dari foto. Target di luar `|l1 - l2| â‰
 
 ### Jalur kamera spline
 
-Enam titik kontrol mengelilingi patung (jari-jari 0,6 m, tinggi 1,15 m) menjadi 51 sampel, dengan jarak minimal 0,215 m ke dinding dan lemari. Langkah t yang sama besar ternyata tidak berarti jarak tempuh yang sama.
+Enam titik kontrol mengelilingi patung (jari-jari 0,6 m, tinggi 1,15 m), dengan jarak minimal 0,215 m ke dinding dan lemari. Versi terbuka menjadi 51 sampel. Versi tertutup (31 Oktober) menjadi 60 sampel, dengan tangen yang sama persis di keenam sambungan termasuk P5 ke P0, sehingga kamera di Godot memutari patung penuh tanpa bolak-balik. Langkah t yang sama besar ternyata tidak berarti jarak tempuh yang sama: 3,7 sampai 7,2 cm di jalur terbuka, dan 5,4 sampai 6,7 cm di jalur tertutup.
 
 ![Jalur kamera saya](docs/img/my_path.png)
+
+### IK iteratif (Extension Lab, 31 Oktober)
+
+FABRIK (`fabrik.py`) untuk rantai sepanjang apa pun. Untuk lengan modul ke (4, 1), hasilnya sama dengan IK analitik sampai 2e-8Â° dalam 10 iterasi. Ujung jari lengan 3-bone saya bisa dicapai dengan beberapa pose berbeda, tergantung pose awalnya. Di 10.000 target acak, median iterasinya 13, tapi di dekat jangkauan penuh jauh lebih lambat (332 iterasi di 99%). Versi saya belum punya batas sendi. Detailnya ada di [catatan Extension Lab](docs/catatan/ekstensi-fabrik.md).
+
+![FABRIK](docs/img/fabrik.png)
 
 ### Gimbal lock
 

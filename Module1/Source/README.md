@@ -115,7 +115,9 @@ the `Makefile` directly.
 | `make test` after adding the Machado check | **ALL CHECKS PASSED** (17/17); the new check fails if Machado is replaced by the identity | 2026-10-31 | same |
 | `make report` after the `cvd.py` change | every tracked `report/` file unchanged (`git status` clean) | 2026-10-31 | same |
 
-Not yet verified: a clone pulled from GitHub (needs the commits pushed first), and Windows or Linux.
+| Fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install -r requirements.txt` gives numpy 2.4.6 and pillow 13.0.0 exactly; `make data`, `make test` (**ALL CHECKS PASSED**, 17/17) and `make report` all succeed, and `git status` stays clean afterwards (every regenerated `data/` and `report/` file is identical to the committed one) | 2026-10-31 | same Mac |
+
+Not yet verified: Windows or Linux.
 
 ## Verified (starter, kept for reference)
 

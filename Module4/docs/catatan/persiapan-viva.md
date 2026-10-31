@@ -2,7 +2,7 @@
 
 ## Yang harus bisa saya lakukan langsung
 
-1. **Menjalankan test.** `cd Module4/Source && source .venv/bin/activate && python tests.py`, hasilnya `ALL CHECKS PASSED (134 ok)`. Saya bisa menunjuk baris E1 sampai E4 (siku 2,598 / 1,500; IK -13,18° dan 70,53°; q(0,5) = (3, 1); slerp 36°) dan baris rantai saya (pergelangan 32,807 / 22,376 cm).
+1. **Menjalankan test.** `cd Module4/Source && source .venv/bin/activate && python tests.py`, hasilnya `ALL CHECKS PASSED (171 ok)`. Saya bisa menunjuk baris E1 sampai E4 (siku 2,598 / 1,500; IK -13,18° dan 70,53°; q(0,5) = (3, 1); slerp 36°) dan baris rantai saya (pergelangan 32,807 / 22,376 cm).
 2. **Membuka scene Godot.** Buka `godot_project/project.godot` di Godot 4.7.2, tekan Play (F5), lalu:
    - **C**: pindah ke kamera overview supaya area demo terlihat;
    - **Space**: lengan berganti dari FK (30°/60°) ke IK target (4, 1), dan label menampilkan θ1 -13,18 dan θ2 70,53;
@@ -18,6 +18,8 @@ Karena setiap sendi hanya tahu putarannya sendiri terhadap induknya. Kalau bahu 
 
 **Apa yang berubah kalau rantai ini punya lima bone, bukan dua?**
 FK tidak berubah: tetap perkalian matriks lokal dari root ke leaf, hanya lebih panjang (`fk.py` sudah menerima berapa pun bone, dan test-nya memakai 1 sampai 6 bone acak). IK yang berubah. Dua bone punya dua sudut dan dua persamaan (x, y), jadi aturan cosinus memberi paling banyak dua jawaban. Lima bone punya lima sudut tetapi tetap dua persamaan, jadi jawabannya tak hingga. Butuh solver iteratif seperti FABRIK atau CCD (dokumentasi `SkeletonIK3D` menyebut "uses FabrikInverseKinematic internally"), ditambah aturan untuk memilih satu jawaban: batas sendi, pole/magnet, atau pose paling dekat dengan pose sebelumnya.
+
+Saya bisa menunjukkannya dengan `python fabrik.py` (Extension Lab): ujung jari lengan 3-bone saya dicapai dengan tiga pose berbeda tergantung pose awalnya, misalnya (3,8°; 65,7°; 52,0°) dari lengan lurus dan pose foto (-2,6°; 83,4°; 26,5°). Untuk 2 bone, FABRIK mendarat di jawaban yang sama dengan rumus analitik (selisih 2e-8°) setelah 10 iterasi, sedangkan rumus analitik cukup satu kali hitung.
 
 **Sumbu mana yang terkunci di Godot, dan kenapa berbeda dengan Python?**
 Yang terkunci selalu sumbu tengah urutan komposisinya. Python saya memakai `Rz · Ry · Rx`, sumbu tengahnya y, jadi terkunci di yaw 90°, dan hanya roll - pitch yang terlihat. Godot memakai intrinsic YXZ, yaitu `Ry · Rx · Rz`, sumbu tengahnya x, jadi terkunci di pitch 90°, dan hanya yaw - roll yang terlihat. Buktinya `Basis` dari Godot: di yaw 90° pasangan sudut berselisih 0,174 (tidak terkunci), di pitch 90° selisihnya 4,4e-8. Demo starter salah karena menyalin angka Python ke Godot.

@@ -64,3 +64,22 @@ Jadi klaim saya di Fase 5 perlu dipersempit: **ekspor ulang identik byte per byt
 
 - Komputer lain, Windows, Linux, dan GPU selain Apple M5.
 - Membuka `godot_project/` di jendela editor Godot dengan mata saya sendiri dari clone ini. Impornya sudah dicek tanpa jendela.
+
+## Uji ulang 31 Oktober 2026, setelah tujuh commit tambahan
+
+Setelah commit hari ini di-push (spline tertutup, kamera memutari patung penuh, FABRIK, dan asal matriks buta warna di Modul 1 dan 2), saya mengulang uji dari clone GitHub yang baru, kali ini untuk keempat modul (commit `3f30c76`):
+
+| Modul | Perintah | Hasil |
+|---|---|---|
+| 1 | `pip install -r requirements.txt`, `make data`, `make test`, `make report` | numpy 2.4.6 dan pillow 13.0.0, ALL CHECKS PASSED (17/17), `git status` bersih: semua file `data/` dan `report/` yang dibuat ulang identik dengan yang di-commit |
+| 2 | `nvm use`, `npm ci`, `npm test`, `npm run plan` | Node 22.23.4, 23 ok, `git status` bersih |
+| 3 | `pip install`, `make_model.py`, `tests.py` | 17 ok, `git status` bersih |
+| 4 | `pip install`, `tests.py`, impor dan run Godot 300 frame, `godot_check.py`, `fabrik.py` | `pip freeze` sama dengan `requirements.txt`, 171 ok, Godot kode 0 tanpa error atau missing script, 13 baris cocok (kurva tertutup 61 titik), `git status` bersih |
+
+Ini pertama kalinya Modul 1 diuji dari clone GitHub. Sebelumnya README Modul 1 masih mencatatnya sebagai "not yet verified".
+
+GitHub Pages: deploy commit `3f30c76` sukses. Keempat file build Web identik dengan repo. Di Chrome tanpa jendela tidak ada error console, dan kurva tertutup yang dicetak di browser cocok dengan Python. Halaman Modul 2 dan 3 tetap memberi status 200.
+
+**Temuan baru: `npm audit` di Modul 2.** Tanggal 28 Oktober `npm ci` melaporkan 0 kerentanan. Sekarang ada 3 laporan tingkat moderate dari satu advisory, GHSA-g3hv-75wg-m249 (minimatch di bawah 11.0.1, kemungkinan denial of service), yang baru terbit 30 Oktober 2026 pukul 23:09 UTC. Paket itu masuk lewat `serve-handler` di dependensi `serve`, yang hanya dipakai untuk `npm run serve`, yaitu server lokal di `127.0.0.1`. Halaman Pages tidak memakai Node sama sekali. Perbaikan yang disarankan npm (`npm audit fix --force`) justru menurunkan `serve` ke versi 6.5.8, sebuah breaking change. Jadi dependensinya tidak saya ubah, dan temuan ini saya catat di baris Verified Modul 2.
+
+Folder clone uji dihapus setelah transkrip ini dicatat.

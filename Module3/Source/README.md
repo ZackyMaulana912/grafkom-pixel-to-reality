@@ -109,4 +109,5 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | opened by hand in a normal browser | GitHub Pages URL: the textured room and statue show, orbit and buttons work (visual check only, no export or console check in Safari) | 2026-10-29 | Safari 27.0.1, same Mac |
 | fresh clone from GitHub (commit `b10843f`) + new `.venv` | `pip install`, `make_model.py` (output identical to the committed files, `git status` clean), `tests.py` 17 ok | 2026-10-29 | same Mac |
 | GitHub Pages URL | every file 200 with the right MIME type, served `viewer.js` and texture identical to the repo, 0 console / page / network errors, orbit + reset work, **Export PPM byte-identical to the local export** (my model and the temple) | 2026-10-29 | Chrome 156.0.8078.48 headless, Apple M5 |
+| fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install`, `make_model.py`, `tests.py` 17 ok, `git status` clean | 2026-10-31 | same Mac |
 | other GPUs, Windows, Linux | **not tested** | | |

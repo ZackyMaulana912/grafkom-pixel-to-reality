@@ -84,7 +84,7 @@ Celah sesudahnya **tepat 0,0** (dicek dengan `== 0.0`) di 11, 51, dan 301 sampel
 ### Scene
 
 - **Bangunan:** ruangan patung kuda dari Modul 3 (`mymodel.obj` disalin tanpa diubah; texture foto saya sebagai PNG).
-- **Kamera spline:** jalur saya, selalu melihat ke patung, bolak-balik dengan perlambatan cosinus karena jalurnya terbuka. Kurva Godot sama dengan `spline.py` sampai 3e-16.
+- **Kamera spline:** jalur saya, selalu melihat ke patung. Awalnya kamera bolak-balik dengan perlambatan cosinus karena jalurnya terbuka. Sejak 31 Oktober kamera memakai Catmull-Rom tertutup dan memutari patung penuh (61 titik kurva, sama dengan `sample_closed_path()` sampai 2,8e-16). Kurva Godot sama dengan `spline.py` sampai 3e-16.
 - **Rig:** lengan saya sebagai `Skeleton3D` dari `my_chain.json`, yang pose globalnya sama dengan `fk.py` sampai 5e-8 m; dan **KayKit Knight** (Kay Lousberg, CC0, diunduh 30 Oktober 2026 dari GitHub resminya; sumber, commit, ukuran, dan SHA-256 di `assets/LICENSE.md`) yang berjalan bolak-balik di samping patung.
 - **Demo dosen:** lengan FK/IK, walker, dan kubus gimbal, dipindah 7 m ke samping ruangan.
 
@@ -114,9 +114,9 @@ Prediksi (di-commit sebelum diukur, `docs/prediksi/prediksi-euler-rig.md`) untuk
 
 ### Keterbatasan
 
-- Kalau rantainya 5 bone, misalnya lengan sampai ruas jari, IK aturan cosinus tidak lagi cukup. Rig ini perlu solver iteratif seperti FABRIK di `SkeletonIK3D`/`SkeletonModifier3D`, dengan pole (magnet) untuk memilih arah tekukan.
+- Kalau rantainya 5 bone, misalnya lengan sampai ruas jari, IK aturan cosinus tidak lagi cukup. FABRIK versi saya (`fabrik.py`, Extension Lab) sudah bisa menangani rantai sepanjang apa pun, tapi belum punya batas sendi atau pole, dan di 10.000 target acak ada 8 yang berakhir dengan siku terlipat hampir 180°. Rig sungguhan perlu batas sudut dan pole (magnet), seperti di `SkeletonIK3D`/`SkeletonModifier3D`.
 - Kalau kamera harus berakselerasi mulus (misalnya untuk rekaman sinematik), Catmull-Rom hanya menjamin C1. Percepatannya melompat di titik kontrol, jadi butuh spline C2 seperti B-spline kubik.
-- Jalur saya terbuka (300°). Untuk satu putaran penuh tanpa bolak-balik dibutuhkan Catmull-Rom tertutup.
+- Catmull-Rom tertutup yang sekarang dipakai tetap melewati semua titik kontrol, jadi kurvanya memotong sedikit ke dalam lingkaran (sampai 0,585 m dari patung, bukan 0,6 m). Kalau jarak kamera ke patung harus benar-benar tetap, jalurnya lebih tepat dibuat sebagai lingkaran sungguhan, bukan spline.
 - Sudut pose dibaca dari satu foto 2D (±4°). Rig 3D yang akurat butuh dua sudut pandang atau motion capture.
 - Saat Knight berbalik di ujung jalur, kakinya ikut berputar dan bergeser. Root motion saya hanya untuk berjalan lurus.
 

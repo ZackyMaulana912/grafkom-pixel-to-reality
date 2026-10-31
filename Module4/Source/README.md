@@ -21,7 +21,7 @@ pitch = 90); comparisons with Godot always name the order.
 cd Module4/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt          # matplotlib 3.11.2 and its pinned dependencies
-python tests.py                          # ALL CHECKS PASSED (134 ok)
+python tests.py                          # ALL CHECKS PASSED (171 ok)
 ```
 
 There is no Makefile; every task is one command:
@@ -32,6 +32,7 @@ python ik.py                             # E2: -13.18 / 70.53 deg, FK error 4.44
 python spline.py                         # E3 + camera_path.json + my_path.json (all 51 samples, spacing)
 python quaternion.py                     # E4 + gimbal lock + the locked axis of ZYX, XZY and Godot's YXZ
 python my_chain.py                       # my arm (data/my_chain.json): FK, angles re-derived from the photo
+python fabrik.py                         # iterative IK (FABRIK) vs the analytic answer, my 3-bone arm
 python foot_slide_bug.py --diagnose      # evidence only: root vs animation distance and the gap
 python foot_slide_bug.py                 # the fix (gap exactly 0.0) and pitfall (c), baked root-motion curve
 python figures.py --set studi            # ../docs/studi-pendahuluan/img/*.png
@@ -60,7 +61,8 @@ so it needs no cross-origin isolation headers.
 |---|---|
 | `fk.py` | planar FK as a product of local 3 x 3 homogeneous matrices `R(theta) T(l, 0)`, root to leaf |
 | `ik.py` | analytic 2-bone IK (law of cosines), `UnreachableTarget` outside `|l1 - l2| <= d <= l1 + l2`, `fk_error()` |
-| `spline.py` | Catmull-Rom as basis weights, clamped-end sampler, `sample_spacing()`, both path loaders |
+| `spline.py` | Catmull-Rom as basis weights and their slopes (tangent), clamped-end and closed (cyclic) samplers, `sample_spacing()`, both path loaders |
+| `fabrik.py` | FABRIK iterative IK for a planar chain of any length; reports out-of-reach targets instead of clamping |
 | `quaternion.py` | product, conjugate, norm, rotate, slerp, axis-angle, matrices, `euler_to_matrix(..., order)`, `lock_rule(order)` |
 | `foot_slide_bug.py` | the foot-slide case study: `--diagnose`, the fix `matched_speed()`, pitfall (c) `walk()` / `root_motion()` |
 | `my_chain.py` | my measured arm: FK of the 2-bone and 3-bone chains, local angles recomputed from the photo's pixels |
@@ -102,8 +104,9 @@ so it needs no cross-origin isolation headers.
 3. **`foot_slide_bug.py --diagnose`.** Added so the diagnosis could be written from numbers before the fix
    (committed first, `docs/prediksi/diagnosis-foot-slide.md`).
 4. **The scene.** The temple blockout is replaced by my Module 3 room (`temple_blockout.gd` is kept as a
-   fallback, unused). The course demos moved to a `Lab` node 7 m to the side; my path is open (300 deg), so the
-   camera goes there and back (`ping_pong`) instead of jumping from the last point to the first.
+   fallback, unused). The course demos moved to a `Lab` node 7 m to the side. Since 31 Oct the camera runs on
+   the closed Catmull-Rom loop through my 6 points (`closed_loop`); the open path with `ping_pong` (there and
+   back) is still available.
 5. **Gimbal demo.** Pinned at pitch = 90 (Godot's middle axis) instead of yaw = 90.
 6. **Walker.** Root motion from the planted foot by default; `F` switches back to the starter behaviour.
 7. **Asset.** KayKit (CC0) instead of Kenney: Kenney's download needs a browser button. Source, commit, size,
@@ -124,4 +127,9 @@ so it needs no cross-origin isolation headers.
 | fresh clone from GitHub (commit `418d846`) + new `.venv` | `pip freeze` = `requirements.txt`; `tests.py` 134 ok; editor import and 300-frame run exit 0 with no error or missing script; `godot_check.py` 13 lines ok; `git status` clean | 2026-10-30 | same Mac, Godot 4.7.2 |
 | GitHub Pages URL | the 4 main files 200 with the right MIME type and identical to the repo; no console error; 13 lines from the browser console match Python | 2026-10-30 | Chrome 156 headless, Apple M5 |
 | export after a fresh import | `index.wasm` / `index.js` identical, but the imported `Knight.glb` and `Main.scn` differ by 89 / 56 bytes between two fresh imports (likely random sub-resource ids); same behaviour | 2026-10-30 | same |
+| `python tests.py` after the 31 Oct additions (closed spline, FABRIK, closed-curve checker) | **ALL CHECKS PASSED (171 ok)** | 2026-10-31 | same Mac |
+| closed camera loop in Godot | 61 curve points match `sample_closed_path()` to 2.8e-16; camera circles 2.13 times in 34 s, faces the statue in every frame (dot 1.000000), keeps 0.215 m from the walls | 2026-10-31 | Godot 4.7.2 |
+| Web build re-exported with the closed loop | local server `127.0.0.1:8000`: no console error, 13 lines from the browser console match Python | 2026-10-31 | Chrome 156 headless, Apple M5 |
+| fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip freeze` = `requirements.txt`; `tests.py` 171 ok; editor import and 300-frame run exit 0 with no error or missing script; `godot_check.py` 13 lines ok (closed curve 61 points); `fabrik.py` runs; `git status` clean | 2026-10-31 | same Mac, Godot 4.7.2 |
+| GitHub Pages after the 31 Oct push | deploy of `3f30c76` succeeded; the 4 main files identical to the repo; no console error; 13 lines from the browser console match Python | 2026-10-31 | Chrome 156 headless, Apple M5 |
 | other GPUs, Windows, Linux | **not tested** | | |

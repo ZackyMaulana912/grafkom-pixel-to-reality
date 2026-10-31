@@ -4,7 +4,7 @@ Viva meminta empat hal: membuka `report.html`, menjalankan `make test` secara la
 
 ## Urutan demo (sekitar 3 menit)
 
-1. `cd Module1/Source`, lalu `make test`. Tunjukkan 16 baris `OK` dan `ALL CHECKS PASSED`.
+1. `cd Module1/Source`, lalu `make test`. Tunjukkan 17 baris `OK` dan `ALL CHECKS PASSED`.
 2. Buka `Source/report/report.html` di browser. Tunjukkan tiga hal: tabel budget, triptych naif/benar/selisih (relief dan tepi patung), dan legenda CVD sebelum dan sesudah.
 3. Kalau diminta menunjukkan test yang bisa gagal: tunjukkan bahwa palet merah-hijau ditolak dengan pesan `deuteranopia 17.7, protanopia 10.5, grayscale 0.0`.
 
