@@ -20,6 +20,7 @@ matplotlib.use("Agg")  # file output only, no window
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import Arc, Circle, FancyArrowPatch, FancyBboxPatch  # noqa: E402
 
+from fabrik import fabrik  # noqa: E402
 from fk import Bone, forward_kinematics  # noqa: E402
 from ik import solve_two_bone_ik  # noqa: E402
 from quaternion import quat_dot, quat_from_axis_angle, quat_to_axis_angle, slerp  # noqa: E402
@@ -436,10 +437,49 @@ def fig_foot_slide(out_dir):
     save(fig, out_dir, "foot_slide_before_after.png")
 
 
+def fig_fabrik(out_dir):
+    """FABRIK: error per iteration (log scale), and two poses of my arm reaching the same fingertip."""
+    bones, _ = load_chain()
+    lengths = [b.length for b in bones]
+    tip = forward_kinematics(bones)[0][-1]
+    reach = sum(lengths)
+    runs = [
+        ("lengan modul (3, 2) ke (4, 1)", fabrik([3.0, 2.0], (4.0, 1.0))[2], BONE1),
+        ("lengan saya ke ujung jari foto", fabrik(lengths, tip)[2], GOOD),
+        ("lengan saya ke 99% jangkauan", fabrik(lengths, (0.99 * reach, 0.0), [30.0, 30.0, 30.0])[2], BONE2),
+    ]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.8, 4.4), gridspec_kw={"width_ratios": [1.2, 1]})
+    for label, errs, color in runs:
+        a1.semilogy(range(len(errs)), [max(e, 1e-16) for e in errs], color=color, marker=".", lw=1.6,
+                    label=f"{label}: {len(errs) - 1} iterasi")
+    a1.axhline(1e-9, color=MUTED, ls=":", lw=1)
+    a1.text(1, 2e-9, "batas 1e-9", color=MUTED, fontsize=8.5)
+    a1.set_xlabel("iterasi FABRIK")
+    a1.set_ylabel("jarak ujung ke target")
+    a1.set_title("Konvergensi: cepat di tengah, lambat di dekat jangkauan penuh", fontsize=10)
+    a1.legend(fontsize=8)
+    for angles, color, ls, label in (([b.local_angle_deg for b in bones], BONE1, "-", "pose foto (-2,6; 83,4; 26,5)"),
+                                     (fabrik(lengths, tip)[0], GOOD, "--", None)):
+        pts = forward_kinematics([Bone(l, a) for l, a in zip(lengths, angles)])[0]
+        if label is None:
+            label = "FABRIK dari lurus (" + "; ".join(f"{a:.1f}" for a in angles).replace(".", ",") + ")"
+        a2.plot([p[0] for p in pts], [p[1] for p in pts], color=color, ls=ls, lw=3, marker="o", label=label)
+    a2.plot(*tip, marker="*", ms=15, color=BAD, zorder=6)
+    a2.annotate("ujung jari yang sama", tip, xytext=(-40, 10), textcoords="offset points", fontsize=8.5)
+    a2.set_aspect("equal")
+    a2.set_xlabel("x (cm)")
+    a2.set_ylabel("y (cm)")
+    a2.set_xlim(-5, 45)
+    a2.set_ylim(-8, 48)
+    a2.legend(fontsize=8, loc="lower right")
+    a2.set_title("3 bone: dua pose berbeda, ujung jari sama", fontsize=10)
+    save(fig, out_dir, "fabrik.png")
+
+
 SETS = {
     "studi": (fig_fk_chain, fig_ik_two_solutions, fig_spline_vs_linear, fig_gimbal_lock,
               fig_slerp_vs_linear, fig_game_loop),
-    "readme": (fig_my_chain, fig_ik_my_arm, fig_my_path, fig_foot_slide),
+    "readme": (fig_my_chain, fig_ik_my_arm, fig_my_path, fig_foot_slide, fig_fabrik),
 }
 
 

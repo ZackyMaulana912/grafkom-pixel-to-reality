@@ -122,7 +122,7 @@ def test_quaternion():
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FROM_SCRATCH = ("fk.py", "ik.py", "spline.py", "quaternion.py", "foot_slide_bug.py", "my_chain.py",
-                "godot_check.py")
+                "godot_check.py", "fabrik.py")
 ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse", "sys",
                    "fk", "ik", "spline", "quaternion", "my_chain"}
 
@@ -238,6 +238,33 @@ def test_closed_path():
     gaps = sample_spacing(loop + [loop[0]])
     check("closed loop spacing is more even than the open path (max/min)", max(gaps) / min(gaps) < max(
         sample_spacing(sample_path(cps, 10))) / min(sample_spacing(sample_path(cps, 10))), True)
+
+
+def test_fabrik():
+    """Iterative IK (fabrik.py) against the analytic 2-bone answer and on my 3-bone arm."""
+    from fabrik import fabrik
+    a, it, err, ok = fabrik([3.0, 2.0], (4.0, 1.0))
+    t1, t2 = solve_two_bone_ik(3.0, 2.0, (4.0, 1.0))
+    check("FABRIK (3, 2) -> (4, 1) from straight reaches the target to 1e-9", ok and err[-1] <= 1e-9, True)
+    check("FABRIK lands on the analytic theta >= 0 solution (shoulder, deg)", a[0], t1, tol=1e-6)
+    check("FABRIK lands on the analytic theta >= 0 solution (elbow, deg)", a[1], t2, tol=1e-6)
+    check("FABRIK needs 10 iterations for (4, 1) from straight", it, 10)
+    ratios = [err[k + 1] / err[k] for k in range(4, len(err) - 1)]
+    settled = all(0.1 < r < 0.12 for r in ratios)
+    check("FABRIK converges linearly: error shrinks ~9x per iteration once settled", settled, True)
+    bones, _ = load_chain()
+    lengths = [b.length for b in bones]
+    tip = forward_kinematics(bones)[0][-1]
+    a, it, err, ok = fabrik(lengths, tip)
+    end = forward_kinematics([Bone(l, x) for l, x in zip(lengths, a)])[0][-1]
+    check("FABRIK my 3-bone arm -> my fingertip from straight: FK error", math.dist(end, tip), 0.0, tol=1e-9)
+    check("... and it is a different pose from the photo (3 bones: many answers)",
+          max(abs(x - b.local_angle_deg) for x, b in zip(a, bones)) > 5.0, True)
+    a, it, err, ok = fabrik(lengths, tip, [b.local_angle_deg for b in bones])
+    check("FABRIK from the photo pose is done in 0 iterations", it, 0)
+    a, it, err, ok = fabrik(lengths, (80.0, 0.0))
+    check("FABRIK beyond reach (80 cm > 73 cm) says so instead of clamping", ok, False)
+    check("... and stretches straight at the target, 7 cm short", err[-1], 7.0, tol=1e-9)
 
 
 def test_camera_path_copies():
@@ -378,6 +405,7 @@ if __name__ == "__main__":
     test_spline()
     test_my_path()
     test_closed_path()
+    test_fabrik()
     test_camera_path_copies()
     test_quaternion()
     test_quaternion_algebra()
