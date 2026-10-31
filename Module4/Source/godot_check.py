@@ -23,7 +23,7 @@ from fk import Bone, forward_kinematics
 from ik import solve_two_bone_ik
 from my_chain import load_chain
 from quaternion import euler_to_matrix, mat_max_diff
-from spline import load_camera_path, load_my_path, sample_path
+from spline import load_camera_path, load_my_path, sample_closed_path, sample_path
 
 TOL_FLOAT64 = 1e-9
 TOL_BASIS = 1e-5
@@ -86,11 +86,16 @@ def check_line(line):
     if tag == "CURVE":
         pts = [tuple(float(v) for v in p.split(",")) for p in f["points"].split(";")]
         cps = load_my_path() if f["file"] == "my_path.json" else load_camera_path()
-        want = sample_path(cps, samples_per_segment=10)
+        if f.get("closed") == "true":
+            want = sample_closed_path(cps, samples_per_segment=10)
+            want.append(want[0])  # Godot repeats point 0 to close the polyline
+        else:
+            want = sample_path(cps, samples_per_segment=10)
         if len(pts) != len(want):
             return f"kurva {f['file']}: {len(pts)} titik, Python {len(want)}", 1.0, TOL_BASIS
         diff = max(math.dist(a, b) for a, b in zip(pts, want))
-        return f"kurva {f['file']}: {len(pts)} titik vs spline.py", diff, TOL_BASIS
+        kind = "tertutup" if f.get("closed") == "true" else "terbuka"
+        return f"kurva {f['file']} ({kind}): {len(pts)} titik vs spline.py", diff, TOL_BASIS
     if tag == "MYARM":
         joints = [tuple(float(v) for v in p.split(",")) for p in f["joints"].split(";")]
         bones, data = load_chain()

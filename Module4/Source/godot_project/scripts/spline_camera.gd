@@ -23,6 +23,9 @@ extends Path3D
 ## camera goes there and back with a cosine ease instead of jumping from the last
 ## point to the first. progress_ratio follows arc length, so the camera moves
 ## evenly even though the 51 samples are not evenly spaced (T8).
+## With `closed_loop` (31 Oct) the neighbours are taken cyclically, as in spline.py's
+## sample_closed_path(), so the path runs from the last point back to the first with the
+## same C1 tangents and the camera circles the statue without turning back.
 
 @export var control_points_json: String = "res://data/camera_path.json"
 @export var seconds_per_lap: float = 12.0
@@ -30,6 +33,7 @@ extends Path3D
 @export var look_target: Vector3 = Vector3(0, 2, 0)          # the temple, world space
 @export var overview_camera_path: NodePath = ^"../OverviewCamera"
 @export var ping_pong: bool = false
+@export var closed_loop: bool = false
 
 var _follow: PathFollow3D
 var _camera: Camera3D
@@ -39,14 +43,21 @@ var _t := 0.0
 func _ready() -> void:
 	var control_points := _load_control_points(control_points_json)
 	curve = Curve3D.new()
-	for p in _sample_catmull_rom(control_points, samples_per_segment):
+	var samples := _sample_closed(control_points, samples_per_segment) if closed_loop \
+		else _sample_catmull_rom(control_points, samples_per_segment)
+	for p in samples:
 		curve.add_point(p)
+	if closed_loop:
+		curve.add_point(samples[0])  # repeat point 0 so the polyline ends where it starts
 
 	if not Engine.is_editor_hint():
 		_print_check()
 
 	_follow = get_node_or_null("PathFollow3D")
 	_camera = get_node_or_null("PathFollow3D/PathCamera")
+	if not Engine.is_editor_hint() and _follow != null and _camera != null:
+		_follow.progress_ratio = 0.0
+		_camera.look_at(look_target, Vector3.UP)  # face the target from the very first frame
 
 
 func _process(delta: float) -> void:
@@ -79,7 +90,7 @@ func _print_check() -> void:
 	for i in curve.point_count:
 		var p := curve.get_point_position(i)
 		parts.append("%.6f,%.6f,%.6f" % [p.x, p.y, p.z])
-	print("CURVE file=%s points=%s" % [control_points_json.get_file(), ";".join(parts)])
+	print("CURVE file=%s closed=%s points=%s" % [control_points_json.get_file(), closed_loop, ";".join(parts)])
 
 
 func _load_control_points(path: String) -> Array:
@@ -93,6 +104,20 @@ func _load_control_points(path: String) -> Array:
 	for p in data.get("control_points", []):
 		points.append(Vector3(p[0], p[1], p[2]))
 	return points
+
+
+## Same as spline.py's sample_closed_path(): segment i uses points i-1, i, i+1, i+2 (cyclic).
+func _sample_closed(control_points: Array, per_segment: int) -> Array:
+	var n := control_points.size()
+	var out: Array = []
+	for i in range(n):
+		var p0: Vector3 = control_points[(i - 1 + n) % n]
+		var p1: Vector3 = control_points[i]
+		var p2: Vector3 = control_points[(i + 1) % n]
+		var p3: Vector3 = control_points[(i + 2) % n]
+		for k in range(per_segment):
+			out.append(_catmull_rom_point(p0, p1, p2, p3, float(k) / float(per_segment)))
+	return out
 
 
 ## Same formula as spline.py's catmull_rom_point + sample_path (clamped ends).

@@ -422,3 +422,27 @@ Tapi setiap kesalahan yang saya temukan di Fase 5 bukan kesalahan engine. Semuan
 - **Jalur kamera (T8).** `Curve3D` dari sampel tanpa handle hanyalah garis-garis lurus pendek, dan jalur saya terbuka, jadi saya sendiri yang harus memilih kamera bolak-balik supaya tidak meloncat.
 
 Kesimpulan saya: engine menghemat pekerjaan menghitung, tetapi tidak menghemat pekerjaan memutuskan. Bagian yang paling sering salah justru bagian yang tampak "sudah diurus engine", dan satu-satunya cara saya menemukannya adalah mencetak angka dari Godot lalu membandingkannya dengan Python.
+
+## 13. Tambahan 31 Oktober 2026: kamera memutari patung penuh
+
+Di bagian 5, kamera harus bolak-balik (`ping_pong`) karena jalur saya terbuka. Setelah `spline.py` punya Catmull-Rom tertutup (catatan Fase 3, tambahan 31 Oktober), kamera Godot saya ubah supaya memakainya:
+
+- `spline_camera.gd` punya pilihan baru `closed_loop`. Kurvanya disampel dengan rumus yang sama dengan `sample_closed_path()`, yaitu segmen ke-i memakai titik i-1, i, i+1, dan i+2 secara melingkar. Titik ke-0 ditambahkan sekali lagi di akhir supaya polyline-nya berakhir di tempat awalnya.
+- Di `Main.tscn`, `closed_loop = true`, `ping_pong` dimatikan, dan `PathFollow3D.loop = true`. Kamera sekarang berputar terus satu arah, satu putaran per 16 detik.
+- `look_at` juga dipanggil di `_ready`. Sebelumnya kamera baru menghadap patung setelah `_process` pertamanya, sehingga di frame pertama arah pandangnya meleset (dot 0,5547).
+
+Bukti:
+
+```
+$ $GODOT --headless --path godot_project --quit-after 60 | .venv/bin/python godot_check.py
+[ok] kurva my_path.json (tertutup): 61 titik vs spline.py: selisih 2.78e-16 (toleransi 1e-05)
+13 baris dibandingkan, 0 di atas toleransinya
+```
+
+Di salinan proyek, sebuah script pemeriksa mengikuti kamera selama 34 detik dengan waktu frame sungguhan:
+- kamera memutari patung 2,13 kali, sesuai 34 / 16;
+- dot antara arah pandang kamera dan arah ke patung tidak pernah di bawah 1,000000 di frame mana pun;
+- loncatan terbesar antar frame 1,5 cm, terjadi di frame awal yang lambat saat game baru dimuat (kecepatan kamera sekitar 0,23 m/s). Tidak ada teleport dari titik akhir ke titik awal;
+- jarak terdekat ke dinding atau lemari tetap 0,215 m.
+
+Build Web diekspor ulang. Dari server lokal `127.0.0.1:8000`, Chrome tanpa jendela tidak mencatat error, dan kurva tertutup yang dicetak di console browser cocok dengan Python. Screenshot di `docs/img/` juga diambil ulang dengan kamera yang baru.

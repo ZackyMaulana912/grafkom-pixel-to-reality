@@ -321,6 +321,12 @@ def test_godot_check_parser():
     check("godot_check: locked shoulder (arm stays level) passes", diff <= tol, True)
     _, diff, tol = check_line(lock.replace("arm_dir_max_abs_y=0.000000060", "arm_dir_max_abs_y=0.3"))
     check("godot_check: a shoulder that can still lift the arm at pitch 90 is flagged", diff > tol, True)
+    loop = sample_closed_path(load_my_path(), samples_per_segment=10) + [load_my_path()[0]]
+    curve = "CURVE file=my_path.json closed=true points=" + ";".join(",".join(f"{v:.6f}" for v in p) for p in loop)
+    _, diff, tol = check_line(curve)
+    check("godot_check: closed camera curve (61 points, ends on point 0) matches spline.py", diff <= tol, True)
+    _, diff, tol = check_line(curve.replace("closed=true", "closed=false"))
+    check("godot_check: the same closed curve read as an open one is flagged", diff > tol, True)
     _, diff, tol = check_line("RIG_INTERP t=0.5000 euler_angle=60.000000 slerp_angle=60.000000 between=0")
     check("godot_check: an Euler blend claiming the slerp angle at t=0.5 is flagged", diff > tol, True)
 
