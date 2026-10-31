@@ -22,6 +22,10 @@ Added in Fase 4:
   - cvd: the chart legend stays distinct under deuteranopia, protanopia and
     grayscale, and the guard does fail on a red/green palette
   - aliasing: 0.1..0.9 cycles/px land at |f - fs|; box pre-filter amplitude as predicted
+Added on 31 Oct 2026:
+  - cvd: the published Machado et al. 2009 matrices (dichromacy) keep white white, keep the
+    project legend distinct and collapse the red/green legend, so the legend guard's verdict
+    does not depend on the course's ColorJack matrices
 """
 from __future__ import annotations
 
@@ -142,6 +146,17 @@ def t_cvd_legend_guard():
     raise AssertionError("legend guard did not catch the red/green palette")
 
 
+def t_cvd_machado_agrees():
+    import cvd
+    import numpy as np
+    for kind, m in cvd.MACHADO_2009.items():
+        assert np.allclose(m.sum(axis=1), 1.0, atol=2e-6), f"{kind}: white must stay white"
+    for kind, d in cvd.compare_models(cvd.LEGEND).items():
+        assert d["machado2009"] >= 20.0, f"project legend collapses under Machado {kind}: {d}"
+    for kind, d in cvd.compare_models(cvd.BAD_LEGEND).items():
+        assert d["machado2009"] < 20.0, f"red/green legend should collapse under Machado {kind}: {d}"
+
+
 def t_aliasing():
     import aliasing_demo
     aliasing_demo._selftest()
@@ -165,6 +180,7 @@ def main() -> int:
         ("luma: flat greys 0..255 = Pillow 'L' within 1", t_luma_vs_pillow_flat),
         ("cvd: chart legend survives deuter/protan/grayscale", t_cvd_legend_guard),
         ("aliasing: every f lands at its predicted |f - fs|", t_aliasing),
+        ("cvd: Machado 2009 gives the same legend verdict", t_cvd_machado_agrees),
     ]
     ok = all(check(n, f) for n, f in checks)
     print("\n" + ("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED"))

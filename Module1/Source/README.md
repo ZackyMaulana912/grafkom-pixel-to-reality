@@ -40,7 +40,7 @@ the `Makefile` directly.
 | `boxblur.py` | 2x2 downscale + 3x3 blur | E1 (`[[6,22,38,54],...]`, mean 54) | yes |
 | `resample.py` | nearest / bilinear / gamma-correct box | E1 nearest==a_ij; bilinear 25/50/75; Step 3 | yes; caveats vs Pillow noted |
 | `luma.py` | RGB->grey: decode, Rec.709, encode | E5 (~126 vs ~118 vs 117) | yes; cross-checked vs Pillow `"L"` |
-| `cvd.py` | deuteranopia/protanopia 3x3 sim + tests | section "Colour-Vision Deficiency" | yes |
+| `cvd.py` | deuteranopia/protanopia 3x3 sim + tests; `--compare` checks the course matrices against Machado et al. 2009 | section "Colour-Vision Deficiency" | yes |
 | `metrics.py` | PSNR + simple global SSIM | Step 3 numbers | yes (global SSIM only) |
 | `budget.py` | bytes/frame, clip, bandwidth, mip chain, ms/frame | E6, E7, refresh table | yes |
 | `gamma_resize_bug.py` | the washed-out downscale: diagnose / fix / prove | Step 3/4 | uses `resample.py` |
@@ -110,6 +110,10 @@ the `Makefile` directly.
 | `make test` | **ALL CHECKS PASSED** (16/16) | 2026-10-27 | same |
 | `make report` | `budget.md` + `report.html` (7 sections, 18 inline images, no external file) | 2026-10-27 | same, Pillow has WebP + AVIF |
 | Reproducible | every `report/` file, `data/manifest.csv` and all 47 `data/` images byte-identical to the working copy | 2026-10-27 | same |
+
+| Matrix source (31 Oct) | the course matrices are colorjack.com's "ColorMatrix" values (Wayback 2008-12-18), fitted to Matthew Wickline's formulas, not Vienot/Brettel; Machado et al. 2009 (Table 1, severity 1.0) gives the same legend verdict: red/green collapses (4.7 / 10.1), viridis survives (82.2 / 92.1) | 2026-10-31 | same Mac |
+| `make test` after adding the Machado check | **ALL CHECKS PASSED** (17/17); the new check fails if Machado is replaced by the identity | 2026-10-31 | same |
+| `make report` after the `cvd.py` change | every tracked `report/` file unchanged (`git status` clean) | 2026-10-31 | same |
 
 Not yet verified: a clone pulled from GitHub (needs the commits pushed first), and Windows or Linux.
 
