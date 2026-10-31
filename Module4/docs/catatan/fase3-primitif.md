@@ -131,3 +131,25 @@ Saya juga membuktikan `test_stdlib_only` benar-benar bisa gagal: setelah `import
 ## Gambar
 
 `figures.py --set readme` sekarang membuat `docs/img/my_chain_fk.png`, `docs/img/ik_my_arm.png`, dan `docs/img/my_path.png`. Dua gambar Studi Pendahuluan (`q3_slerp_vs_linear.png` dan `q3_spline_vs_linear.png`) ikut saya buat ulang dengan kode baru. Perbedaannya hanya 141 pixel dan 2 pixel, dengan selisih warna paling besar 2 dari 255 (pembulatan float di urutan 1e-15 yang menggeser antialiasing). Saya tetap meng-commit versi barunya, supaya file di repo sama persis dengan yang dihasilkan kode sekarang.
+
+## Tambahan 31 Oktober 2026: Catmull-Rom tertutup
+
+Di atas saya mencatat keterbatasan bahwa `sample_path` hanya bisa membuat jalur terbuka: titik pertama dan terakhir digandakan, jadi jalur 300° saya berhenti di P5 dan tidak menyambung ke P0. Di Godot kamera akhirnya harus bolak-balik. Sekarang `spline.py` punya `sample_closed_path()`. Bedanya hanya pada cara mengambil titik tetangga: segmen ke-i memakai P(i-1), P(i), P(i+1), P(i+2) dengan indeks yang berputar (setelah P5 kembali ke P0), sehingga ada satu segmen tambahan dari P5 kembali ke P0. Enam titik menjadi 6 segmen dan 60 sampel. Sampel ke-60 akan sama dengan sampel ke-0, jadi tidak ikut ditulis.
+
+Supaya kehalusannya bisa dibuktikan, saya juga menambah `catmull_rom_tangent()`: turunan q'(t) yang memakai turunan keempat bobot basis. Hasil cek dari `tests.py`:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| sampel ke-0, 10, ..., 50 tepat di titik kontrol | selisih 0 (bobot di t = 0 tepat (0, 1, 0, 0)) |
+| tangen di ujung segmen yang datang = tangen di awal segmen yang pergi, di keenam sambungan termasuk P5 ke P0 | selisih 0 |
+| tangen di setiap titik = (titik berikutnya - titik sebelumnya) / 2 | selisih 0 |
+| `catmull_rom_tangent` vs beda hingga dari `catmull_rom_point` | 6e-11 |
+| jarak terdekat ke dinding dan lemari (1200 sampel) | 0,215 m |
+| jarak ke patung | 0,585 sampai 0,6003 m |
+| jarak antar sampel | 5,45 sampai 6,73 cm (terbuka: 3,71 sampai 7,18 cm) |
+
+Jalur tertutup lebih rata, karena tidak ada lagi titik yang digandakan. Langkah paling pendek di ujung jalur terbuka (setengah tangen) hilang, dan rasio langkah terpanjang ke terpendek turun dari 1,94 menjadi 1,23. Kurva juga memotong ke dalam lingkaran lebih sedikit (paling dekat 0,585 m, sebelumnya 0,551 m), karena segmen P5 ke P0 dan P0 ke P1 sekarang punya tetangga yang sebenarnya. Keterbatasan C1 tetap ada: percepatannya masih bisa melompat di titik kontrol, karena Catmull-Rom bukan C2.
+
+![Jalur terbuka, tertutup, dan jarak antar sampel](../img/my_path.png)
+
+Test bertambah dari 134 menjadi 158 (`test_closed_path`).

@@ -12,7 +12,8 @@ import random
 from fk import Bone, bone_matrices, forward_kinematics, running_example as fk_running_example
 from ik import fk_error, solve_two_bone_ik, UnreachableTarget, running_example as ik_running_example
 from spline import (
-    catmull_rom_weights, sample_path, load_camera_path, load_my_path, load_path,
+    catmull_rom_weights, catmull_rom_point, catmull_rom_tangent, closed_segments, sample_closed_path,
+    sample_path, sample_spacing, load_camera_path, load_my_path, load_path,
     running_example as spline_running_example,
 )
 from quaternion import (
@@ -208,6 +209,37 @@ def test_my_path():
         check(f"catmull-rom weights sum to 1 at t={t}", sum(catmull_rom_weights(t)), 1.0, tol=1e-12)
 
 
+def test_closed_path():
+    """Closed loop through my 6 points: passes them, C1 at every joint, still clear of the walls."""
+    cps = load_my_path()
+    loop = sample_closed_path(cps, samples_per_segment=10)
+    check("closed my_path: 6 points -> 60 samples (6 segments, the loop closes on point 0)", len(loop), 60)
+    for i, cp in enumerate(cps):
+        check_point(f"closed path passes control point {i}", loop[10 * i], cp, tol=0.0)
+    segs = closed_segments(cps)
+    worst_join = worst_rule = 0.0
+    for i in range(len(segs)):
+        left = catmull_rom_tangent(*segs[i - 1], 1.0)    # end of the segment arriving at point i
+        right = catmull_rom_tangent(*segs[i], 0.0)       # start of the segment leaving point i
+        rule = tuple((a - b) / 2.0 for a, b in zip(segs[i][2], segs[i][0]))   # (P(i+1) - P(i-1)) / 2
+        worst_join = max(worst_join, math.dist(left, right))
+        worst_rule = max(worst_rule, math.dist(right, rule))
+    check("closed path is C1 at all 6 joints, including the one back to point 0", worst_join, 0.0, tol=1e-12)
+    check("tangent at each point = (next - previous) / 2", worst_rule, 0.0, tol=1e-12)
+    p0, p1, p2, p3 = segs[2]
+    h = 1e-6
+    fd = tuple((a - b) / (2 * h) for a, b in zip(catmull_rom_point(p0, p1, p2, p3, 0.37 + h),
+                                                 catmull_rom_point(p0, p1, p2, p3, 0.37 - h)))
+    check("catmull_rom_tangent = finite difference of catmull_rom_point", math.dist(fd, catmull_rom_tangent(
+        p0, p1, p2, p3, 0.37)), 0.0, tol=1e-8)
+    dense = sample_closed_path(cps, samples_per_segment=200)
+    clearance = min(min(p[0] + 1.0, 0.6 - p[0], p[2] + 2.0, 2.0 - p[2]) for p in dense)
+    check("closed path keeps >= 0.2 m from the walls and the cabinet", clearance >= 0.2, True)
+    gaps = sample_spacing(loop + [loop[0]])
+    check("closed loop spacing is more even than the open path (max/min)", max(gaps) / min(gaps) < max(
+        sample_spacing(sample_path(cps, 10))) / min(sample_spacing(sample_path(cps, 10))), True)
+
+
 def test_camera_path_copies():
     """Godot cannot read res://../, so it has its own copy: control points must stay identical (K11)."""
     a = load_camera_path()
@@ -339,6 +371,7 @@ if __name__ == "__main__":
     test_fk_matrices()
     test_spline()
     test_my_path()
+    test_closed_path()
     test_camera_path_copies()
     test_quaternion()
     test_quaternion_algebra()

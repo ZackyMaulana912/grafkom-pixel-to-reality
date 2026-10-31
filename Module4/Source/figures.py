@@ -27,7 +27,7 @@ from foot_slide_bug import (  # noqa: E402
     REPORTED_SPEED, STRIDE_CHANGE, constant_speed, diagnose, matched_speed, root_motion, walk,
 )
 from my_chain import angles_from_photo, load_chain  # noqa: E402
-from spline import load_camera_path, load_my_path, sample_path, sample_spacing  # noqa: E402
+from spline import load_camera_path, load_my_path, sample_closed_path, sample_path, sample_spacing  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_OUT = {
@@ -336,7 +336,10 @@ def fig_my_path(out_dir):
     a1.add_patch(plt.Rectangle((0.6, -2.0), 0.4, 4.0, color="#c9b38f", alpha=0.6, label="lemari (0,4 m)"))
     a1.add_patch(plt.Rectangle((-0.5, 1.99), 1.59, 0.27, color=MUTED, alpha=0.5, label="sekat"))
     a1.add_patch(plt.Rectangle((-0.24, -0.15), 0.08, 0.30, color=BAD, label="patung kuda"))
-    a1.plot([p[0] for p in dense], [p[2] for p in dense], color=BONE1, lw=1.5, label="Catmull-Rom")
+    loop = sample_closed_path(cps, samples_per_segment=100)
+    loop.append(loop[0])
+    a1.plot([p[0] for p in loop], [p[2] for p in loop], color=GOOD, lw=1.2, ls="--", label="Catmull-Rom tertutup")
+    a1.plot([p[0] for p in dense], [p[2] for p in dense], color=BONE1, lw=1.5, label="Catmull-Rom terbuka")
     a1.plot([p[0] for p in path], [p[2] for p in path], ".", color=BONE1, ms=4, label="51 sampel")
     a1.plot([p[0] for p in cps], [p[2] for p in cps], "o", color=BONE2, ms=8, label="6 titik kontrol")
     for i, p in enumerate(cps):
@@ -356,6 +359,10 @@ def fig_my_path(out_dir):
             label=f"my_path (maks {max(mine):.3f} m)")
     a2.plot(range(len(theirs)), [g / max(theirs) for g in theirs], color=BONE2, marker=".",
             label=f"camera_path dosen (maks {max(theirs):.3f} m)")
+    closed = sample_closed_path(cps, samples_per_segment=10)
+    shut = sample_spacing(closed + [closed[0]])
+    a2.plot(range(len(shut)), [g / max(mine) for g in shut], color=GOOD, marker=".", ls="--",
+            label=f"my_path tertutup (maks {max(shut):.3f} m)")
     a2.set_ylim(0, 1.1)
     a2.set_xlabel("nomor langkah antar sampel")
     a2.set_ylabel("jarak langkah / jarak langkah terbesar")

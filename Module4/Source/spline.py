@@ -6,8 +6,10 @@ P0..P3; the weights below are the rows of the Catmull-Rom basis matrix applied t
 (0, 0, 1, 0) at t = 1 (so the curve passes through P1 and P2), and give the
 tangent (P2 - P0) / 2 at P1, shared by both segments that meet there (C1).
 
-Points are tuples of any length (2D or 3D). The path sampler duplicates the first
-and last control point so the curve starts and ends exactly on them.
+Points are tuples of any length (2D or 3D). The open path sampler duplicates the
+first and last control point so the curve starts and ends exactly on them; the
+closed sampler takes the neighbours cyclically instead, so the last segment runs
+back to the first point with the same C1 tangent rule at every point.
 """
 from __future__ import annotations
 
@@ -27,6 +29,23 @@ def catmull_rom_weights(t):
         0.5 * (t + 4.0 * t2 - 3.0 * t3),
         0.5 * (-t2 + t3),
     )
+
+
+def catmull_rom_weight_slopes(t):
+    """d/dt of catmull_rom_weights(t): the weights of the tangent q'(t)."""
+    t2 = t * t
+    return (
+        0.5 * (-1.0 + 4.0 * t - 3.0 * t2),
+        0.5 * (-10.0 * t + 9.0 * t2),
+        0.5 * (1.0 + 8.0 * t - 9.0 * t2),
+        0.5 * (-2.0 * t + 3.0 * t2),
+    )
+
+
+def catmull_rom_tangent(p0, p1, p2, p3, t):
+    """Tangent q'(t) on the segment between p1 and p2 (per unit t)."""
+    w = catmull_rom_weight_slopes(t)
+    return tuple(w[0] * a + w[1] * b + w[2] * c + w[3] * d for a, b, c, d in zip(p0, p1, p2, p3))
 
 
 def catmull_rom_point(p0, p1, p2, p3, t):
@@ -50,6 +69,27 @@ def sample_path(control_points, samples_per_segment=20):
         for i in range(samples_per_segment):
             out.append(catmull_rom_point(p0, p1, p2, p3, i / samples_per_segment))
     out.append(pts[-2])
+    return out
+
+
+def closed_segments(control_points):
+    """(p0, p1, p2, p3) of every segment of the closed loop, neighbours taken cyclically."""
+    pts = [tuple(p) for p in control_points]
+    n = len(pts)
+    return [(pts[i - 1], pts[i], pts[(i + 1) % n], pts[(i + 2) % n]) for i in range(n)]
+
+
+def sample_closed_path(control_points, samples_per_segment=20):
+    """Sample a closed Catmull-Rom loop through >= 3 control points.
+
+    k control points give k segments and k * n samples; sample i * n is exactly
+    control point i, and the loop closes because the sample after the last one is
+    control point 0 again (it is not repeated in the list).
+    """
+    out = []
+    for p0, p1, p2, p3 in closed_segments(control_points):
+        for i in range(samples_per_segment):
+            out.append(catmull_rom_point(p0, p1, p2, p3, i / samples_per_segment))
     return out
 
 
@@ -94,6 +134,9 @@ if __name__ == "__main__":
         print(f"  path start = {_fmt(path[0])}")
         print(f"  path end   = {_fmt(path[-1])}")
         print(f"  sample spacing min {min(gaps):.3f}, max {max(gaps):.3f} (equal t steps, unequal distance)")
+    loop = sample_closed_path(load_my_path(), samples_per_segment=10)
+    gaps = sample_spacing(loop + [loop[0]])
+    print(f"my_path.json closed loop: {len(loop)} samples, spacing min {min(gaps):.3f}, max {max(gaps):.3f}")
     print("my_path.json samples (x, y, z) in m:")
     for i, p in enumerate(sample_path(load_my_path(), samples_per_segment=10)):
         print(f"  {i:2d} {_fmt(p)}")
