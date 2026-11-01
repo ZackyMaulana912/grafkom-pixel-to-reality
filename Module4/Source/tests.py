@@ -267,6 +267,38 @@ def test_fabrik():
     check("... and stretches straight at the target, 7 cm short", err[-1], 7.0, tol=1e-9)
 
 
+def test_fabrik_limits():
+    """Joint limits: plain constrained FABRIK can get trapped; restarts from analytic seeds fix it."""
+    from fabrik import ARM_LIMITS_DEG, fabrik, solve_arm_with_limits
+    bones, _ = load_chain()
+    lengths = [b.length for b in bones]
+
+    def inside(a):
+        return all(lim is None or lim[0] - 1e-9 <= x <= lim[1] + 1e-9 for x, lim in zip(a, ARM_LIMITS_DEG))
+
+    a, it, err, ok = fabrik(lengths, (50.0, 0.0), [0.0, 75.0, 5.0], limits=ARM_LIMITS_DEG, max_iter=200)
+    check("plain FABRIK with limits is trapped on (50, 0) from (0, 75, 5): elbow pinned at 0", ok is False and
+          abs(a[1]) < 1e-9 and err[-1] > 30.0, True)
+    a, it, err, ok, tries = solve_arm_with_limits(lengths, (50.0, 0.0), ARM_LIMITS_DEG, [0.0, 75.0, 5.0])
+    check("with an analytic seed the same target is reached inside the limits", ok and inside(a), True)
+    tip = forward_kinematics(bones)[0][-1]
+    a, it, err, ok, tries = solve_arm_with_limits(lengths, tip, ARM_LIMITS_DEG)
+    check("my photo fingertip is reached inside the limits", ok and inside(a), True)
+    a, it, err, ok, tries = solve_arm_with_limits(lengths, (3.0, 0.0), ARM_LIMITS_DEG)
+    check("3 cm from the shoulder is out of reach once the elbow stops at 150 deg", ok, False)
+    rnd = random.Random(5)
+    reached = within = 0
+    for _ in range(300):
+        r = rnd.uniform(5.0, 72.9)
+        g = rnd.uniform(-math.pi, math.pi)
+        a, it, err, ok, tries = solve_arm_with_limits(lengths, (r * math.cos(g), r * math.sin(g)), ARM_LIMITS_DEG,
+                                                      [rnd.uniform(-180, 180) for _ in range(3)])
+        reached += ok
+        within += inside(a)
+    check("300 random targets 5..72.9 cm: all reached", reached, 300)
+    check("... and every returned pose respects the joint limits", within, 300)
+
+
 def test_camera_path_copies():
     """Godot cannot read res://../, so it has its own copy: control points must stay identical (K11)."""
     a = load_camera_path()
@@ -406,6 +438,7 @@ if __name__ == "__main__":
     test_my_path()
     test_closed_path()
     test_fabrik()
+    test_fabrik_limits()
     test_camera_path_copies()
     test_quaternion()
     test_quaternion_algebra()

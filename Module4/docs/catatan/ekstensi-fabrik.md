@@ -60,7 +60,7 @@ Dari 39 target yang belum selesai:
 
 - **Untuk 2 bone, rumus analitik lebih baik:** satu kali hitung, tepat sampai 1e-16, dan langsung memberi kedua solusinya. FABRIK baru berguna saat bone-nya lebih dari dua, atau saat rumus tertutupnya tidak ada.
 - **FABRIK sederhana dan selalu menjaga panjang tulang**, tapi kecepatannya bergantung pada letak target. Engine membatasi jumlah iterasi dan menerima jarak "cukup dekat", seperti `max_iterations = 10` dan `min_distance = 0,01` di `SkeletonIK3D`.
-- **Versi saya tidak punya batas sendi.** Siku manusia hanya menekuk ke satu arah, kira-kira sampai 150° (perkiraan umum, tidak saya ukur), tapi FABRIK di atas bebas menghasilkan siku terlipat 178° atau menekuk ke belakang. Rig sungguhan butuh batas sudut di setiap sendi dan sebuah pole (seperti `magnet` di `SkeletonIK3D`) untuk memilih arah tekukan.
+- **Versi pertama saya tidak punya batas sendi.** Siku manusia hanya menekuk ke satu arah, kira-kira sampai 150° (perkiraan umum, tidak saya ukur), tapi FABRIK di atas bebas menghasilkan siku terlipat 178° atau menekuk ke belakang. Batas sendi ditambahkan pada 1 November (bagian berikutnya).
 
 ## Test
 
@@ -71,4 +71,49 @@ Dari 39 target yang belum selesai:
 - dari pose foto selesai dalam 0 iterasi;
 - target 80 cm ditolak dan lengan diluruskan dengan kekurangan tepat 7 cm.
 
-Saya juga membuktikan test itu bisa gagal: kalau langkah tarik di FABRIK dibuat meleset 0,1% dari panjang tulang, test langsung gagal di sudut bahu. `tests.py` sekarang `ALL CHECKS PASSED (171 ok)`.
+Saya juga membuktikan test itu bisa gagal: kalau langkah tarik di FABRIK dibuat meleset 0,1% dari panjang tulang, test langsung gagal di sudut bahu. Saat itu `tests.py` menjadi `ALL CHECKS PASSED (171 ok)`.
+
+## Tambahan 1 November 2026: batas sendi
+
+### Batas yang dipakai
+
+`ARM_LIMITS_DEG` di `fabrik.py`: bahu bebas di bidang ini, siku 0 sampai 150° (hanya menekuk ke satu arah), pergelangan -70 sampai 80°. **Angka ini perkiraan umum untuk lengan manusia, bukan hasil ukur lengan saya.** Disimpan sebagai parameter supaya bisa diganti kalau nanti saya mengukurnya. Pose foto saya (-2,6°; 83,4°; 26,5°) ada di dalam batas itu.
+
+### Seberapa sering FABRIK tanpa batas memberi pose yang mustahil
+
+Pada 10.000 target acak yang sama seperti di atas, **6.397 pose akhir (64%) melanggar batas itu**. Artinya hampir dua per tiga jawaban FABRIK polos adalah lengan yang menekuk ke belakang atau terlipat terlalu jauh, walaupun ujung jarinya tepat di target.
+
+### Percobaan pertama: batas di langkah maju saja, lalu di kedua langkah
+
+Versi pertama saya hanya menjepit sudut lokal di langkah maju. Pose akhirnya memang selalu di dalam batas, tapi hanya 4.176 dari 10.000 target yang tercapai. Supaya tahu apakah sisanya memang mustahil, saya menghitung jangkauan lengan yang dibatasi. Bahu bebas berputar, jadi target bisa dicapai kalau dan hanya kalau jaraknya ke bahu ada di dalam rentang jarak yang bisa dibuat siku dan pergelangan. Dengan grid 601 × 601 sudut, rentangnya 4,804 sampai 73,000 cm. Hanya 35 target yang di luar rentang itu. Jadi 5.789 target sebenarnya terjangkau, tetapi FABRIK saya macet.
+
+Versi kedua menjepit sudut di kedua langkah. Di langkah mundur, tulang diputar terhadap sendi anaknya kalau sudut di sendi itu keluar batas. Hasilnya tetap macet di 5.046 target, dengan error median 27,9 cm, jadi ini bukan sekadar lambat. Satu contoh: target (50, 0) dari pose awal (0°; 75°; 5°) berakhir di (48,71°; 0°; -70°), terjebak 32,8 cm dari target. FABRIK menarik lengan ke konfigurasi yang butuh siku menekuk negatif, batasnya menahan siku tetap lurus, dan langkah berikutnya mengulang hal yang sama. Dari pose awal (-40°; 100°; 20°), target yang sama langsung tercapai. Masalahnya ada di **pose awal**, bukan di targetnya.
+
+### Perbaikan: pose awal dari IK analitik, dengan restart
+
+`solve_arm_with_limits()` mencoba pose awal yang diberikan lebih dulu. Kalau dalam 200 iterasi belum tercapai, FABRIK diulang dari pose awal analitik (`analytic_seed()`):
+- pergelangan dipatok;
+- lengan bawah dan tangan dianggap satu ruas kaku;
+- diambil jawaban θ2 ≥ 0 dari `ik.py`, yang selalu menekukkan siku ke arah positif, sesuai batas siku.
+
+Pergelangan dicoba di 7 nilai yang tersebar dari -70 sampai 80°, dan hasil terbaik yang dipakai. Kalau tidak ada pose awal yang valid, misalnya target 3 cm dari bahu, FABRIK tetap dijalankan dari posisi lurus dan melaporkan target tidak tercapai. Versi pertama fungsi ini sempat crash di kasus itu, dan test-nya yang menangkap.
+
+| 10.000 target acak, pose awal acak | Tanpa batas | Batas di langkah maju | Batas di kedua langkah | Batas + pose awal analitik |
+|---|---|---|---|---|
+| tercapai | 9.961 | 4.176 | 4.919 | **9.965** |
+| target terjangkau yang belum tercapai | 39 (lambat, error maks 0,3 mm) | 5.789 | 5.046 | **0** |
+| pose yang melanggar batas | 6.397 | 0 | 0 | **0** |
+| percobaan per target | 1 | 1 | 1 | median 2, maks 3 |
+
+Kolom terakhir mencapai semua 9.965 target yang memang terjangkau, dengan error FK paling besar 1e-9 cm. Ke-35 sisanya memang di luar rentang 4,8 sampai 73 cm.
+
+Pelajarannya: batas sendi membuat FABRIK jauh lebih sulit, karena muncul jebakan lokal. Di game, jebakan ini biasanya dihindari dengan memulai dari pose frame sebelumnya (yang sudah dekat dengan jawaban) dan dengan pole/magnet yang menentukan arah tekukan. Pose awal analitik di sini memainkan peran yang sama dengan pole: ia memaksa siku menekuk ke arah yang benar.
+
+`test_fabrik_limits` mengunci semua ini:
+- jebakan pada (50, 0) dari (0°; 75°; 5°) tetap terjadi dengan FABRIK polos;
+- dengan pose awal analitik, target yang sama tercapai di dalam batas;
+- ujung jari foto saya tercapai di dalam batas;
+- target 3 cm dilaporkan tidak tercapai;
+- 300 target acak 5 sampai 72,9 cm semuanya tercapai, dan semua posenya di dalam batas.
+
+`tests.py` sekarang `ALL CHECKS PASSED (177 ok)`.
