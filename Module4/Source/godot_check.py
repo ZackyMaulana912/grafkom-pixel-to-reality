@@ -118,6 +118,12 @@ def check_line(line):
         slide = float(f["max_slide_root_motion"])
         return f"Knight root motion: kaki menapak geser {slide:.1e} m (kecepatan tetap: " \
                f"{float(f['max_slide_constant']):.4f} m)", 0.0 if slide <= TOL_BASIS else 1.0, TOL_BASIS
+    if tag == "KNIGHT_TURN":
+        drag, turns = float(f["max_foot_drag_turn"]), int(f["turns"])
+        # pivoting on the planted foot: summed over a whole 0.6 s turn the foot must still not move
+        ok = drag <= TOL_BASIS and turns >= 2
+        return f"Knight berbalik {turns} kali: kaki menapak terseret {drag:.1e} m per putaran, " \
+               f"simpangan dari jalur {float(f['max_lateral']):.3f} m", 0.0 if ok else 1.0, TOL_BASIS
     if tag == "RIG_LOCK":
         same, other, y = (float(f[k]) for k in ("yaw_minus_roll_pairs_max_diff", "yaw_plus_roll_pair_diff",
                                                 "arm_dir_max_abs_y"))

@@ -9,7 +9,9 @@ extends Node3D
 ## the animation is advanced by hand, and the Knight steps forward by exactly how far
 ## its planted foot (the lower one) moved back in the skeleton's space, so that foot
 ## stays where it is on the floor. No walking speed is typed anywhere (T11, pitfall c).
-## It walks from `lane_from` to `lane_to`, turns round about y, and walks back.
+## It walks from `lane_from` to `lane_to`, turns round about y, and walks back. The turn
+## pivots on the planted foot: after each turning step the Knight is shifted so that foot is
+## back where it was on the floor, and the heading keeps aiming at the next lane end.
 
 @export var animation: String = "Idle"
 @export var walk_animation: String = "Walking_A"
@@ -55,9 +57,15 @@ func _process(delta: float) -> void:
 	if Engine.is_editor_hint() or not walk or feet.is_empty():
 		return
 	if _turn_left > 0.0:
+		var pivot := planted_foot()
+		var was := _foot_on_floor(pivot)
 		_turn_left = maxf(0.0, _turn_left - delta)
+		# re-aim at the lane end from where the Knight is now; unwrapped so the angle never jumps by 2 pi
+		_yaw_to += wrapf(_yaw_of(_goal - position) - _yaw_to, -PI, PI)
 		_set_yaw(lerpf(_yaw_to, _yaw_from, _turn_left / turn_seconds))
-		player.advance(delta)  # keep stepping in place while turning
+		player.advance(delta)  # keep stepping while turning
+		var now := _foot_on_floor(pivot)
+		position += Vector3(was.x - now.x, 0.0, was.z - now.z)  # pin the planted foot (parent space)
 		return
 	var foot := planted_foot()
 	var before := skeleton.get_bone_global_pose(foot).origin
@@ -78,6 +86,13 @@ func planted_foot() -> int:
 	var l := skeleton.get_bone_global_pose(feet[0]).origin.y
 	var r := skeleton.get_bone_global_pose(feet[1]).origin.y
 	return feet[0] if l <= r else feet[1]
+
+
+## Where a foot is, in the Knight's parent space (the space `position` lives in).
+func _foot_on_floor(foot: int) -> Vector3:
+	var world := skeleton.global_transform * skeleton.get_bone_global_pose(foot).origin
+	var parent := get_parent_node_3d()
+	return parent.global_transform.affine_inverse() * world if parent != null else world
 
 
 func _face(target: Vector3) -> void:

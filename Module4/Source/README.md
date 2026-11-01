@@ -120,7 +120,7 @@ so it needs no cross-origin isolation headers.
 | `python tests.py` | **ALL CHECKS PASSED (134 ok)** | 2026-10-30 | same, matplotlib 3.11.2 |
 | new code vs the starter, 2000 random inputs per function | max difference 1.2e-13 (IK, deg), 0 (Euler matrices) | 2026-10-30 | same |
 | `godot_project/` headless, editor import and run | exit 0, no error or warning, no starter file rewritten | 2026-10-30 | Godot 4.7.2 stable (macOS) |
-| Godot numbers vs Python (`godot_check.py`) | 13 scene lines + 16 `Basis` + 4 walker + 1 Knight + 8 prediction lines, all within tolerance | 2026-10-30 | same |
+| Godot numbers vs Python (`godot_check.py`) | 13 scene lines + 16 `Basis` + 4 walker + 1 Knight + 8 prediction lines, all within tolerance (since 1 Nov the Knight tool prints a second line, `KNIGHT_TURN`) | 2026-10-30 | same |
 | windowed run, Compatibility renderer | `OpenGL API 4.1 Metal ... Compatibility`, screenshots correct | 2026-10-30 | same, Apple M5 |
 | Web build (`Module4/build/web/`, 40 MB) | re-export with the same `.godot/` import cache byte-identical; local server `127.0.0.1:8000`: no console error, 13 lines from the browser console match Python | 2026-10-30 | Chrome 156 headless, WebGL 2.0, ANGLE Metal, Apple M5 |
 | Web build opened by hand | loads and runs | 2026-10-30 | Safari 27.0.1, same Mac |
@@ -132,4 +132,6 @@ so it needs no cross-origin isolation headers.
 | Web build re-exported with the closed loop | local server `127.0.0.1:8000`: no console error, 13 lines from the browser console match Python | 2026-10-31 | Chrome 156 headless, Apple M5 |
 | fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip freeze` = `requirements.txt`; `tests.py` 171 ok; editor import and 300-frame run exit 0 with no error or missing script; `godot_check.py` 13 lines ok (closed curve 61 points); `fabrik.py` runs; `git status` clean | 2026-10-31 | same Mac, Godot 4.7.2 |
 | GitHub Pages after the 31 Oct push | deploy of `3f30c76` succeeded; the 4 main files identical to the repo; no console error; 13 lines from the browser console match Python | 2026-10-31 | Chrome 156 headless, Apple M5 |
+| Knight turning on its planted foot (`knight_actor.gd`) | planted foot dragged 11.2 to 16.7 cm per 180 deg turn before, 8.9e-8 m after (`cek_knight.gd` `KNIGHT_TURN`, new `godot_check.py` rule fails on the old script); 300 s / 25 turns: drag at most 1.4e-7 m, off the lane at most 8.8 cm, not growing; main scene at 60 fps for 30 s: 6.1e-8 m; 300-frame run 13 lines ok | 2026-11-01 | Godot 4.7.2 |
+| Web build re-exported with the new turn | only `scripts/knight_actor.gdc` changed among the 32 files in `index.pck`, `index.wasm` identical; local server `127.0.0.1:8000`: WebGL 2.0, no console error or exception, 13 lines from the browser console match Python | 2026-11-01 | Chrome 156 headless, Apple M5 |
 | other GPUs, Windows, Linux | **not tested** | | |

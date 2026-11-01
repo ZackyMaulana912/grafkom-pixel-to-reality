@@ -292,9 +292,9 @@ KNIGHT_WALK stances=15 travelled=0.926874 avg_speed=0.102986 max_slide_root_moti
 Ada tiga hal yang perlu dicatat:
 - Kecepatan rata-ratanya (0,103 m/s, atau 0,110 m per siklus 1,0667 detik) tidak ditulis di mana pun. Angka itu muncul dari kaki di animasinya.
 - Kaki yang menapak masih naik 7 sampai 9 mm. Yang diukur adalah tulang `foot` (pergelangan kaki), dan di animasi aslinya pergelangan memang naik saat telapak berguling dari tumit ke jari. Itu gerakan yang dibuat animatornya, bukan tergelincir, jadi tidak saya ubah. Perbaikan saya hanya untuk arah horizontal.
-- Saat berbalik di ujung jalur, Knight berputar di tempat sambil melangkah, jadi selama 0,6 detik itu kakinya ikut berputar dan bergeser. Pengukuran di atas hanya untuk bagian jalan lurus.
+- Saat berbalik di ujung jalur, Knight berputar di tempat sambil melangkah, jadi selama 0,6 detik itu kakinya ikut berputar dan bergeser. Pengukuran di atas hanya untuk bagian jalan lurus. Geseran saat berbalik diukur dan diperbaiki pada 1 November (bagian 14).
 
-Uji di scene utama dengan waktu frame sungguhan, di salinan proyek, selama 30 detik: Knight tetap di garis x = 0,15 (simpangan 0), bergerak antara z = -0,616 dan 0,600, dan berbalik tiga kali. Kelebihan 1,6 cm di ujung terjadi karena Knight baru berbalik setelah langkah yang melewati titik tujuan.
+Uji di scene utama dengan waktu frame sungguhan, di salinan proyek, selama 30 detik (sebelum perubahan 1 November di bagian 14): Knight tetap di garis x = 0,15 (simpangan 0), bergerak antara z = -0,616 dan 0,600, dan berbalik tiga kali. Kelebihan 1,6 cm di ujung terjadi karena Knight baru berbalik setelah langkah yang melewati titik tujuan.
 
 ## 9. Pengukuran prediksi Euler vs quaternion, dan rekonsiliasinya (Lab 3 no 3)
 
@@ -446,3 +446,64 @@ Di salinan proyek, sebuah script pemeriksa mengikuti kamera selama 34 detik deng
 - jarak terdekat ke dinding atau lemari tetap 0,215 m.
 
 Build Web diekspor ulang. Dari server lokal `127.0.0.1:8000`, Chrome tanpa jendela tidak mencatat error, dan kurva tertutup yang dicetak di console browser cocok dengan Python. Screenshot di `docs/img/` juga diambil ulang dengan kamera yang baru.
+
+## 14. Tambahan 1 November 2026: Knight berbalik bertumpu pada kaki yang menapak
+
+### Ukur dulu
+
+Di bagian 8 saya mencatat bahwa geseran kaki saat berbalik belum diukur. `tools/cek_knight.gd` sekarang punya pengukuran kedua: Knight baru dijalankan 40 detik dengan 60 langkah per detik, dan di setiap frame yang dimulai di tengah putaran dicatat seberapa jauh kaki yang menapak bergerak di lantai (koordinat dunia, arah horizontal). Jarak itu dijumlahkan per putaran. Hasil dengan script lama:
+
+```
+TURN n=1 end_t=12.2000 foot_drag=0.167178 at=(0.1500, 0.6014)
+TURN n=2 end_t=24.2833 foot_drag=0.111532 at=(0.1500, -0.6001)
+TURN n=3 end_t=36.4500 foot_drag=0.120773 at=(0.1500, 0.5979)
+KNIGHT_TURN turns=3 max_foot_drag_turn=0.167177872 max_step_turn=0.006246103 straight_drag=0.000016354 max_lateral=0.000000 z_range=-0.6243..0.6064
+```
+
+Setiap kali berbalik, kaki yang menapak terseret 11 sampai 17 cm di lantai. Itu sekitar 0,7 sampai 1 m kalau Knight seukuran aslinya, karena skalanya 0,16. Sebagai pembanding, selama 36 detik berjalan lurus jumlahnya hanya 0,016 mm. Penyebabnya ada dua:
+- putarannya terhadap titik pusat Knight, sehingga kaki yang berada di samping pusat ikut tersapu melingkar;
+- animasi tetap maju, sehingga kaki yang menapak bergerak mundur di ruang skeleton tanpa diimbangi gerak badan.
+
+### Perbaikan
+
+Selama berbalik, `knight_actor.gd` sekarang:
+1. mencatat posisi kaki yang menapak (`_foot_on_floor()`, dalam ruang induk Knight);
+2. memutar badan dan memajukan animasi seperti biasa;
+3. menggeser Knight sejauh selisih posisi kaki itu, supaya kaki kembali ke titik semula di lantai.
+
+Jadi putarannya bertumpu pada kaki yang menapak, bukan pada titik pusat. Kalau kaki yang menapak berganti di tengah putaran, tumpuannya ikut pindah ke kaki yang baru, sama seperti orang berbalik sambil melangkah.
+
+Akibatnya, Knight tidak lagi berada tepat di garis x = 0,15 setelah berbalik. Supaya tidak makin menjauh, arah akhir putaran dihitung ulang di setiap frame ke ujung jalur berikutnya, dari posisi Knight saat itu. Sudutnya dibuka (unwrap) terhadap nilai frame sebelumnya, supaya tidak meloncat 2π saat arah tujuan melewati ±180°. Setelah berbalik, Knight berjalan sedikit miring kembali ke ujung jalur.
+
+### Hasil
+
+```
+$ $GODOT --headless --path godot_project --script res://tools/cek_knight.gd | .venv/bin/python godot_check.py
+...
+TURN n=1 end_t=12.2000 foot_drag=0.000000 at=(0.2205, 0.5544)
+TURN n=2 end_t=23.8500 foot_drag=0.000000 at=(0.0736, -0.5317)
+TURN n=3 end_t=35.3833 foot_drag=0.000000 at=(0.0825, 0.6242)
+KNIGHT_TURN turns=3 max_foot_drag_turn=0.000000089 max_step_turn=0.000000060 straight_drag=0.000020604 max_lateral=0.085837 z_range=-0.6243..0.6413
+[ok] Knight root motion: kaki menapak geser 6.0e-08 m (kecepatan tetap: 0.0075 m): selisih 0.00e+00 (toleransi 1e-05)
+[ok] Knight berbalik 3 kali: kaki menapak terseret 8.9e-08 m per putaran, simpangan dari jalur 0.086 m: selisih 0.00e+00 (toleransi 1e-05)
+```
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Kaki menapak terseret per putaran | 11,2 sampai 16,7 cm | 8,9e-8 m (pembulatan float 32-bit) |
+| Simpangan terbesar dari garis x = 0,15 | 0 | 8,6 cm |
+| Rentang z | -0,624 sampai 0,606 | -0,624 sampai 0,641 |
+| Jalan lurus (`KNIGHT_WALK`) | 6,0e-8 m per langkah | sama |
+
+Pemeriksaan tambahan:
+- **Pengecekan baru bisa gagal.** `godot_check.py` sekarang menilai baris `KNIGHT_TURN`: lolos kalau geseran per putaran ≤ 1e-5 m dan Knight berbalik minimal 2 kali. Di salinan proyek, saya mengembalikan `knight_actor.gd` ke versi lama dan menjalankan alat ukur yang baru. Hasilnya `[BEDA] ... terseret 1.7e-01 m per putaran` dan kode keluar 1.
+- **Simpangannya tidak menumpuk.** Di salinan proyek, Knight dijalankan 300 detik (25 kali berbalik). Geseran terbesar per putaran 1,4e-7 m, simpangan terbesar 8,8 cm, dan z tetap di antara -0,627 dan 0,641. Posisi akhir putaran berulang di sekitar nilai yang sama, misalnya putaran ke-3 dan ke-23 sama-sama berakhir di x = 0,0825.
+- **Tidak menabrak.** Dari OBJ ruangan, alas patung ada di x -0,24 sampai -0,16 dan lemari mulai di x = 0,6. Pusat Knight bergerak di x 0,064 sampai 0,236, dan lantainya sampai z ±2.
+- **Scene utama dengan waktu frame sungguhan.** Di salinan proyek, dengan `--max-fps 60` selama 30 detik (1.802 frame), sebuah autoload pengukur membaca kaki yang menapak sebelum Knight bergerak di setiap frame. Hasilnya: berbalik 2 kali, geseran terbesar per putaran 6,1e-8 m, x 0,106 sampai 0,228, z -0,616 sampai 0,649.
+- **Scene utama 300 frame** keluar dengan kode 0, tanpa error, dan `godot_check.py` tetap `13 baris dibandingkan, 0 di atas toleransinya`.
+
+### Build Web
+
+Build Web diekspor ulang. `index.wasm` identik (SHA-256 sama). Dari 32 file di dalam `index.pck`, yang berubah hanya `scripts/knight_actor.gdc`; saya membandingkan hash MD5 tiap file di daftar isi pck. Dari server lokal `127.0.0.1:8000`, Chrome tanpa jendela (lewat Chrome DevTools Protocol, ditunggu 50 detik) memakai WebGL 2.0, tidak mencatat error console atau exception, dan 13 baris dari console browser cocok dengan Python.
+
+Keterbatasan: berbalik dengan bertumpu pada kaki tetap hanya memutar badan secara kaku. Kaki yang sedang diayun tidak diarahkan ke arah baru, jadi langkah pertama sesudah berbalik masih memakai pose animasi jalan lurus. Rig sungguhan biasanya memakai animasi khusus berbalik, atau IK kaki.

@@ -92,7 +92,7 @@ Celah sesudahnya **tepat 0,0** (dicek dengan `== 0.0`) di 11, 51, dan 301 sampel
 
 **Demo gimbal lock.** Godot memakai intrinsic YXZ (`rotation_order` bawaan = 2 = `EULER_ORDER_YXZ`). `Basis` yang dicetak Godot cocok dengan `euler_to_matrix(..., "YXZ")` sampai 7,6e-8. Demo starter mematok yaw 90° dan ternyata tidak terkunci (selisih 0,0865 dan 0,174, T4). Setelah diperbaiki dengan pitch 90° dan yaw - roll tetap, kubus Euler hanya bergerak 1,2e-7 dari frame 10 sampai 200, padahal yaw naik dari 12° ke 30°, sedangkan kubus quaternion bergerak 0,89.
 
-**Walker (T11).** Diukur di Godot, walker starter terseret **31,5 cm per langkah** justru di kecepatan "benar" 1,0 m/s, karena kakinya menempuh 1,60 m per siklus, bukan 1,0. Kaki yang menapak naik-turun 9,2 cm, dan penanda footfall jatuh 45 cm di belakang kaki yang sebenarnya, tapi tetap hijau. Dengan root motion dari kaki yang menapak, gesernya 2,4e-7 m dan naik-turunnya 1,8e-7 m. Knight memakai cara yang sama dari animasi `Walking_A` miliknya: geser 6e-8 m, sedangkan kecepatan tetap akan tergelincir sampai 7,5 mm per langkah.
+**Walker (T11).** Diukur di Godot, walker starter terseret **31,5 cm per langkah** justru di kecepatan "benar" 1,0 m/s, karena kakinya menempuh 1,60 m per siklus, bukan 1,0. Kaki yang menapak naik-turun 9,2 cm, dan penanda footfall jatuh 45 cm di belakang kaki yang sebenarnya, tapi tetap hijau. Dengan root motion dari kaki yang menapak, gesernya 2,4e-7 m dan naik-turunnya 1,8e-7 m. Knight memakai cara yang sama dari animasi `Walking_A` miliknya: geser 6e-8 m, sedangkan kecepatan tetap akan tergelincir sampai 7,5 mm per langkah. Saat berbalik di ujung jalur, Knight bertumpu pada kaki yang menapak, sehingga kaki itu terseret 9e-8 m per putaran, bukan 11 sampai 17 cm seperti sebelumnya.
 
 ### Prediksi, pengukuran, rekonsiliasi
 
@@ -118,7 +118,7 @@ Prediksi (di-commit sebelum diukur, `docs/prediksi/prediksi-euler-rig.md`) untuk
 - Kalau kamera harus berakselerasi mulus (misalnya untuk rekaman sinematik), Catmull-Rom hanya menjamin C1. Percepatannya melompat di titik kontrol, jadi butuh spline C2 seperti B-spline kubik.
 - Catmull-Rom tertutup yang sekarang dipakai tetap melewati semua titik kontrol, jadi kurvanya memotong sedikit ke dalam lingkaran (sampai 0,585 m dari patung, bukan 0,6 m). Kalau jarak kamera ke patung harus benar-benar tetap, jalurnya lebih tepat dibuat sebagai lingkaran sungguhan, bukan spline.
 - Sudut pose dibaca dari satu foto 2D (±4°). Rig 3D yang akurat butuh dua sudut pandang atau motion capture.
-- Saat Knight berbalik di ujung jalur, kakinya ikut berputar dan bergeser. Root motion saya hanya untuk berjalan lurus.
+- Saat berbalik di ujung jalur, Knight sekarang bertumpu pada kaki yang menapak (sejak 1 November; sebelumnya kaki terseret 11 sampai 17 cm per putaran, sekarang 9e-8 m). Badannya tetap diputar secara kaku: kaki yang sedang diayun tidak diarahkan ke arah baru, dan Knight bisa keluar dari garis jalurnya sampai 8,8 cm sebelum berjalan kembali ke ujung jalur. Rig sungguhan biasanya memakai animasi khusus berbalik, atau IK kaki.
 
 ## 5. Reproducibility (A5)
 
