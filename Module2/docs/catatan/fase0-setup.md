@@ -64,3 +64,38 @@ Script akhirnya:
 Bukti dari run: `curl` ke `/web/`, `/web/viewer.mjs`, dan `/pusaka_plan.json` memberi 200 (dengan content type `text/html`, `application/javascript`, dan `application/json`). `lsof` menunjukkan server hanya mendengarkan di `127.0.0.1:4173`. Server dimatikan setelah uji.
 
 Halaman dibuka di **http://127.0.0.1:4173/web/**.
+
+## Pembaruan 1 November 2026: `serve` diganti server sendiri
+
+Saat uji ulang dari clone pada 31 Oktober, `npm audit` melaporkan 3 masalah tingkat moderate dari satu advisory baru, GHSA-g3hv-75wg-m249 (terbit 30 Oktober 2026 pukul 23:09 UTC). Masalahnya ada di `minimatch` di bawah 11.0.1, yang masuk lewat `serve-handler` milik paket `serve`. Perbaikan otomatis npm (`npm audit fix --force`) justru menurunkan `serve` ke versi 6.5.8. Itu perubahan besar, sama seperti kasus `compression` sebelumnya, tapi kali ini tidak ada versi perbaikan yang bisa dipaksakan lewat `overrides`. Saya mengeceknya di folder sementara: `serve-handler` 6.1.6 mengunci `minimatch` 3.1.2 dan memanggilnya sebagai fungsi (`minimatch(resolvedPath, slashed)`), sedangkan `require('minimatch')` versi 11.0.1 mengembalikan objek, bukan fungsi (`typeof` = `object`). Kalau versi 11 dipaksakan, server justru error saat mencocokkan path.
+
+Padahal yang dibutuhkan dari `serve` hanya sedikit: melayani file statis dari `Source/` di `127.0.0.1:4173`. Jadi saya menulis `Source/serve.mjs` (sekitar 60 baris) yang hanya memakai modul bawaan Node (`node:http`, `node:fs`, `node:path`). Perilakunya sama dengan script lama, termasuk perlindungan yang dulu saya tambahkan:
+
+- melayani folder `Source/`, sehingga viewer di `/web/` bisa mengambil `../myplan.json` (T5);
+- hanya mendengarkan di `127.0.0.1`;
+- langsung gagal dengan pesan jelas kalau port 4173 sedang dipakai, tidak pindah ke port acak (T9);
+- `/web` dialihkan ke `/web/`, supaya import relatif di halaman tetap benar;
+- menolak (403) path yang keluar dari `Source/`, misalnya `/../package.json` atau `/%2e%2e/...`.
+
+Saat membaca ulang versi pertamanya, saya menemukan bahwa URL dengan kode persen yang rusak (misalnya `/%E0%A4%A`) membuat `decodeURIComponent` melempar error di luar blok `try`. Saya membuktikannya: setelah satu permintaan rusak itu, server mati dan permintaan berikutnya tidak dijawab. Versi akhir menjawab permintaan seperti itu dengan 403 dan tetap hidup.
+
+`package.json` sekarang hanya punya `three` di `devDependencies`, dan `overrides` untuk `compression` ikut dibuang karena paket itu hanya datang lewat `serve`. Lock file diperbarui dengan Node 22.23.4 dan npm 10.9.9, sama dengan `.nvmrc`. Hasilnya:
+
+```
+$ npm audit
+found 0 vulnerabilities
+$ npm test
+...
+OK   serve.mjs -- paths stay inside Source/; traversal and malformed escapes are refused
+OK   serve.mjs -- 127.0.0.1 only; viewer, plan JSON, redirect, 403 and 404 answered
+ALL CHECKS PASSED  (25 ok, 0 fail)
+```
+
+Test server yang kedua menyalakan server di port bebas, lalu memeriksa:
+- server hanya mendengarkan di `127.0.0.1`;
+- halaman, script, dan JSON denah dijawab 200 dengan MIME yang benar;
+- `/web` dialihkan ke `/web/`;
+- file yang tidak ada dijawab 404, dan URL rusak dijawab 403;
+- server tetap melayani setelah menerima permintaan rusak.
+
+Saya membuktikan test itu bisa gagal: di salinan sementara, `HOST` diubah menjadi `0.0.0.0`, dan test langsung gagal dengan pesan `listening on 0.0.0.0`. `npm run serve` juga saya coba langsung. `lsof` menunjukkan `TCP 127.0.0.1:4173 (LISTEN)`, viewer termuat di Chrome tanpa jendela dengan nama denah tampil dan tanpa pesan gagal, lalu server dimatikan.

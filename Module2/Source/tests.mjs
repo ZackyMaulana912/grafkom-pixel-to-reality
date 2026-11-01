@@ -11,6 +11,7 @@ import { sweep, REFS } from "./make_tri_ref.mjs";
 import { encodePNG } from "./export_png.mjs";
 import { views, minPair, BAD, MACHADO_2009, machadoViews } from "./cvd_check.mjs";
 import { GPU_REFS, drawRef, gpuSweep } from "./gpu_rule_check.mjs";
+import { makeServer, resolvePath, ROOT, HOST } from "./serve.mjs";
 import { existsSync, mkdirSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 
@@ -21,6 +22,10 @@ function check(name, fn) {
   catch (e) { console.log("FAIL " + name + "\n     " + e.message); fail++; }
 }
 const assert = (c, m) => { if (!c) throw new Error(m || "assertion failed"); };
+async function checkAsync(name, fn) {
+  try { await fn(); console.log("OK   " + name); pass++; }
+  catch (e) { console.log("FAIL " + name + "\n     " + e.message); fail++; }
+}
 
 const RUNLINE = [[2, 1], [3, 2], [4, 2], [5, 3], [6, 3], [7, 4], [8, 4], [9, 5]];
 
@@ -266,6 +271,35 @@ check("export_png -- the PNG encoder round-trips a raster through node:zlib", ()
   for (let y = 0; y < 3; y++) {
     assert(raw[y * 16] === 0, "filter byte");
     assert(Buffer.compare(raw.subarray(y * 16 + 1, y * 16 + 16), Buffer.from(fb.data.subarray(y * 15, y * 15 + 15))) === 0, `row ${y}`);
+  }
+});
+
+check("serve.mjs -- paths stay inside Source/; traversal and malformed escapes are refused", () => {
+  assert(resolvePath("/web/") === ROOT + "/web", "the viewer folder");
+  for (const bad of ["/../package.json", "/web/../../README.md", "/%2e%2e/%2e%2e/README.md", "/%E0%A4%A", "/web/%"])
+    assert(resolvePath(bad) === null, `${bad} should be refused`);
+});
+
+await checkAsync("serve.mjs -- 127.0.0.1 only; viewer, plan JSON, redirect, 403 and 404 answered", async () => {
+  const server = makeServer();
+  await new Promise((ok) => server.listen(0, HOST, ok));      // any free port, loopback only
+  const { address, port } = server.address();
+  try {
+    assert(address === "127.0.0.1", `listening on ${address}`);
+    const get = (p) => fetch(`http://${HOST}:${port}${p}`, { redirect: "manual" });
+    const page = await get("/web/");
+    assert(page.status === 200 && page.headers.get("content-type").startsWith("text/html"), "/web/");
+    const js = await get("/web/viewer.mjs");
+    assert(js.status === 200 && js.headers.get("content-type").startsWith("text/javascript"), "viewer.mjs MIME");
+    const plan = await get("/myplan.json");
+    assert(plan.status === 200 && (await plan.json()).name, "myplan.json");
+    const redir = await get("/web");
+    assert(redir.status === 301 && redir.headers.get("location") === "/web/", "/web -> /web/");
+    assert((await get("/nope.txt")).status === 404, "missing file 404");
+    assert((await get("/%E0%A4%A")).status === 403, "malformed escape 403");
+    assert((await get("/web/")).status === 200, "still serving after a bad request");
+  } finally {
+    await new Promise((ok) => server.close(ok));
   }
 });
 

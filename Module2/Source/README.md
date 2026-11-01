@@ -19,8 +19,8 @@ passed so the total `edge(A,B,C) > 0`; "inside" = all three edge functions
 ```bash
 cd Module2/Source            # in this repo the module's code/Module2 lives here
 nvm use                      # Node version from .nvmrc (22.23.4)
-npm ci                       # exact three + serve from package-lock.json
-npm test                     # -> ALL CHECKS PASSED (23 ok, 0 fail)
+npm ci                       # exact three from package-lock.json (the only package)
+npm test                     # -> ALL CHECKS PASSED (25 ok, 0 fail)
 npm run square               # the Fully Worked Example
 npm run bug                  # diagnose-and-fix: shared-edge cracks/doubles
 npm run plan                 # MY floor plan (myplan.json), from scratch -> out/plan_scratch.ppm
@@ -29,10 +29,12 @@ npm run serve                # http://127.0.0.1:4173/web/  (the Three.js viewer)
 npm run png                  # out/*.ppm -> ../docs/img/*.png for Module2/README.md
 ```
 
-The from-scratch side needs no package at all; `npm ci` is for the viewer's
-local server (`three` itself is loaded from a CDN in `web/index.html`, pinned
-to the same 0.160.0). The server listens on 127.0.0.1 only and fails instead of
-switching port if 4173 is taken.
+The from-scratch side needs no package at all. The local server is `serve.mjs`
+(Node built-ins only, since 1 Nov 2026; it replaced the `serve` package after
+`npm audit` flagged its minimatch). It serves `Source/`, listens on 127.0.0.1
+only, fails instead of switching port if 4173 is taken, and refuses paths that
+leave `Source/`. `three` is loaded from a CDN in `web/index.html`, pinned to
+0.160.0; the copy in `package.json` is only for reference.
 
 ## Unit table
 
@@ -84,6 +86,7 @@ switching port if 4173 is taken.
 | `draw_asterisk.mjs` | 24-spoke octant check |
 | `sample_centre.mjs` | Example E1: centre vs corner vs corner-inclusive, plus a quarter-pixel shift |
 | `make_tri_ref.mjs` | independent per-pixel integer reference -> `ref/tri_ref.ppm`, `ref/tri_t8_ref.ppm`; `--check` sweeps 1934 triangles |
+| `serve.mjs` | local static server for `web/`, Node built-ins only: 127.0.0.1, no port switching, no path outside `Source/` |
 | `gpu_rule_check.mjs` + `web/gpu_rule.html` | which edge owns on-edge pixels on a real GPU; `ref/gpu_*.ppm` captured from WebGL |
 | `winding_demo.mjs` | pitfall fix measured: reversed triangles before/after |
 | `diff_pixels.mjs` | lists and classifies every pixel two renders disagree on |
@@ -94,9 +97,9 @@ switching port if 4173 is taken.
 Changed starter files: `triangle_gap_bug.mjs` (`--diagnose`: pixel evidence
 only), `bench.mjs` (`--plan`, warm-up, interleaved rounds, median), `plan.mjs`
 (legend from the plan), `web/viewer.mjs` (my plan, DoubleSide fill, +0.5 line
-offset), `web/index.html` (Indonesian, grayscale toggle), `tests.mjs` (12 checks
-added, none of the 10 starter checks loosened), `package.json` (exact versions,
-safe `serve`).
+offset), `web/index.html` (Indonesian, grayscale toggle), `tests.mjs` (checks
+added, none of the 10 starter checks loosened), `package.json` (exact versions;
+since 1 Nov the `serve` package is replaced by `serve.mjs`).
 
 ## Verified (this repo)
 
@@ -109,6 +112,7 @@ safe `serve`).
 | Legend under CVD filters | min distance 36.9 (deuteranopia), 46.4 (protanopia), 69.3 (CSS grayscale); browser pixels match the Node model within 1 code | 2026-10-28 | same |
 | Legend vs Machado et al. 2009 (31 Oct) | the page's matrices are colorjack.com's "ColorMatrix" values, not Vienot/Brettel; with Machado 2009 (Table 1, severity 1.0, linear light) the legend stays 82.2 / 92.1 apart and the red/green control collapses (4.7 / 10.1), same as Module 1; `npm test` 23 ok | 2026-10-31 | Node 22.23.4, same Mac |
 | Fresh clone from GitHub (commit `3f30c76`) | `nvm use` (Node 22.23.4), `npm ci`, `npm test` **23 ok, 0 fail**, `npm run plan` exit 0, `git status` clean. `npm audit` now reports 3 moderate issues: GHSA-g3hv-75wg-m249 (minimatch < 11.0.1, published 2026-10-30 23:09 UTC) through `serve-handler` in the dev dependency `serve`, which only runs the local server on `127.0.0.1`; npm's fix would downgrade `serve` to 6.5.8 (breaking), so it is recorded, not applied | 2026-10-31 | same Mac |
+| `serve` package replaced by `serve.mjs` | `npm audit`: **0 vulnerabilities** (lock file now holds `three` only); `npm test` **25 ok** with 2 new server checks (they fail if the server listens on 0.0.0.0); `npm run serve` listens on 127.0.0.1:4173 only (`lsof`), `/web/`, `/web/viewer.mjs`, `/myplan.json` 200, `/web` 301 to `/web/`, traversal and malformed escapes 403, a second server on the same port exits 1; the viewer loads the plan in Chrome headless | 2026-11-01 | Node 22.23.4, npm 10.9.9, same Mac |
 | Clean copy reproduction | see `../docs/laporan/laporan-modul2.md`, section 8 | 2026-10-28 | same |
 | GitHub Pages (`https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/`) | every file 200 with the right type (`.mjs` as `text/javascript`, `cvd.css`, `myplan.json`, three.js from jsDelivr); 0 console errors (only the browser's own `/favicon.ico` 404); 5 legend rows; each of the 4 toggles changes the picture and switching it back restores it exactly; Export PPM byte-identical to the local export (479929/480000 vs from-scratch) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
 | Fresh clone from GitHub (commit `cceae00`) | `npm ci` 0 vulnerabilities, `npm test` 22 ok; every regenerated image and reference identical to the 33 committed ones; viewer export from the clone identical to the working copy (479929/480000 vs from-scratch) | 2026-10-28 | same |
