@@ -14,7 +14,7 @@ Semua angka di laporan ini berasal dari program yang benar-benar dijalankan. Per
 | Node | v22.23.4 (`.nvmrc`) |
 | npm | 10.9.9 |
 | Three.js | 0.160.0 |
-| serve | 14.2.6 |
+| serve | 14.2.6 (sejak 1 November diganti `Source/serve.mjs`, tanpa paket) |
 | Browser uji | Chrome 156.0.8078.48 headless, ANGLE Metal |
 | Tanggal | 28 Oktober 2026 |
 
@@ -271,6 +271,13 @@ Sisanya memang tidak dibuat ulang otomatis:
 - tidak ada error di console, selain `/favicon.ico` yang diminta browser sendiri dan memang tidak ada di repo;
 - legenda tampil 5 baris, dan keempat toggle mengubah gambar lalu kembali persis seperti semula saat dimatikan;
 - Export PPM dari Pages identik byte demi byte dengan export lokal, jadi perbandingannya tetap 479929/480000.
+
+**Pembaruan 1 November 2026: server lokal tanpa paket.** Pada 31 Oktober `npm audit` melaporkan advisory baru GHSA-g3hv-75wg-m249 di `minimatch`, yang masuk lewat paket `serve`. Perbaikan dari npm menurunkan `serve` ke versi lama yang tidak cocok. Jadi `serve` saya ganti dengan `Source/serve.mjs`, server statis sekitar 70 baris yang hanya memakai modul bawaan Node. Perintahnya tetap `npm run serve`, tetap hanya di `127.0.0.1:4173`, tidak pindah port diam-diam (T9), dan menolak path di luar `Source/`. Hasilnya:
+- `npm audit` 0 vulnerabilities, dan `package-lock.json` tinggal berisi `three`;
+- `npm test` 25 ok, termasuk 2 test server baru;
+- viewer termuat di Chrome headless lewat server baru.
+
+Satu perbedaan kecil dengan transkrip di atas: server baru mengirim file `.mjs` sebagai `text/javascript`, bukan `application/javascript`. Keduanya diterima browser untuk module script, dan `text/javascript` adalah tipe yang sama dengan yang dipakai GitHub Pages. Detailnya ada di `docs/catatan/fase0-setup.md`.
 
 **Dibuka sendiri:** Safari 27.0.1 di Mac yang sama. Denah dan legenda tampil, dan keempat toggle bekerja (diperiksa dengan mata).
 

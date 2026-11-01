@@ -12,7 +12,7 @@ Build Web: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/
 cd Module4/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python tests.py            # ALL CHECKS PASSED (171 ok)
+python tests.py            # ALL CHECKS PASSED (177 ok)
 ```
 
 Lalu buka `Module4/Source/godot_project/project.godot` di Godot 4.7.2 dan tekan Play. Tombolnya: **C** mengganti kamera spline dan kamera overview, **Space** dan **U** untuk lengan FK/IK, **F** untuk walker (root motion atau perilaku starter). Perintah lainnya ada di [Source/README.md](Source/README.md).
@@ -51,7 +51,7 @@ Enam titik kontrol mengelilingi patung (jari-jari 0,6 m, tinggi 1,15 m), dengan 
 
 ### IK iteratif (Extension Lab, 31 Oktober)
 
-FABRIK (`fabrik.py`) untuk rantai sepanjang apa pun. Untuk lengan modul ke (4, 1), hasilnya sama dengan IK analitik sampai 2e-8° dalam 10 iterasi. Ujung jari lengan 3-bone saya bisa dicapai dengan beberapa pose berbeda, tergantung pose awalnya. Di 10.000 target acak, median iterasinya 13, tapi di dekat jangkauan penuh jauh lebih lambat (332 iterasi di 99%). Versi saya belum punya batas sendi. Detailnya ada di [catatan Extension Lab](docs/catatan/ekstensi-fabrik.md).
+FABRIK (`fabrik.py`) untuk rantai sepanjang apa pun. Untuk lengan modul ke (4, 1), hasilnya sama dengan IK analitik sampai 2e-8° dalam 10 iterasi. Ujung jari lengan 3-bone saya bisa dicapai dengan beberapa pose berbeda, tergantung pose awalnya. Di 10.000 target acak, median iterasinya 13, tapi di dekat jangkauan penuh jauh lebih lambat (332 iterasi di 99%). Tanpa batas sendi, 64% pose akhirnya mustahil untuk lengan manusia. Sejak 1 November ada batas sendi (siku 0 sampai 150°, pergelangan -70 sampai 80°, angka umum, bukan hasil ukur). FABRIK berbatas bisa terjebak kalau pose awalnya di sisi yang salah, jadi pose awalnya diambil dari IK analitik. Dengan cara itu, semua 9.965 target yang terjangkau tercapai, tanpa satu pun pose yang melanggar batas. Detailnya ada di [catatan Extension Lab](docs/catatan/ekstensi-fabrik.md).
 
 ![FABRIK](docs/img/fabrik.png)
 
@@ -71,7 +71,7 @@ Demo gimbal lock dari starter mematok yaw 90° di Godot dan ternyata tidak terku
 
 - Python: celah setelah 5 detik **2,50 m** sebelum perbaikan, dan **tepat 0,0** di setiap sampel sesudah kecepatan dihitung dari `stride_per_cycle × cycle_rate`. Diagnosisnya di-commit lebih dulu ([docs/prediksi](docs/prediksi/diagnosis-foot-slide.md)).
 - Pitfall (c): kecepatan dibaca dari kurva animasi. Saat langkah berubah dari 1,0 ke 0,8 m, celahnya tetap 1,2e-14 m, sedangkan kecepatan tetap tergelincir 50 cm.
-- Godot (T11): walker starter terseret **31,5 cm per langkah** di kecepatan yang dianggap benar. Dengan root motion dari kaki yang menapak, gesernya **2,4e-7 m**. Knight memakai cara yang sama dan gesernya 6e-8 m.
+- Godot (T11): walker starter terseret **31,5 cm per langkah** di kecepatan yang dianggap benar. Dengan root motion dari kaki yang menapak, gesernya **2,4e-7 m**. Knight memakai cara yang sama dan gesernya 6e-8 m. Saat berbalik di ujung jalur, Knight bertumpu pada kaki yang menapak (1 November): kaki itu terseret 9e-8 m per putaran, bukan 11 sampai 17 cm.
 
 ### Scene Godot
 

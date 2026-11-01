@@ -21,7 +21,7 @@ pitch = 90); comparisons with Godot always name the order.
 cd Module4/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt          # matplotlib 3.11.2 and its pinned dependencies
-python tests.py                          # ALL CHECKS PASSED (171 ok)
+python tests.py                          # ALL CHECKS PASSED (177 ok)
 ```
 
 There is no Makefile; every task is one command:
@@ -62,7 +62,7 @@ so it needs no cross-origin isolation headers.
 | `fk.py` | planar FK as a product of local 3 x 3 homogeneous matrices `R(theta) T(l, 0)`, root to leaf |
 | `ik.py` | analytic 2-bone IK (law of cosines), `UnreachableTarget` outside `|l1 - l2| <= d <= l1 + l2`, `fk_error()` |
 | `spline.py` | Catmull-Rom as basis weights and their slopes (tangent), clamped-end and closed (cyclic) samplers, `sample_spacing()`, both path loaders |
-| `fabrik.py` | FABRIK iterative IK for a planar chain of any length; reports out-of-reach targets instead of clamping |
+| `fabrik.py` | FABRIK iterative IK for a planar chain of any length; reports out-of-reach targets instead of clamping; optional joint limits, and `solve_arm_with_limits()` restarts from analytic seeds when the limited solver gets trapped |
 | `quaternion.py` | product, conjugate, norm, rotate, slerp, axis-angle, matrices, `euler_to_matrix(..., order)`, `lock_rule(order)` |
 | `foot_slide_bug.py` | the foot-slide case study: `--diagnose`, the fix `matched_speed()`, pitfall (c) `walk()` / `root_motion()` |
 | `my_chain.py` | my measured arm: FK of the 2-bone and 3-bone chains, local angles recomputed from the photo's pixels |
@@ -132,6 +132,8 @@ so it needs no cross-origin isolation headers.
 | Web build re-exported with the closed loop | local server `127.0.0.1:8000`: no console error, 13 lines from the browser console match Python | 2026-10-31 | Chrome 156 headless, Apple M5 |
 | fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip freeze` = `requirements.txt`; `tests.py` 171 ok; editor import and 300-frame run exit 0 with no error or missing script; `godot_check.py` 13 lines ok (closed curve 61 points); `fabrik.py` runs; `git status` clean | 2026-10-31 | same Mac, Godot 4.7.2 |
 | GitHub Pages after the 31 Oct push | deploy of `3f30c76` succeeded; the 4 main files identical to the repo; no console error; 13 lines from the browser console match Python | 2026-10-31 | Chrome 156 headless, Apple M5 |
+| FABRIK joint limits (`ARM_LIMITS_DEG`: elbow 0..150, wrist -70..80 deg, assumed, not measured) | 10,000 random targets: without limits 6,397 final poses break them; limits in the passes alone leave 5,046 reachable targets stuck (wrong start pose); with analytic seeds all 9,965 reachable targets are reached (the other 35 lie outside 4.804..73 cm), 0 poses outside the limits, FK error at most 1e-9 cm; `tests.py` **177 ok** | 2026-11-01 | same Mac |
 | Knight turning on its planted foot (`knight_actor.gd`) | planted foot dragged 11.2 to 16.7 cm per 180 deg turn before, 8.9e-8 m after (`cek_knight.gd` `KNIGHT_TURN`, new `godot_check.py` rule fails on the old script); 300 s / 25 turns: drag at most 1.4e-7 m, off the lane at most 8.8 cm, not growing; main scene at 60 fps for 30 s: 6.1e-8 m; 300-frame run 13 lines ok | 2026-11-01 | Godot 4.7.2 |
 | Web build re-exported with the new turn | only `scripts/knight_actor.gdc` changed among the 32 files in `index.pck`, `index.wasm` identical; local server `127.0.0.1:8000`: WebGL 2.0, no console error or exception, 13 lines from the browser console match Python | 2026-11-01 | Chrome 156 headless, Apple M5 |
+| clean local clone (`cf0ad24` + the 1 Nov changes, not yet pushed) + new `.venv` | `pip freeze` = `requirements.txt`; `tests.py` 177 ok; editor import and 300-frame run exit 0 with no error or warning; `godot_check.py` 13 scene lines + `KNIGHT_WALK` + `KNIGHT_TURN` ok; `git status` clean apart from the applied changes. GitHub and Pages still to be retested after the push | 2026-11-01 | same Mac, Godot 4.7.2 |
 | other GPUs, Windows, Linux | **not tested** | | |

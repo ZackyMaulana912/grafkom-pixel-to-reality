@@ -83,3 +83,24 @@ GitHub Pages: deploy commit `3f30c76` sukses. Keempat file build Web identik den
 **Temuan baru: `npm audit` di Modul 2.** Tanggal 28 Oktober `npm ci` melaporkan 0 kerentanan. Sekarang ada 3 laporan tingkat moderate dari satu advisory, GHSA-g3hv-75wg-m249 (minimatch di bawah 11.0.1, kemungkinan denial of service), yang baru terbit 30 Oktober 2026 pukul 23:09 UTC. Paket itu masuk lewat `serve-handler` di dependensi `serve`, yang hanya dipakai untuk `npm run serve`, yaitu server lokal di `127.0.0.1`. Halaman Pages tidak memakai Node sama sekali. Perbaikan yang disarankan npm (`npm audit fix --force`) justru menurunkan `serve` ke versi 6.5.8, sebuah breaking change. Jadi dependensinya tidak saya ubah, dan temuan ini saya catat di baris Verified Modul 2.
 
 Folder clone uji dihapus setelah transkrip ini dicatat.
+
+## Uji ulang 1 November 2026, dari clone lokal
+
+Perubahan hari ini:
+- Modul 2: paket `serve` diganti `serve.mjs` tanpa dependensi;
+- Modul 4: batas sendi di FABRIK, dan Knight berbalik bertumpu pada kaki yang menapak.
+
+Saat uji ini, commit terakhir (`cf0ad24`) dan dua commit berikutnya belum di-push. Jadi saya meng-clone repo lokal ke folder sementara, lalu menerapkan perubahan yang belum di-commit dengan `git apply`. Yang diuji adalah isi file yang akan masuk ke repo, tanpa `.venv`, `node_modules`, Module5, atau file pribadi. **Ini belum uji dari GitHub dan GitHub Pages.** Uji itu baru bisa dilakukan setelah push.
+
+| Modul | Perintah | Hasil |
+|---|---|---|
+| 1 | `.venv` baru, `pip install -r requirements.txt`, `make data`, `make test`, `make report` | 17 baris OK, ALL CHECKS PASSED |
+| 2 | `nvm use`, `npm ci`, `npm test`, `npm run plan`, `npm audit` | Node 22.23.4, `npm ci` hanya memasang 1 paket (`three`), **0 vulnerabilities**, 25 ok |
+| 3 | `.venv` baru, `pip install`, `make_model.py`, `tests.py` | 17 ok |
+| 4 | `.venv` baru, `pip install`, `tests.py`, impor dan run Godot 300 frame, `godot_check.py`, `cek_knight.gd`, `fabrik.py` | `pip freeze` sama dengan `requirements.txt`, 177 ok, impor dan run kode 0 tanpa error atau warning, 13 baris cocok, `KNIGHT_WALK` dan `KNIGHT_TURN` lolos (8,9e-8 m per putaran), `fabrik.py` menunjukkan jebakan dan perbaikannya |
+
+Setelah semua perintah itu, `git status` di clone tidak menunjukkan perubahan apa pun selain perubahan yang diterapkan. Artinya semua file yang dibuat ulang (data dan laporan Modul 1, model Modul 3, cache impor Godot) identik dengan isi repo, atau memang di-ignore.
+
+Temuan `npm audit` dari 31 Oktober sudah selesai: dengan `serve` dihapus, Modul 2 hanya punya satu paket dan tidak ada kerentanan yang dilaporkan.
+
+Folder clone uji dihapus setelah transkrip ini dicatat.

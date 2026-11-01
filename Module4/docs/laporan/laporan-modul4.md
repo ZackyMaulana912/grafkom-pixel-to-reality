@@ -114,7 +114,7 @@ Prediksi (di-commit sebelum diukur, `docs/prediksi/prediksi-euler-rig.md`) untuk
 
 ### Keterbatasan
 
-- Kalau rantainya 5 bone, misalnya lengan sampai ruas jari, IK aturan cosinus tidak lagi cukup. FABRIK versi saya (`fabrik.py`, Extension Lab) sudah bisa menangani rantai sepanjang apa pun, tapi belum punya batas sendi atau pole, dan di 10.000 target acak ada 8 yang berakhir dengan siku terlipat hampir 180°. Rig sungguhan perlu batas sudut dan pole (magnet), seperti di `SkeletonIK3D`/`SkeletonModifier3D`.
+- Kalau rantainya 5 bone, misalnya lengan sampai ruas jari, IK aturan cosinus tidak lagi cukup. FABRIK versi saya (`fabrik.py`, Extension Lab) sudah bisa menangani rantai sepanjang apa pun. Sejak 1 November versi itu punya batas sendi, tapi angkanya perkiraan umum (siku 0 sampai 150°, pergelangan -70 sampai 80°), bukan hasil ukur lengan saya. Dengan batas itu, FABRIK bisa terjebak kalau pose awalnya di sisi yang salah, sehingga saya memakai pose awal dari IK analitik. Cara itu hanya berlaku untuk lengan 3 ruas saya. Rantai yang lebih panjang perlu pole (magnet), seperti di `SkeletonIK3D`/`SkeletonModifier3D`, atau pose dari frame sebelumnya.
 - Kalau kamera harus berakselerasi mulus (misalnya untuk rekaman sinematik), Catmull-Rom hanya menjamin C1. Percepatannya melompat di titik kontrol, jadi butuh spline C2 seperti B-spline kubik.
 - Catmull-Rom tertutup yang sekarang dipakai tetap melewati semua titik kontrol, jadi kurvanya memotong sedikit ke dalam lingkaran (sampai 0,585 m dari patung, bukan 0,6 m). Kalau jarak kamera ke patung harus benar-benar tetap, jalurnya lebih tepat dibuat sebagai lingkaran sungguhan, bukan spline.
 - Sudut pose dibaca dari satu foto 2D (±4°). Rig 3D yang akurat butuh dua sudut pandang atau motion capture.
