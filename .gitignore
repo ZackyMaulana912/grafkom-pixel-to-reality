@@ -11,5 +11,5 @@ Module1/Source/photos/original/
 # cache editor Godot (bisa dibuat ulang); build Web Modul 4 sengaja ikut di-commit untuk GitHub Pages
 .godot/
 
-# sementara fokus Modul 4, modul berikutnya belum dikerjakan
-/Module5/
+# gambar PPM Modul 5 dibuat ulang oleh capture.py; poses.json tetap di-commit
+Module5/Source/data/pusaka_capture/*.ppm

@@ -1,0 +1,163 @@
+# Module 5 -- AI Graphics: NeRF, World Models & AR (reference repo)
+
+Course: *Grafika Komputer / Computer Graphics* (`25MP7716G030`), S1 Informatika
+semester 5. Companion to `../../Module5_EN.tex`. **Integrates Modules 1-4 and
+is the capstone dry run.**
+
+**Rule:** the pinhole ray generator, the volume-rendering compositing
+formula, and a full differentiable-rendering training loop are **NumPy
+only** (no PyTorch/JAX/autograd -- the backward pass is hand-derived and
+checked against finite differences in `tests.py`). The **AR app**
+(`ar_app/`) is a real, deployable static web page (`<model-viewer>` +
+vanilla JS) -- open it in a browser and it works; on a phone, "View in your
+space" launches a real AR session.
+
+## Quick start
+
+```bash
+cd code/Module5
+python -m pip install -r requirements.txt
+python ray_generator.py             # E1: pinhole ray through pixel (400,240)
+python volume_render.py             # E2: composite 3 samples -> 1 pixel
+python capture.py                   # writes data/pusaka_capture/ (8 synthetic views)
+python fit_nerf_toy.py              # trains a voxel grid on the capture; novel-view PSNR
+python nerf_bug.py                  # diagnose-and-fix: 2 clustered views vs 8 spread views
+python tests.py                     # -> ALL CHECKS PASSED (17 ok), ~10 s
+
+cd ar_app
+python make_temple_glb.py           # writes assets/pusaka_temple.glb + hotspots.json
+python -m http.server 8743          # serve the app (needed for the hotspots.json fetch)
+# open http://localhost:8743/index.html in a browser -- or on a phone on the
+# same network, open http://<your-computer-ip>:8743/index.html and tap
+# "View in your space" for real AR.
+
+# optional, heavier: automated headless-browser verification (see below)
+pip install playwright && python -m playwright install chromium
+python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
+```
+
+## Unit table
+
+| File | Job | Reproduces |
+|---|---|---|
+| `ray_generator.py` | pinhole camera: pixel -> camera-space ray direction, and a batched `generate_rays()` | Running example E1 |
+| `volume_render.py` | density -> alpha, front-to-back compositing along a ray | Running example E2 |
+| `nerf_toy.py` | the toy differentiable renderer: an analytic ground-truth scene, a look-at camera, a learnable `VoxelGrid` (nearest-voxel lookup, softplus/sigmoid activations), its **hand-derived analytic backward pass**, and a training loop | Case Study's from-scratch "mini-NeRF" |
+| `capture.py` | deterministic 8-view ring capture of the toy scene (COLMAP-style `poses.json` + PPM images) | Case Study input |
+| `fit_nerf_toy.py` | trains the grid on the capture; reports train/novel-view PSNR; writes comparison PPMs | Case Study evidence |
+| `nerf_bug.py` | diagnose-and-fix: 2 clustered views vs 8 spread views, same novel view, PSNR gap | Lab 2 diagnose-and-fix |
+| `tests.py` | E1-E2 + an analytic-vs-finite-difference gradient check + the view-coverage regression | MASTER Sec 11.2 |
+| `ar_app/make_temple_glb.py` | procedurally builds `pusaka_temple.glb` (6 primitives, flat-shaded, no texture) + `hotspots.json` (5 bilingual educational hotspots) | AR app model + content |
+| `ar_app/index.html`, `app.js`, `style.css` | the **Pusaka3D AR Explainer**: `<model-viewer>` + AR button + tap-to-learn hotspots + a quiz mode + EN/ID toggle | Lab 3 "ship" deliverable |
+| `ar_app/verify_ar_app.py` | headless-Chromium (Playwright) end-to-end check of the app, screenshots included | automated AR-app verification |
+
+## What `python tests.py` asserts
+
+- **E1** -- pixel `(400,240)`, `f=100`, principal point `(320,240)` ->
+  unnormalised camera-space direction `(0.8, 0, -1)`, normalised
+  `(0.625, 0, -0.781)`.
+- **E2** -- 3 samples (`alpha=0.5, 0.5, 1.0`; colours red/green/blue) composite
+  to weights `(0.5, 0.25, 0.25)` and final pixel colour `(0.5, 0.25, 0.25)`;
+  weights + background sum to exactly `1.0`.
+- **Analytic vs finite-difference gradient** -- `backward_grid()`'s hand-derived
+  gradient w.r.t. every probed voxel (density and colour) matches a
+  central-difference numerical gradient to `< 1e-6` (typically `~1e-11`).
+  This is the from-scratch code's *own* "match a reference" check, standing
+  in for matching an external autodiff library.
+- **View-coverage diagnose-and-fix** -- training a voxel grid on 8 views
+  spread around the full ring beats training on 2 views clustered `20 deg`
+  apart by `> 1 dB` PSNR on the *same* held-out novel view (typically
+  `+2.7 dB`), even though the 2-view grid fits its own (fewer) training
+  views about as well.
+
+## Notes on fixes applied while verifying
+
+- **`sigma_raw` initialised at `-5.0` (an "empty" starting scene) silently
+  stalled training.** `softplus'(x) = sigmoid(x)`, and `sigmoid(-5) ~ 0.0067`
+  -- the density gradient was crushed by that factor from the very first
+  step, so 300 iterations barely moved the loss (`0.1107 -> 0.1100`).
+  Re-initialising at `sigma_raw = 0` (density `ln 2`, a neutral "half-there"
+  start) fixed it immediately (loss `0.137 -> 0.009` over 800 iterations).
+  Kept as a named pitfall in `Module5_EN.tex` -- exactly the kind of "the
+  gradient exists in principle but is numerically dead" bug this course's
+  diagnose-and-fix doctrine is meant to catch.
+- **The first view-coverage comparison used the same novel angle
+  (`22.5 deg`) for both the 2-view and 8-view models** and found the
+  *2-view* model generalised *better* -- the opposite of the intended
+  lesson. Root cause: `22.5 deg` is only `2.5 deg` from the 2-view cluster's
+  second view (`20 deg`) -- an easy near-interpolation for that model -- while
+  it is a harder `22.5 deg` from the nearest of the 8 spread views. Fixed by
+  evaluating both models on a novel angle (`190 deg`) chosen to be far from
+  the clustered pair; the intended effect (spread views generalise better)
+  then appears consistently across several tested novel angles.
+- The analytic backward pass (`backward_grid`) was derived by hand from the
+  compositing formula and got the **suffix-sum term** right on the first
+  full implementation, confirmed immediately by the finite-difference check
+  in `tests.py` (`max err ~3e-11`) -- included here as the honest exception
+  to "here is what broke," since MASTER Sec 9.6 asks for this section either
+  way.
+
+## Known deviations from the course plan
+
+1. **No real phone capture / nerfstudio / COLMAP / GPU training on this
+   authoring host.** `data/pusaka_capture/` is a **deterministic synthetic
+   ring capture** (`capture.py`) of an analytic toy scene
+   (`nerf_toy.scene_density_color`), not real photographs, and the model
+   that reconstructs it is a **hand-rolled NumPy voxel grid** trained by
+   plain gradient descent with an **analytically hand-derived backward
+   pass**, not `nerfstudio`'s `nerfacto`/Instant-NGP (which need a CUDA GPU,
+   COLMAP, and real multi-view photographs). The real pipeline's commands
+   are given and explained in `Module5_EN.tex`'s Software section; the
+   toy pipeline here is the actually-run, actually-verified stand-in, in
+   the same spirit as Module 1/3's deterministic-generator substitutions.
+   A student's own phone capture through the real nerfstudio pipeline is
+   the graded, bring-your-own-input version.
+2. **Nearest-voxel lookup, not trilinear interpolation.** This keeps the
+   backward pass a simple scatter-add (`np.add.at`) into one voxel per
+   sample instead of a weighted scatter into 8 -- simple enough to
+   hand-derive and unit-test exactly, at the cost of a blockier
+   reconstruction than a real NeRF's positional-encoded MLP or a trilinear
+   voxel grid would give. Absolute PSNRs here (training views ~20 dB, novel
+   views ~10-14 dB) are toy-scale; the point is the *relative* comparison
+   in the diagnose-and-fix task, not photorealism.
+3. **The AR app's 3D model is procedurally generated** (`make_temple_glb.py`,
+   6 flat-coloured primitives), not downloaded from a marketplace or scanned
+   from a real building -- avoids any asset-licence ambiguity and keeps the
+   whole pipeline reproducible from source with no binary asset committed
+   beyond the small (~9 KB) generated `.glb`. A student's own free/CC0
+   asset or their own Module 3/4 model is a straightforward drop-in
+   (swap `assets/pusaka_temple.glb` and regenerate `hotspots.json` for the
+   new geometry).
+4. **The AR session itself (WebXR / Android Scene Viewer / iOS Quick Look)
+   was not tested on physical hardware** in this authoring session --
+   `verify_ar_app.py` (headless Chromium via Playwright) verifies everything
+   up to that handoff: the page loads, `<model-viewer>` parses and renders
+   the `.glb` in a real WebGL canvas, all 5 hotspots inject and respond to
+   taps with the correct bilingual text, and the "View in your space" button
+   is present. Before this module fully meets the MASTER Definition of Done,
+   open the hosted app on an actual Android phone (Chrome, triggers Scene
+   Viewer) and an iPhone (Safari, triggers Quick Look via a generated
+   `.usdz` -- see the note in `Module5_EN.tex`) and confirm the model
+   anchors to a real surface at a plausible scale. Record the device +
+   browser here.
+5. **Educational content is generic, not site-specific.** `hotspots.json`'s
+   text describes widely-documented Hindu-Buddhist candi cosmology (the
+   three-tier Bhurloka/Bhuvarloka/Svarloka structure; the finial as Mount
+   Meru) rather than claiming to describe any single named real temple --
+   deliberate, so the app cannot misrepresent a specific heritage site it
+   has never actually captured.
+
+## Verified
+
+| Item | Status | Date | Toolchain |
+|---|---|---|---|
+| `Module5_EN.tex` compiles | **yes** -- Tectonic 0.17.0, no overfull hbox > 2 pt, 27 pp | 2026-09-06 | Windows 11 |
+| `python tests.py` | **ALL CHECKS PASSED (17 ok)**, ~10 s | 2026-09-06 | Python 3.11.9, NumPy 2.2.4 |
+| `ray_generator.py` / `volume_render.py` / `capture.py` / `fit_nerf_toy.py` / `nerf_bug.py` | **run green**, transcripts in `Module5_EN.tex` are the actual output | 2026-09-06 | same |
+| Analytic vs finite-difference gradient | **max err ~3e-11** (well under the `1e-6` test threshold) | 2026-09-06 | same |
+| View-coverage diagnose-and-fix | **buggy (2 views) 9.30 dB vs fixed (8 views) 12.02 dB** on the same held-out novel view (`+2.71 dB`) | 2026-09-06 | same |
+| `ar_app/make_temple_glb.py` | **run green** -- `pusaka_temple.glb` (9.4 KB, 6 meshes/materials, round-trips through `pygltflib.load_binary`) + `hotspots.json` (5 hotspots) | 2026-09-06 | pygltflib 1.16.5 |
+| `ar_app/verify_ar_app.py` | **ALL CHECKS PASSED (10 ok)** in headless Chromium (Playwright): model loads and renders to a real WebGL canvas, 5 hotspots inject, tap opens the info panel, language toggle changes the text, quiz mode picks a target, zero JS errors | 2026-09-06 | Playwright 1.62.0, Chromium (headless shell), `--use-gl=swiftshader` |
+| `ar_app/` screenshots | `screenshots/m5_ar_overview.png`, `m5_ar_infopanel_en.png`, `m5_ar_infopanel_id.png`, `m5_ar_quizmode.png` -- real renders from the check above | 2026-09-06 | same |
+| `../../figures/make_figures_m5.py` | **run green** -- writes `m5_fig1_pinhole_ray.pdf`, `m5_fig2_volume_compositing.pdf`, `m5_fig3_view_coverage.pdf` (re-runs `nerf_bug.py`, ~10 s) | 2026-09-06 | same |
+| Real device AR session (WebXR/Scene Viewer/Quick Look) | **not yet tested on physical hardware** -- see "Known deviations" item 4 | -- | -- |
