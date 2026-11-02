@@ -1,0 +1,10 @@
+# Optional: the headless-browser check of the AR app (ar_app/verify_ar_app.py).
+# Not needed to build or use the app itself. After installing, download the
+# browser once (about 100 MB):
+#   python -m playwright install chromium
+# Pinned to the versions verified in .venv (Python 3.11.8, macOS arm64).
+
+-r requirements.txt
+greenlet==3.5.6
+playwright==1.64.1
+pyee==13.0.1
