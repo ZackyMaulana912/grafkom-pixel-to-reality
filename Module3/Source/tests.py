@@ -150,6 +150,33 @@ def t_handedness():
     assert load_obj("data/mymodel.obj").signed_volume() > 0
 
 
+def t_orient_faces():
+    """Winding per face (2 Nov): faces flipped at random, or one whole closed part turned
+    inside out, come back to the correctly oriented mesh; one global sign could not."""
+    from objio import Mesh, load_obj, orient_faces
+    rng = np.random.default_rng(3)
+    for path in ("data/pusaka_model.obj", "data/mymodel.obj"):
+        good = load_obj(path, enforce_ccw=True)
+        assert orient_faces(good)[1]["conflicts"] == 0, path
+        mixed = good.faces.copy()
+        pick = rng.random(len(mixed)) < 0.3
+        mixed[pick] = mixed[pick][:, ::-1]
+        uvs = good.face_uvs.copy()
+        uvs[pick] = uvs[pick][:, ::-1]
+        fixed, info = orient_faces(Mesh(good.positions, good.uvs, mixed, uvs))
+        assert np.array_equal(fixed.faces, good.faces) and np.array_equal(fixed.face_uvs, good.face_uvs), path
+        assert info["flipped"] == pick.sum() and info["conflicts"] == 0, (path, info)
+    # one closed part of the temple inside out: the whole mesh still has a positive volume
+    good = load_obj("data/pusaka_model.obj", enforce_ccw=True)
+    part = np.arange(12)                                          # the first box: 12 triangles
+    one_out = good.faces.copy()
+    one_out[part] = one_out[part][:, ::-1]
+    bad = Mesh(good.positions, good.uvs, one_out, good.face_uvs)
+    assert bad.signed_volume() > 0, "old rule (one global sign) would keep this part inside out"
+    fixed, info = orient_faces(bad)
+    assert np.array_equal(fixed.faces, good.faces) and info["flipped"] == 12, info
+
+
 def t_near_clip():
     """A triangle crossing the near plane is cut in clip space: every output
     vertex has z + w >= 0, the cut vertices lie on the plane, and nothing behind
@@ -229,6 +256,7 @@ def main():
         ("my model: >=200 tris, no zero area, UV everywhere, consistent winding", t_my_model),
         ("my texture: 512x512 RGB", t_my_texture),
         ("handedness: det(M) > 0, temple stored inside out, loader fixes it", t_handedness),
+        ("winding per face: random flips and one inside-out part fixed", t_orient_faces),
         ("near clip in clip space: cut vertices on z + w = 0", t_near_clip),
         ("mipmap: 4 levels, each a 2x2 linear-light average", t_mipmap),
         ("reverse-Z: near -> 1, far -> 0", t_reverse_z),

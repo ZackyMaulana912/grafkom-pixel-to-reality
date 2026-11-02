@@ -12,7 +12,7 @@ Halaman WebGL: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Modu
 cd Module3/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python make_model.py && python tests.py        # ALL CHECKS PASSED (17 ok, 0 fail)
+python make_model.py && python tests.py        # ALL CHECKS PASSED (18 ok, 0 fail)
 python -m http.server 8000 --bind 127.0.0.1    # buka http://127.0.0.1:8000/web/
 ```
 

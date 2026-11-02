@@ -55,6 +55,18 @@ Angka SSIM 0,79 di PDF memang benar, tapi yang rusak dan yang benar tertukar. In
 
 Keterbatasan cara ini: signed volume hanya bermakna untuk mesh tertutup dengan winding yang konsisten di dalam mesh itu. Model saya punya bagian terbuka (dinding tanpa sisi bawah), tapi winding-nya sudah benar dari awal, jadi tidak dibalik (signed volume +8,33). Model yang sebagian face-nya terbalik tidak bisa diperbaiki dengan satu tanda global seperti ini.
 
+**Tambahan 2 November 2026: winding per face.** `objio.orient_faces()` menggantikan satu tanda global itu, dan dipakai `load_obj(..., enforce_ccw=True)`. Caranya:
+- di setiap bagian mesh yang tersambung, face disamakan arahnya dengan tetangganya, karena dua face yang berbagi sisi harus melewati sisi itu dengan arah berlawanan;
+- bagian yang tertutup lalu dibalik kalau signed volume-nya sendiri negatif;
+- bagian yang terbuka (lantai, dinding) memakai arah yang dipakai sebagian besar face-nya di file.
+
+Hasil:
+- **Mesh yang sudah ada tidak berubah sama sekali.** Di candi, 180 face dibalik, persis sama dengan aturan lama (15 bagian, semuanya tertutup). Di model saya, 0 face dibalik (14 bagian, 10 tertutup). Jadi kedua referensi tetap byte-identik.
+- **Test baru `t_orient_faces`.** 30% face di kedua mesh diacak arahnya, dan semuanya kembali persis, termasuk UV. Lalu satu kotak candi (12 face) dibalik utuh. Signed volume seluruh mesh tetap positif, jadi aturan lama tidak akan membaliknya, sedangkan cara baru membalik tepat 12 face itu.
+- **Test bisa gagal.** Di salinan sementara, saya mematikan perambatan antar-tetangga, lalu (di percobaan lain) pengecekan volume per bagian. Keduanya membuat `tests.py` gagal.
+
+Keterbatasan yang tersisa: bagian terbuka yang mayoritas face-nya terbalik akan tetap terbalik, karena tanpa volume tidak ada "luar" yang bisa diukur. Mesh yang tidak bisa diberi arah (seperti pita Möbius) akan dilaporkan sebagai `conflicts`, bukan diperbaiki.
+
 ## Temuan T9: "urutan matriks tertukar"
 
 Menukar `S(1,4)` dan `Ry(35)` menghasilkan matriks yang sama persis (`np.allclose` = True), karena skala seragam komutatif dengan rotasi. Jadi urutan saja tidak bisa membuat gambar ini. Penyebab sebenarnya adalah faktor `diag(2,2; 0,5; 1)` di ujung kanan rantai, yang terbaca langsung dari panjang kolom matriks (3,08; 0,70; 1,40). Urutan baru berpengaruh kalau skala tidak seragam itu dipindah ke kiri rotasi. Di posisi itu ia meregang sepanjang sumbu x world, dan candinya akan tampak miring (shear), bukan hanya melebar.

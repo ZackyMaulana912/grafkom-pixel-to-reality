@@ -19,7 +19,7 @@ cd Module3/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt          # numpy==2.4.6, pillow==13.0.0
 python make_model.py                     # the starter's temple: data/pusaka_model.obj + data/relief.ppm
-python tests.py                          # ALL CHECKS PASSED (17 ok, 0 fail)
+python tests.py                          # ALL CHECKS PASSED (18 ok, 0 fail)
 python -m http.server 8000 --bind 127.0.0.1   # open http://127.0.0.1:8000/web/
 ```
 
@@ -56,7 +56,7 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | File | Job |
 |---|---|
 | `transforms.py` | T / S / R, `perspective`, `reverse_z_depth`, `look_at`, `project`, `viewport`, `perspective_divide_2d` |
-| `objio.py` | OBJ loader (fan triangulation, `v` flip, `signed_volume`, optional CCW enforcement) |
+| `objio.py` | OBJ loader (fan triangulation, `v` flip, `signed_volume`, optional CCW enforcement, since 2 Nov per face with `orient_faces`) |
 | `scene.py`, `scenes/*.json` | one file per model: camera, model matrix, light, texture, frame size; read by all three renderers |
 | `raster3d.py` | MVP -> near clip -> w divide -> viewport -> barycentric z-buffer -> perspective-correct bilinear texture -> Lambert; options: naive UV, mipmap, culling, shadow map, reverse-Z, depth formats |
 | `raytrace.py` | pinhole rays + Moller-Trumbore, nearest hit, same sampler and Lambert; optional shadow rays |
@@ -71,7 +71,7 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | `make_model.py`, `ppm_io.py`, `srgb.py` | from the starter, unchanged |
 | `figures/make_figures.py` | diagrams for the Studi Pendahuluan |
 
-## What `python tests.py` asserts (17 checks)
+## What `python tests.py` asserts (18 checks)
 
 - **E1-E3** as in the PDF: `(2,3,4)` -> `(3,3,-3)` -> `(2,2)`, the other order `(5,3,-3)`; the duality; `z=-n -> -1`, `z=-f -> +1`, `z=-3 -> 0.5`.
 - **E4, E5 through the rasteriser's own functions** (`perspective_correct` 0.1 vs `bary_mix` 0.5; depth 0.625).
@@ -80,6 +80,7 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 - my model (>= 200 triangles, no zero area, UV on every corner and inside the atlas, consistent winding on 564
   shared edges), the 512 x 512 texture, handedness (`det M > 0`, signed volumes), the near clip, the mipmap,
   reverse-Z, order-free z-buffer, and raster vs ray tracer on my model > 60 dB.
+- winding per face (2 Nov): random face flips and one inside-out closed part come back exactly.
 
 ## Findings about the starter (details in `../docs/catatan/`)
 
@@ -110,4 +111,5 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | fresh clone from GitHub (commit `b10843f`) + new `.venv` | `pip install`, `make_model.py` (output identical to the committed files, `git status` clean), `tests.py` 17 ok | 2026-10-29 | same Mac |
 | GitHub Pages URL | every file 200 with the right MIME type, served `viewer.js` and texture identical to the repo, 0 console / page / network errors, orbit + reset work, **Export PPM byte-identical to the local export** (my model and the temple) | 2026-10-29 | Chrome 156.0.8078.48 headless, Apple M5 |
 | fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install`, `make_model.py`, `tests.py` 17 ok, `git status` clean | 2026-10-31 | same Mac |
+| winding per face (`orient_faces`) | temple: 180 faces reversed, my model: 0, both identical to the old global rule, so both reference frames stay byte-identical; 30% random flips and one inside-out closed part restored exactly; the new check fails without neighbour propagation or without the per-part volume; `tests.py` **18 ok, 0 fail** | 2026-11-02 | same Mac |
 | other GPUs, Windows, Linux | **not tested** | | |

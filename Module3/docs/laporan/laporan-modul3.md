@@ -36,7 +36,7 @@ Hitungan tangan `M p` dan `V (M p)` cocok sampai 5 desimal. `w = 1,559007 = −z
 
 `transforms.py`, `objio.py`, `raster3d.py`, dan `raytrace.py` saya tulis ulang, ditambah `mipmap.py` dan file scene. Konvensinya dipatok sekali di atas `transforms.py`.
 
-**Contoh E1–E5 di `tests.py`** (17 check, semuanya OK):
+**Contoh E1–E5 di `tests.py`** (18 check, semuanya OK):
 
 - E1: (2, 3, 4) → (3, 3, −3) → (2, 2), dan urutan sebaliknya memberi (5, 3, −3);
 - E2: kamera +1 di x sama dengan model −1 di x, keduanya (4, 0, 0);
@@ -145,7 +145,7 @@ Tidak ada pergeseran region di bagian dalam.
 1. **Ukuran model sebagian perkiraan.** Tinggi patung, tebal alas dan badan, letak dan arah patung, serta susunan rak sekat tidak diukur dengan meteran. Bentuk patung adalah siluet yang diberi ketebalan, bukan bentuk 3D sebenarnya.
 2. **Referensi candi adalah referensi regresi.** `ref/temple_ref.ppm` hanya membuktikan bahwa kode saya sama dengan kode dosen. Pembanding independennya adalah ray tracer dan WebGL.
 3. **Konvensi starter saya pertahankan meski kurang ideal:** sampler dengan `mod` (T14) dan pemotongan ke uint8 (T15). Alasannya, referensi bergantung pada keduanya. Akibatnya terukur dan dijelaskan, bukan disembunyikan.
-4. **Perbaikan winding memakai satu tanda global** (signed volume). Ini hanya benar untuk mesh tertutup dengan winding yang konsisten di dalam mesh itu.
+4. **Perbaikan winding** sejak 2 November dilakukan per face: arah face disamakan dengan tetangganya di setiap bagian mesh, lalu tiap bagian tertutup diputuskan dengan signed volume-nya sendiri. Bagian terbuka (lantai, dinding) memakai arah mayoritas face-nya di file, jadi bagian terbuka yang mayoritas face-nya terbalik tetap tidak bisa diperbaiki.
 5. **Semua pengujian di satu Mac.** Angka viewer diukur dengan Chrome headless di GPU Apple M5. Safari 27.0.1 hanya saya cek dengan mata (halaman Pages tampil dan bisa diputar), tanpa export atau cek console. GPU lain, Windows, dan Linux belum diuji, dan PSNR raster vs WebGL bisa sedikit berbeda di GPU lain (pola MSAA berbeda).
 6. **Frame time hanya dari NumPy di satu mesin.** Rasio dan skalanya bisa dipindah ke mesin lain, tapi angka detiknya tidak.
 

@@ -2,7 +2,7 @@
 
 ## Yang akan diminta langsung
 
-1. **Jalankan `python tests.py`** dari `Module3/Source` (aktifkan `.venv` dulu). Hasilnya harus `ALL CHECKS PASSED (17 ok, 0 fail)` dalam sekitar 1 detik. Kalau `data/pusaka_model.obj` belum ada, jalankan `python make_model.py` dulu.
+1. **Jalankan `python tests.py`** dari `Module3/Source` (aktifkan `.venv` dulu). Hasilnya harus `ALL CHECKS PASSED (18 ok, 0 fail)` dalam sekitar 1 detik. Kalau `data/pusaka_model.obj` belum ada, jalankan `python make_model.py` dulu.
 2. **Orbit model di halaman ter-hosting.** Buka URL GitHub Pages, seret untuk memutar, scroll untuk zoom, lalu tekan "Kamera awal" untuk kembali ke kamera yang sama dengan render NumPy.
 3. **Jelaskan satu commit.** Pilihan terbaik: commit yang berisi diagnosis dan prediksi, karena menunjukkan urutan kerja yang diminta modul (bukti dulu, tulis diagnosis, baru perbaikan). Setelah itu commit perbaikan yang membalik label inside-out (T13).
 
