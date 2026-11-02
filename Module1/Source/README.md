@@ -41,7 +41,7 @@ the `Makefile` directly.
 | `resample.py` | nearest / bilinear / gamma-correct box | E1 nearest==a_ij; bilinear 25/50/75; Step 3 | yes; caveats vs Pillow noted |
 | `luma.py` | RGB->grey: decode, Rec.709, encode | E5 (~126 vs ~118 vs 117) | yes; cross-checked vs Pillow `"L"` |
 | `cvd.py` | deuteranopia/protanopia 3x3 sim + tests; `--compare` checks the course matrices against Machado et al. 2009 | section "Colour-Vision Deficiency" | yes |
-| `metrics.py` | PSNR + simple global SSIM | Step 3 numbers | yes (global SSIM only) |
+| `metrics.py` | PSNR + simple global SSIM; since 2 Nov also the windowed SSIM of Wang et al. 2004 | Step 3 numbers | yes; windowed SSIM matches scikit-image to 5e-14 |
 | `budget.py` | bytes/frame, clip, bandwidth, mip chain, ms/frame | E6, E7, refresh table | yes |
 | `gamma_resize_bug.py` | the washed-out downscale: diagnose / fix / prove | Step 3/4 | uses `resample.py` |
 | `format_compare.py` | JPG/PNG/WebP/AVIF size + PSNR | E8, Step 5 | Pillow = codec under test |
@@ -97,6 +97,7 @@ the `Makefile` directly.
 | `gamma_fix_check.py` | checks the four predictions of the diagnosis against the one-line fix |
 | `aliasing_demo.py` | 0.1..0.9 cycles/px sweep, predicted vs measured alias, with and without box pre-filter |
 | `downscale_compare.py` | linear-correct vs naive vs Pillow `Image.BOX`, PSNR/SSIM |
+| `ssim_compare.py` | global vs windowed SSIM and texture kept on my two crops -> `report/ssim_windowed.md` |
 | `export_png.py` | report images -> PNG for the GitHub README |
 | `prelim_check.py` | recomputes every number in the Studi Pendahuluan |
 | `figures/` | diagrams (own venv with matplotlib, not needed for make data/test/report) |
@@ -116,6 +117,10 @@ the `Makefile` directly.
 | `make report` after the `cvd.py` change | every tracked `report/` file unchanged (`git status` clean) | 2026-10-31 | same |
 
 | Fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install -r requirements.txt` gives numpy 2.4.6 and pillow 13.0.0 exactly; `make data`, `make test` (**ALL CHECKS PASSED**, 17/17) and `make report` all succeed, and `git status` stays clean afterwards (every regenerated `data/` and `report/` file is identical to the committed one) | 2026-10-31 | same Mac |
+
+| windowed SSIM (`ssim_windowed`, 2 Nov) | equals a brute-force per-window sum (< 1e-12) and `skimage.metrics.structural_similarity` 0.26.0 with Gaussian weights, sigma 1.5, population covariance (largest difference 5.1e-14 over 10 image pairs; checked in a throw-away venv, not a dependency) | 2026-11-02 | same Mac |
+| `make test` after adding it | **ALL CHECKS PASSED** (18/18); the new check fails for a wrong covariance, an unnormalised Gaussian, or a window that does not slide | 2026-11-02 | same |
+| `make report` after adding `ssim_compare.py` | new `report/ssim_windowed.md` + one figure (`report.html` now 19 images); every other tracked `report/` file unchanged | 2026-11-02 | same |
 
 Not yet verified: Windows or Linux.
 

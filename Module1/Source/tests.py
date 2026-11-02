@@ -26,6 +26,10 @@ Added on 31 Oct 2026:
   - cvd: the published Machado et al. 2009 matrices (dichromacy) keep white white, keep the
     project legend distinct and collapse the red/green legend, so the legend guard's verdict
     does not depend on the course's ColorJack matrices
+Added on 2 Nov 2026:
+  - metrics: windowed SSIM (Wang et al. 2004) equals a brute-force per-window sum; it sees
+    flattened strong texture that the global SSIM misses, and (as measured on my wall crop)
+    stays near 1 when the flattened texture is far weaker than sqrt(C2) ~ 7.6 codes
 """
 from __future__ import annotations
 
@@ -79,6 +83,43 @@ def t_luma():
 def t_metrics():
     import metrics
     metrics._selftest()
+
+
+def t_ssim_windowed():
+    from metrics import _gauss1d, ssim, ssim_map, ssim_windowed
+    rng = np.random.default_rng(7)
+    a = rng.integers(0, 256, (23, 19)).astype(np.float64)
+    b = np.clip(a + rng.normal(0, 20, a.shape), 0, 255)
+    g1 = _gauss1d(11, 1.5)
+    # normalised, and the centre tap of an 11-tap sigma 1.5 Gaussian is 1/sum(exp(-k^2/4.5)), k = -5..5
+    assert abs(g1.sum() - 1) < 1e-12 and abs(g1[5] - 1 / sum(np.exp(-k * k / 4.5) for k in range(-5, 6))) < 1e-15
+    w = np.outer(g1, g1)
+    c1, c2 = (0.01 * 255) ** 2, (0.03 * 255) ** 2
+    worst = 0.0
+    m = ssim_map(a, b)
+    assert m.shape == (13, 9), m.shape                                  # 'valid' windows only
+    for i in range(13):
+        for j in range(9):
+            pa, pb = a[i:i + 11, j:j + 11], b[i:i + 11, j:j + 11]
+            ma, mb = (w * pa).sum(), (w * pb).sum()
+            va, vb = (w * (pa - ma) ** 2).sum(), (w * (pb - mb) ** 2).sum()
+            cv = (w * (pa - ma) * (pb - mb)).sum()
+            ref = ((2 * ma * mb + c1) * (2 * cv + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2))
+            worst = max(worst, abs(m[i, j] - ref))
+    assert worst < 1e-12, f"windowed SSIM vs brute force: {worst}"
+
+    def blocky(x):                                                      # 8x8 block means, like a coarse JPG
+        return np.repeat(np.repeat(x.reshape(8, 8, 8, 8).mean(axis=(1, 3)), 8, 0), 8, 1)
+    # large shape kept (a ramp carries the global variance) + fine texture flattened, like the mane
+    ramp = np.tile(np.linspace(0, 255, 64), (64, 1))
+    tex = 15 * rng.standard_normal((64, 64))
+    g, wnd = ssim(ramp + tex, ramp + blocky(tex)), ssim_windowed(ramp + tex, ramp + blocky(tex))
+    assert g > 0.95 and wnd < 0.6, f"strong texture flattened: global {g:.3f}, windowed {wnd:.3f}"
+    weak = 0.5 * rng.standard_normal((64, 64))                           # the wall's grain, ~0.5 codes
+    wk = ssim_windowed(ramp + weak, ramp + blocky(weak))
+    assert wk > 0.99, f"weak texture flattened: windowed {wk:.4f}, C2 should dominate"
+    rgb = np.dstack([ramp + tex] * 3)
+    assert abs(ssim_windowed(rgb, rgb) - 1.0) < 1e-12
 
 
 def t_cvd():
@@ -181,6 +222,7 @@ def main() -> int:
         ("cvd: chart legend survives deuter/protan/grayscale", t_cvd_legend_guard),
         ("aliasing: every f lands at its predicted |f - fs|", t_aliasing),
         ("cvd: Machado 2009 gives the same legend verdict", t_cvd_machado_agrees),
+        ("metrics: windowed SSIM = brute force; flattened texture vs C2", t_ssim_windowed),
     ]
     ok = all(check(n, f) for n, f in checks)
     print("\n" + ("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED"))

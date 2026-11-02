@@ -213,7 +213,7 @@ Penyebab terbesarnya, yang saya ukur setelah prediksi meleset: crop diambil dari
 3. **Pipeline 8-bit dengan round-trip tambahan menambah banding.** Saya mengukur: kalau linear light disimpan di 8 bit lalu diubah kembali ke sRGB, hanya 183 dari 256 kode yang selamat. Dari 64 kode tergelap, tinggal 14 nilai, dengan lompatan sampai 13 kode. Di float64 round-trip-nya praktis tanpa error (2,8 × 10⁻¹⁴). Jadi cara benar hanya aman kalau nilai antaranya disimpan dalam presisi tinggi.
 4. **Kebijakan format dibuat dari crop versi kerja yang sudah diperkecil**, sehingga noise-nya jauh lebih rendah daripada foto asli. Untuk foto asli, PNG akan jauh kurang efisien daripada angka di tabel.
 5. **Exposure tidak saya kunci saat memotret**, jadi ISO berubah antara 250 dan 400, dan tingkat noise antar foto tidak sama.
-6. **PSNR dan SSIM global tidak sama dengan persepsi mata.** Contohnya di dinding: JPG q40 punya PSNR 44,7 dB, tapi blok-bloknya sudah menjadi rata total. SSIM di repo ini juga versi global, bukan versi berjendela dari paper aslinya.
+6. **PSNR dan SSIM tidak sama dengan persepsi mata.** Contohnya di dinding: JPG q40 punya PSNR 44,7 dB, tapi blok-bloknya sudah menjadi rata total. Sejak 2 November ada juga SSIM berjendela (Wang 2004), cocok dengan scikit-image sampai 5e-14. Di surai, SSIM berjendela jauh lebih tegas (JPG q40: 0,875, padahal SSIM global 0,990), tapi di dinding tetap 0,991, padahal hanya 12% teksturnya yang tersisa. Penyebabnya, tekstur dinding (0,51 kode) jauh di bawah konstanta C2 SSIM (setara 7,65 kode). Detailnya di `docs/catatan/fase5-format.md` bagian 8.
 
 ---
 

@@ -31,6 +31,7 @@ report: data
 	$(PY) resample.py --image data/relief.ppm --factor 2 --methods naive-box,linear-box --out report/
 	$(PY) format_compare.py --image data/crop_dinding.ppm --out report/
 	$(PY) format_compare.py --image data/crop_surai.ppm --out report/
+	$(PY) ssim_compare.py --out report/
 	$(PY) downscale_compare.py --out report/
 	$(PY) dither.py --out report/
 	$(PY) aliasing_demo.py --out report/

@@ -4,7 +4,7 @@ Viva meminta empat hal: membuka `report.html`, menjalankan `make test` secara la
 
 ## Urutan demo (sekitar 3 menit)
 
-1. `cd Module1/Source`, lalu `make test`. Tunjukkan 17 baris `OK` dan `ALL CHECKS PASSED`.
+1. `cd Module1/Source`, lalu `make test`. Tunjukkan 18 baris `OK` dan `ALL CHECKS PASSED`.
 2. Buka `Source/report/report.html` di browser. Tunjukkan tiga hal: tabel budget, triptych naif/benar/selisih (relief dan tepi patung), dan legenda CVD sebelum dan sesudah.
 3. Kalau diminta menunjukkan test yang bisa gagal: tunjukkan bahwa palet merah-hijau ditolak dengan pesan `deuteranopia 17.7, protanopia 10.5, grayscale 0.0`.
 
@@ -72,5 +72,7 @@ Yang **berubah**:
 **Kenapa fotomu dikonversi dari P3 ke sRGB?** iPhone menyimpan Display P3, sedangkan semua kode modul menganggap angkanya sRGB. Kurva gamma keduanya sama, yang berbeda hanya primary-nya, jadi cukup satu matriks 3 × 3 di linear light.
 
 **Kenapa empat foto dibuang?** Skor ketajamannya di bawah setengah median (25%, 28%, 33%, dan 48%), dan potongan resolusi penuhnya memang blur. Modul meminta tidak ada foto yang blur.
+
+**Kenapa SSIM berjendela masih menilai JPG q40 di dinding 0,991?** Karena tekstur dinding hanya 0,51 kode, sedangkan konstanta C2 di rumus SSIM setara 7,65 kode. C2 menelan varians sekecil itu, jadi bagian struktur rumusnya tetap mendekati 1. Buktinya: dengan K2 sepuluh kali lebih kecil, nilainya turun ke 0,633. Di surai, yang teksturnya 6,33 kode, SSIM berjendela menurunkan JPG q40 dari 0,990 (global) ke 0,875. Untuk dinding, ukuran langsungnya adalah tekstur yang tersisa, yaitu 12%.
 
 **Apa keterbatasan terbesar pekerjaanmu?** Exposure tidak saya kunci saat memotret, jadi ISO berubah antara 250 dan 400. Kebijakan format juga dibuat dari crop versi kerja yang noise-nya jauh lebih rendah daripada foto asli (0,49 vs 1,78 kode).

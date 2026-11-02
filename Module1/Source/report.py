@@ -246,6 +246,11 @@ def build_html() -> None:
         s.append(md_to_html(f"{OUT}/formats_{name}.md"))
     s.append("<h3>Kebijakan format</h3>")
     s.append(md_to_html(f"{OUT}/formats.md"))
+    s.append("<h3>SSIM global vs SSIM berjendela</h3>")
+    s.append(md_to_html(f"{OUT}/ssim_windowed.md"))
+    s.append(figure_file(f"{OUT}/ssim_vs_texture_dinding_jpg40.pgm",
+                         "JPG q40 di dinding: kiri SSIM lokal (hitam = 0, putih = 1), "
+                         "kanan tekstur yang tersisa (hitam = 0%, putih = 100%)", 498))
 
     with open(os.path.join(OUT, "report.html"), "w", encoding="utf-8") as f:
         f.write("\n".join(s) + "\n")
