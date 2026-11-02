@@ -121,6 +121,7 @@ the `Makefile` directly.
 | windowed SSIM (`ssim_windowed`, 2 Nov) | equals a brute-force per-window sum (< 1e-12) and `skimage.metrics.structural_similarity` 0.26.0 with Gaussian weights, sigma 1.5, population covariance (largest difference 5.1e-14 over 10 image pairs; checked in a throw-away venv, not a dependency) | 2026-11-02 | same Mac |
 | `make test` after adding it | **ALL CHECKS PASSED** (18/18); the new check fails for a wrong covariance, an unnormalised Gaussian, or a window that does not slide | 2026-11-02 | same |
 | `make report` after adding `ssim_compare.py` | new `report/ssim_windowed.md` + one figure (`report.html` now 19 images); every other tracked `report/` file unchanged | 2026-11-02 | same |
+| clean local clone (commit `8c436ed`, before the push) + new `.venv` | `make data`, `make test` (**18/18**), `make report`; `git status` clean, so the SSIM table and figure rebuild byte-identical | 2026-11-02 | same |
 
 Not yet verified: Windows or Linux.
 

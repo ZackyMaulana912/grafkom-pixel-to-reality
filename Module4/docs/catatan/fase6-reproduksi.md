@@ -104,3 +104,30 @@ Setelah semua perintah itu, `git status` di clone tidak menunjukkan perubahan ap
 Temuan `npm audit` dari 31 Oktober sudah selesai: dengan `serve` dihapus, Modul 2 hanya punya satu paket dan tidak ada kerentanan yang dilaporkan.
 
 Folder clone uji dihapus setelah transkrip ini dicatat.
+
+## Uji ulang 2 November 2026
+
+**Dari GitHub (commit `377dfa1`, push 1 November).** Uji ini melengkapi bagian sebelumnya, yang baru diuji dari clone lokal.
+- Modul 2: `npm ci` hanya memasang 1 paket, 0 vulnerabilities, `npm test` 25 ok, `npm run plan` kode 0.
+- Modul 4:
+  - `pip freeze` sama dengan `requirements.txt`, dan `tests.py` 177 ok;
+  - impor dan run Godot 300 frame kode 0, tanpa error atau warning;
+  - 13 baris cocok, dan `KNIGHT_WALK` dan `KNIGHT_TURN` lolos (8,9e-8 m per putaran).
+- `git status` di clone bersih.
+
+**GitHub Pages.**
+- Keempat file build Modul 4 memberi status 200 dan identik (SHA-256) dengan `377dfa1`.
+- Dibuka di Chrome tanpa jendela langsung dari Pages: WebGL 2.0, 0 error console, 0 exception, dan 13 baris dari console browser cocok dengan Python.
+- Halaman Modul 2, Modul 3, dan `report.html` Modul 1 memberi status 200.
+
+**Tiga commit 2 November** (SSIM berjendela, winding per face, spline C2) belum di-push saat uji ini, jadi diuji dari clone lokal pada `8c436ed`:
+- Modul 1: `make data`, `make test` 18 OK, `make report`;
+- Modul 2: 25 ok;
+- Modul 3: `make_model.py`, 18 ok;
+- Modul 4: 186 ok.
+
+`git status` di clone tetap bersih, jadi laporan Modul 1 (termasuk tabel SSIM dan gambarnya) dan model Modul 3 yang dibuat ulang identik dengan isi repo.
+
+Ketiga commit itu tidak mengubah file yang dipakai halaman Modul 2, Modul 3, atau build Modul 4 (`git diff 377dfa1 8c436ed` kosong untuk folder-folder itu). Jadi uji Pages di atas tetap berlaku untuk halaman-halaman itu. Satu-satunya halaman Pages yang berubah adalah `report.html` Modul 1, dan halaman itu baru diperbarui setelah push.
+
+Folder clone uji dihapus setelah transkrip ini dicatat.

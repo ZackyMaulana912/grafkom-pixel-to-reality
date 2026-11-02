@@ -112,4 +112,5 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | GitHub Pages URL | every file 200 with the right MIME type, served `viewer.js` and texture identical to the repo, 0 console / page / network errors, orbit + reset work, **Export PPM byte-identical to the local export** (my model and the temple) | 2026-10-29 | Chrome 156.0.8078.48 headless, Apple M5 |
 | fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install`, `make_model.py`, `tests.py` 17 ok, `git status` clean | 2026-10-31 | same Mac |
 | winding per face (`orient_faces`) | temple: 180 faces reversed, my model: 0, both identical to the old global rule, so both reference frames stay byte-identical; 30% random flips and one inside-out closed part restored exactly; the new check fails without neighbour propagation or without the per-part volume; `tests.py` **18 ok, 0 fail** | 2026-11-02 | same Mac |
+| clean local clone (commit `8c436ed`, before the push) + new `.venv` | `make_model.py`, `tests.py` **18 ok, 0 fail**, `git status` clean | 2026-11-02 | same |
 | other GPUs, Windows, Linux | **not tested** | | |
