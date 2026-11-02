@@ -153,3 +153,35 @@ Jalur tertutup lebih rata, karena tidak ada lagi titik yang digandakan. Langkah 
 ![Jalur terbuka, tertutup, dan jarak antar sampel](../img/my_path.png)
 
 Test bertambah dari 134 menjadi 158 (`test_closed_path`).
+
+## Tambahan 2 November 2026: spline kubik periodik C2 sebagai pembanding
+
+Catmull-Rom hanya C1: tangennya tersambung, tapi percepatannya melompat di setiap titik kontrol. Selain itu, loop tertutup saya memotong ke dalam lingkaran sampai 0,585 m dari patung. Sebagai pembanding, `spline.py` sekarang punya spline kubik periodik C2 yang interpolasi (tetap melewati keenam titik), ditulis tanpa library:
+- `closed_c2_second_derivatives()` menyelesaikan sistem siklik M(i-1) + 4 M(i) + M(i+1) = 6 (P(i+1) - 2 P(i) + P(i-1)) dengan eliminasi Gauss;
+- `closed_c2_point()`, `closed_c2_derivatives()`, dan `sample_closed_c2_path()` memakai hasil itu;
+- `catmull_rom_accel()` ditambahkan untuk mengukur lompatan percepatan Catmull-Rom.
+
+Diukur di 2.400 sampel, pada titik kontrol yang sama:
+
+| | Catmull-Rom tertutup | C2 periodik |
+|---|---|---|
+| Jarak ke patung | 0,5847 sampai 0,6003 m | **0,5977 sampai 0,6003 m** |
+| Laju tercepat / terlambat | 1,300 | **1,011** |
+| Lompatan percepatan terbesar di titik kontrol | 1,04 per segmen² (sekitar 0,146 m/s² dengan 16 detik per putaran) | **0** |
+| Jarak terdekat ke dinding dan lemari | 0,215 m | 0,202 m |
+
+C2 lebih dekat ke lingkaran, lajunya hampir rata, dan percepatannya tidak melompat. Harganya ada dua:
+- jaraknya ke lemari berkurang 1,3 cm, walaupun masih di atas batas 0,2 m;
+- C2 bersifat global. Menggeser satu titik kontrol mengubah seluruh loop sedikit, sedangkan pada Catmull-Rom hanya mengubah empat segmen di sekitarnya.
+
+**Pembuktian kodenya (`test_closed_c2_path`, 9 check):**
+- melewati semua titik;
+- tangen dan percepatan tersambung di keenam sambungan, sampai 1e-12;
+- turunannya cocok dengan selisih hingga;
+- pembanding analitik: untuk titik di segi-7 beraturan, setiap M(i) harus sama dengan 6 / (4 + 2 cos(2π/7)) × (P(i+1) - 2 P(i) + P(i-1)), karena vektor itu adalah vektor eigen matriks siklik 4-1. Selisihnya 3e-16;
+- Catmull-Rom memang melompat;
+- C2 lebih dekat ke lingkaran, dan jarak ke dinding tetap minimal 0,2 m.
+
+Tiga kerusakan yang saya coba di salinan sementara semuanya tertangkap: diagonal 3 menggantikan 4, ruas kanan dikali 3 menggantikan 6, dan rumus turunan kedua yang tertukar.
+
+Kamera di Godot **tidak** saya ubah dan tetap memakai Catmull-Rom tertutup. Kalau mau dipindah ke C2, `spline_camera.gd`, pengecekan `godot_check.py`, dan build Web perlu ikut diubah. Itu keputusan terpisah.

@@ -12,7 +12,7 @@ Build Web: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/
 cd Module4/Source
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python tests.py            # ALL CHECKS PASSED (177 ok)
+python tests.py            # ALL CHECKS PASSED (186 ok)
 ```
 
 Lalu buka `Module4/Source/godot_project/project.godot` di Godot 4.7.2 dan tekan Play. Tombolnya: **C** mengganti kamera spline dan kamera overview, **Space** dan **U** untuk lengan FK/IK, **F** untuk walker (root motion atau perilaku starter). Perintah lainnya ada di [Source/README.md](Source/README.md).

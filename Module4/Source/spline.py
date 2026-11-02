@@ -93,6 +93,71 @@ def sample_closed_path(control_points, samples_per_segment=20):
     return out
 
 
+def catmull_rom_accel(p0, p1, p2, p3, t):
+    """Second derivative d2P/dt2 of the Catmull-Rom segment P1 -> P2."""
+    return tuple((2 * a - 5 * b + 4 * c - d) + 3 * (-a + 3 * b - 3 * c + d) * t for a, b, c, d in zip(p0, p1, p2, p3))
+
+
+def _solve(a, b):
+    """Gaussian elimination with partial pivoting; a is n x n, b has n entries (small systems only)."""
+    n = len(b)
+    m = [row[:] + [rhs] for row, rhs in zip(a, b)]
+    for col in range(n):
+        piv = max(range(col, n), key=lambda r: abs(m[r][col]))
+        m[col], m[piv] = m[piv], m[col]
+        for r in range(col + 1, n):
+            f = m[r][col] / m[col][col]
+            for c in range(col, n + 1):
+                m[r][c] -= f * m[col][c]
+    x = [0.0] * n
+    for r in range(n - 1, -1, -1):
+        x[r] = (m[r][n] - sum(m[r][c] * x[c] for c in range(r + 1, n))) / m[r][r]
+    return x
+
+
+def closed_c2_second_derivatives(control_points):
+    """Second derivatives M_i at the points of the periodic C2 cubic spline (uniform, h = 1).
+
+    C2 at every point gives M(i-1) + 4 M(i) + M(i+1) = 6 (P(i+1) - 2 P(i) + P(i-1)), indices
+    taken cyclically: one n x n system per coordinate. Catmull-Rom fixes the tangents locally
+    instead, so its second derivative jumps at the points; this one has no jump, but every
+    point now moves the whole loop a little (global, not local)."""
+    pts = [tuple(p) for p in control_points]
+    n = len(pts)
+    a = [[4.0 if r == c else (1.0 if (r - c) % n in (1, n - 1) else 0.0) for c in range(n)] for r in range(n)]
+    cols = [_solve(a, [6 * (pts[(i + 1) % n][k] - 2 * pts[i][k] + pts[i - 1][k]) for i in range(n)])
+            for k in range(len(pts[0]))]
+    return [tuple(col[i] for col in cols) for i in range(n)]
+
+
+def closed_c2_point(control_points, second, i, t):
+    """Point on segment i (P(i) -> P(i+1)) of the periodic C2 spline, second = closed_c2_second_derivatives()."""
+    n = len(control_points)
+    p, q = control_points[i], control_points[(i + 1) % n]
+    m0, m1 = second[i], second[(i + 1) % n]
+    u = 1.0 - t
+    return tuple(u * a + t * b + (u ** 3 - u) / 6 * c + (t ** 3 - t) / 6 * d for a, b, c, d in zip(p, q, m0, m1))
+
+
+def closed_c2_derivatives(control_points, second, i, t):
+    """(dP/dt, d2P/dt2) on segment i of the periodic C2 spline."""
+    n = len(control_points)
+    p, q = control_points[i], control_points[(i + 1) % n]
+    m0, m1 = second[i], second[(i + 1) % n]
+    u = 1.0 - t
+    d1 = tuple(b - a + (1 - 3 * u * u) / 6 * c + (3 * t * t - 1) / 6 * d for a, b, c, d in zip(p, q, m0, m1))
+    d2 = tuple(u * c + t * d for c, d in zip(m0, m1))
+    return d1, d2
+
+
+def sample_closed_c2_path(control_points, samples_per_segment=20):
+    """Sample the periodic C2 loop like sample_closed_path(): sample i * n is control point i."""
+    pts = [tuple(p) for p in control_points]
+    second = closed_c2_second_derivatives(pts)
+    return [closed_c2_point(pts, second, i, k / samples_per_segment)
+            for i in range(len(pts)) for k in range(samples_per_segment)]
+
+
 def sample_spacing(samples):
     """Distances between consecutive samples (equal t steps vs actual distance)."""
     return [math.dist(a, b) for a, b in zip(samples, samples[1:])]

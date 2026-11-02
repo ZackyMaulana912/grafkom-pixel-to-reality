@@ -2,7 +2,7 @@
 
 ## Yang harus bisa saya lakukan langsung
 
-1. **Menjalankan test.** `cd Module4/Source && source .venv/bin/activate && python tests.py`, hasilnya `ALL CHECKS PASSED (177 ok)`. Saya bisa menunjuk baris E1 sampai E4 (siku 2,598 / 1,500; IK -13,18° dan 70,53°; q(0,5) = (3, 1); slerp 36°) dan baris rantai saya (pergelangan 32,807 / 22,376 cm).
+1. **Menjalankan test.** `cd Module4/Source && source .venv/bin/activate && python tests.py`, hasilnya `ALL CHECKS PASSED (186 ok)`. Saya bisa menunjuk baris E1 sampai E4 (siku 2,598 / 1,500; IK -13,18° dan 70,53°; q(0,5) = (3, 1); slerp 36°) dan baris rantai saya (pergelangan 32,807 / 22,376 cm).
 2. **Membuka scene Godot.** Buka `godot_project/project.godot` di Godot 4.7.2, tekan Play (F5), lalu:
    - **C**: pindah ke kamera overview supaya area demo terlihat;
    - **Space**: lengan berganti dari FK (30°/60°) ke IK target (4, 1), dan label menampilkan θ1 -13,18 dan θ2 70,53;

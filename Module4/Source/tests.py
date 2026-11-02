@@ -13,6 +13,7 @@ from fk import Bone, bone_matrices, forward_kinematics, running_example as fk_ru
 from ik import fk_error, solve_two_bone_ik, UnreachableTarget, running_example as ik_running_example
 from spline import (
     catmull_rom_weights, catmull_rom_point, catmull_rom_tangent, closed_segments, sample_closed_path,
+    catmull_rom_accel, closed_c2_second_derivatives, closed_c2_point, closed_c2_derivatives, sample_closed_c2_path,
     sample_path, sample_spacing, load_camera_path, load_my_path, load_path,
     running_example as spline_running_example,
 )
@@ -207,6 +208,52 @@ def test_my_path():
     print(f"     (clearance {clearance:.3f} m, distance to the statue {min(r):.3f} .. {max(r):.4f} m)")
     for t in (0.0, 0.3, 0.5, 1.0):
         check(f"catmull-rom weights sum to 1 at t={t}", sum(catmull_rom_weights(t)), 1.0, tol=1e-12)
+
+
+def test_closed_c2_path():
+    """Periodic C2 cubic vs closed Catmull-Rom on my 6 points (2 Nov): no acceleration jump, closer to the circle."""
+    cps = [tuple(p) for p in load_my_path()]
+    n = len(cps)
+    m = closed_c2_second_derivatives(cps)
+    loop = sample_closed_c2_path(cps, samples_per_segment=10)
+    check("C2 loop: 6 points -> 60 samples", len(loop), 60)
+    check("C2 loop passes every control point", max(math.dist(loop[10 * i], cps[i]) for i in range(n)), 0.0,
+          tol=1e-12)
+    ends = [closed_c2_derivatives(cps, m, i - 1 if i else n - 1, 1.0) for i in range(n)]
+    starts = [closed_c2_derivatives(cps, m, i, 0.0) for i in range(n)]
+    check("C2 loop: tangent continuous at all 6 joints", max(math.dist(e[0], b[0]) for e, b in zip(ends, starts)),
+          0.0, tol=1e-12)
+    check("C2 loop: second derivative continuous at all 6 joints",
+          max(math.dist(e[1], b[1]) for e, b in zip(ends, starts)), 0.0, tol=1e-12)
+    segs = closed_segments(cps)
+    jump = max(math.dist(catmull_rom_accel(*segs[i - 1], 1.0), catmull_rom_accel(*segs[i], 0.0)) for i in range(n))
+    check("Catmull-Rom on the same points jumps in acceleration (> 0.5 per segment^2)", jump > 0.5, True)
+    h = 1e-5
+    pt = lambda t: closed_c2_point(cps, m, 2, t)                             # noqa: E731
+    fd1 = tuple((a - b) / (2 * h) for a, b in zip(pt(0.37 + h), pt(0.37 - h)))
+    fd2 = tuple((a - 2 * b + c) / (h * h) for a, b, c in zip(pt(0.37 + h), pt(0.37), pt(0.37 - h)))
+    d1, d2 = closed_c2_derivatives(cps, m, 2, 0.37)
+    check("closed_c2_derivatives = finite differences of closed_c2_point", max(math.dist(fd1, d1),
+          math.dist(fd2, d2) * 1e-3), 0.0, tol=1e-8)
+    # independent check: on a regular n-gon every M_i is the same multiple of P(i+1) - 2 P(i) + P(i-1),
+    # 6 / (4 + 2 cos(2 pi / n)), because that vector is an eigenvector of the cyclic 4-1 matrix
+    gon = [(math.cos(2 * math.pi * k / 7), math.sin(2 * math.pi * k / 7)) for k in range(7)]
+    mg = closed_c2_second_derivatives(gon)
+    lam = 6 / (4 + 2 * math.cos(2 * math.pi / 7))
+    worst = max(math.dist(mg[i], tuple(lam * (a - 2 * b + c) for a, b, c in zip(gon[(i + 1) % 7], gon[i], gon[i - 1])))
+                for i in range(7))
+    check("regular 7-gon: M_i = 6 / (4 + 2 cos(2 pi/7)) (P(i+1) - 2 P(i) + P(i-1))", worst, 0.0, tol=1e-12)
+    centre = (-0.2, 0.0)
+    dense_cr = sample_closed_path(cps, samples_per_segment=200)
+    dense_c2 = sample_closed_c2_path(cps, samples_per_segment=200)
+    r_cr = [math.hypot(p[0] - centre[0], p[2] - centre[1]) for p in dense_cr]
+    r_c2 = [math.hypot(p[0] - centre[0], p[2] - centre[1]) for p in dense_c2]
+    check("C2 loop stays closer to the 0.6 m circle than Catmull-Rom", max(r_c2) - min(r_c2) < 0.25 * (
+        max(r_cr) - min(r_cr)), True)
+    clearance = min(min(p[0] + 1.0, 0.6 - p[0], p[2] + 2.0, 2.0 - p[2]) for p in dense_c2)
+    check("C2 loop still keeps >= 0.2 m from the walls and the cabinet", clearance >= 0.2, True)
+    print(f"     (statue distance C2 {min(r_c2):.4f} .. {max(r_c2):.4f} m, Catmull-Rom {min(r_cr):.4f} .. "
+          f"{max(r_cr):.4f} m; C2 clearance {clearance:.4f} m; Catmull-Rom acceleration jump {jump:.4f})")
 
 
 def test_closed_path():
@@ -437,6 +484,7 @@ if __name__ == "__main__":
     test_spline()
     test_my_path()
     test_closed_path()
+    test_closed_c2_path()
     test_fabrik()
     test_fabrik_limits()
     test_camera_path_copies()
