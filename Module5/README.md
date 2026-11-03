@@ -4,6 +4,12 @@ Subjek: patung kuda berdiri milik saya sendiri, sama dengan Modul 1 sampai 4. Ca
 
 **AR app:** https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html
 
+| Patung kuda hasil scan | Mobil F1 Aston Martin AMR23 |
+|---|---|
+| ![AR app di browser: patung kuda dengan lima titik info](docs/img/app_browser_kuda.png) | ![AR app di browser: mobil F1 dengan lima titik info](docs/img/app_browser_mobil.png) |
+
+Tampilan AR app di browser Mac. Tombol **Model** berganti antara kuda dan mobil, tombol **ID / EN** mengganti bahasa, dan tombol **Quiz** mengubah titik info menjadi kuis.
+
 Asal-usul aset (lengkapnya di [Source/ar_app/assets/LICENSE.md](Source/ar_app/assets/LICENSE.md)):
 
 ```

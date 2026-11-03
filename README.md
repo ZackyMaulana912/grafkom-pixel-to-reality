@@ -14,6 +14,12 @@ Semua modul memakai satu subjek yang sama: **patung kuda berdiri milik saya send
 | [Modul 4](Module4/README.md) | Animasi, kinematika & game engine | [scene Godot di browser](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/build/web/) | [laporan](Module4/docs/laporan) |
 | [Modul 5](Module5/README.md) | AI graphics: NeRF, world models & AR | [AR app patung kuda](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html) | [catatan](Module5/docs/catatan) |
 
+Hasil akhir Modul 5, [AR app](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html) yang bisa dibuka di HP dan menaruh model di dunia nyata dengan ukuran aslinya:
+
+| Patung kuda saya, di-scan dari 28 foto | Mobil F1 Aston Martin AMR23 (Redgrund, CC BY 4.0) |
+|---|---|
+| ![AR app: patung kuda](Module5/docs/img/app_browser_kuda.png) | ![AR app: mobil F1](Module5/docs/img/app_browser_mobil.png) |
+
 Ringkasan tiap modul:
 
 - **Modul 1.** Angka di file gambar adalah kode sRGB, bukan jumlah cahaya. Downscale foto saya yang menghitung rata-rata di linear light dibandingkan dengan rata-rata kode sRGB yang naif, lalu gamma, dithering, aliasing, dan simulasi buta warna diukur dengan angka.
