@@ -26,7 +26,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-URLS = [a for a in sys.argv[1:] if not a.startswith("--")]
+URLS = [a for a in sys.argv[1:] if a.startswith("http")]
 BASE_URL = URLS[0] if URLS else "http://localhost:8743"
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCREENSHOT_DIR = os.path.join(HERE, "screenshots")
@@ -242,7 +242,29 @@ def main():
           "Scene Viewer/Quick Look handoff needs a real phone -- see README.md.")
 
 
-if __name__ == "__main__" and "--occlusion" in sys.argv[1:]:
+def temple_closeup(out_path):
+    """T10 evidence: the course's temple, close up on its finial, written to out_path."""
+    with sync_playwright() as p:
+        browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"])
+        page = browser.new_page(viewport={"width": 390, "height": 800})
+        page.goto(f"{BASE_URL}/index.html", wait_until="networkidle", timeout=30000)
+        page.evaluate("document.querySelector('model-viewer').interactionPrompt = 'none'")
+        page.click("#model-toggle")
+        page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/pusaka_temple.glb')"
+                               " && document.querySelector('model-viewer').loaded", timeout=15000)
+        page.wait_for_timeout(1500)
+        page.evaluate("""async () => { const v = document.querySelector('model-viewer');
+            v.cameraTarget = '0m 0.36m 0m'; v.cameraOrbit = '35deg 65deg 0.35m';
+            await v.updateComplete; v.jumpCameraToGoal(); }""")
+        page.wait_for_timeout(1500)
+        page.screenshot(path=out_path, clip={"x": 0, "y": 80, "width": 390, "height": 600})
+        browser.close()
+    print(f"wrote {out_path}")
+
+
+if __name__ == "__main__" and "--temple-closeup" in sys.argv[1:]:
+    temple_closeup(sys.argv[sys.argv.index("--temple-closeup") + 1])
+elif __name__ == "__main__" and "--occlusion" in sys.argv[1:]:
     print_occlusion(*occlusion_sweep())
 elif __name__ == "__main__":
     main()

@@ -59,14 +59,14 @@ def pyramid(center, base_half, height, sides=4):
     base_pts = [np.array([cx + base_half * np.cos(a), cy, cz + base_half * np.sin(a)], dtype=np.float32) for a in angles]
 
     positions, normals, indices = [], [], []
-    # side faces
+    # side faces: the base points go round counter-clockwise seen from BELOW (+x towards +z),
+    # so (p0, apex, p1) is the order that is counter-clockwise seen from outside, glTF's front face
     for i in range(sides):
         p0, p1 = base_pts[i], base_pts[(i + 1) % sides]
-        edge1, edge2 = p1 - p0, apex - p0
-        n = np.cross(edge1, edge2)
+        n = np.cross(apex - p0, p1 - p0)
         n = n / (np.linalg.norm(n) + 1e-9)
         base_idx = len(positions)
-        for p in (p0, p1, apex):
+        for p in (p0, apex, p1):
             positions.append(tuple(p))
             normals.append(tuple(n))
         indices += [base_idx, base_idx + 1, base_idx + 2]
@@ -76,7 +76,7 @@ def pyramid(center, base_half, height, sides=4):
         positions.append(tuple(p))
         normals.append((0.0, -1.0, 0.0))
     for i in range(1, sides - 1):
-        indices += [base_idx, base_idx + i, base_idx + i + 1]
+        indices += [base_idx, base_idx + i + 1, base_idx + i]  # counter-clockwise seen from below
     return np.array(positions, dtype=np.float32), np.array(normals, dtype=np.float32), np.array(indices, dtype=np.uint16)
 
 

@@ -256,3 +256,35 @@ Screenshot tidak saya salin ke `docs/img/`, supaya tidak ada dua salinan file ya
 ![Panel yang sedang terbuka berganti ke bahasa Indonesia](../../Source/ar_app/screenshots/m5_ar_infopanel_id.png)
 
 Satu hal yang saya temukan saat membuat screenshot dan belum saya selidiki: setelah kamera diputar ke belakang lalu dikembalikan ke `0deg 80deg` lewat kode, `<model-viewer>` melaporkan sudut dan jarak yang sama, tetapi kuda tampak lebih kecil dan lebih tinggi di layar. Supaya semua screenshot diambil dari kamera awal yang sama, check "dari belakang" saya pindahkan ke setelah screenshot diambil.
+
+## 8. Puncak candi dosen yang bolong (T10)
+
+Model candi dosen tetap ada di app sebagai pilihan kedua, jadi panduan meminta T10 diperiksa dulu. T10 adalah temuan run awal bahwa keempat sisi piramida puncak (stupa) menghadap ke dalam, tetapi efek visualnya waktu itu belum terbukti.
+
+**Bukti angka dulu.** Test baru `test_temple_faces_outward` membaca `pusaka_temple.glb` dan mengecek setiap segitiga: urutan titiknya harus berlawanan arah jarum jam dilihat dari luar (sisi depan menurut glTF), dan normalnya harus searah. Setiap bagian candi berbentuk cembung, jadi "luar" berarti menjauhi titik tengah bagian itu. Hasil pada model dosen:
+- lima bagian (kaki, badan, badan atas, atap, relief) benar semua;
+- **stupa: 6 dari 6 segitiga menghadap ke dalam** (empat sisi dan dua segitiga alas);
+- 2 normal alas berlawanan dengan urutan titiknya.
+
+Angka ini cocok persis dengan T10.
+
+**Bukti di browser.** Dari dekat, puncak candi dosen tampak tembus pandang: alas perseginya yang ada di dalam terlihat dari luar. Browser membuang sisi yang membelakangi kamera (backface culling), dan sisi yang dianggap "membelakangi" justru sisi luar piramida, jadi yang tampil adalah sisi dalamnya.
+
+**Perbaikan** di `make_temple_glb.py`, fungsi `pyramid()`:
+- sisi miring sekarang memakai urutan `(p0, apex, p1)`, dengan normal `cross(apex - p0, p1 - p0)` yang menghadap ke luar;
+- urutan segitiga alas dibalik supaya berlawanan arah jarum jam dilihat dari bawah, searah dengan normalnya yang menunjuk ke bawah.
+
+Ukuran file tetap 9.604 byte. `hotspots.json` yang dibuat ulang isinya sama persis (hanya akhiran barisnya berubah dari CRLF ke LF), jadi file itu saya kembalikan ke versi dosen.
+
+| Sebelum | Sesudah |
+|---|---|
+| ![Puncak tembus pandang](../img/t10_stupa_sebelum.png) | ![Puncak padat](../img/t10_stupa_sesudah.png) |
+
+Gambar di atas dibuat dengan `verify_ar_app.py --temple-closeup <file>`: kiri dengan `pusaka_temple.glb` versi dosen, kanan dengan versi yang sudah diperbaiki.
+
+**Bukti sesudah:**
+- `test_temple_faces_outward`: 0 segitiga menghadap ke dalam, 0 normal berlawanan, dari 66 segitiga. Total **75 ok**;
+- `verify_ar_app.py` tetap 16 ok;
+- baris provenance candi di `assets/LICENSE.md` sekarang mencatat perubahan ini.
+
+Candinya tetap sederhana (kotak berwarna polos tanpa tekstur). Itu memang rancangan dosen sebagai contoh yang bisa dibuat ulang dari kode, dan saya biarkan apa adanya.

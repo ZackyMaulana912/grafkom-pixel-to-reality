@@ -361,6 +361,40 @@ def test_ar_assets():
           float(not missing and len(covered) == 3), 1.0, tol=0)
 
 
+def _primitive_arrays(gltf, binary, prim):
+    def read(index, width):
+        acc = gltf["accessors"][index]
+        view = gltf["bufferViews"][acc["bufferView"]]
+        dtype = {5126: "<f4", 5123: "<u2", 5125: "<u4", 5121: "<u1"}[acc["componentType"]]
+        start = view.get("byteOffset", 0) + acc.get("byteOffset", 0)
+        return np.frombuffer(binary, dtype=dtype, count=acc["count"] * width, offset=start)
+    pos = read(prim["attributes"]["POSITION"], 3).reshape(-1, 3).astype(float)
+    nrm = read(prim["attributes"]["NORMAL"], 3).reshape(-1, 3).astype(float)
+    return pos, nrm, read(prim["indices"], 1).astype(np.int64).reshape(-1, 3)
+
+
+def test_temple_faces_outward():
+    """T10: every triangle of the course's temple must wind counter-clockwise seen from outside
+    (glTF's front face) and carry a normal pointing the same way. Every part is convex, so
+    'outside' is away from the part's own centre."""
+    import os
+    gltf, binary, _ = _read_glb(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ar_app", "assets",
+                                             "pusaka_temple.glb"))
+    wrong_winding = wrong_normal = total = 0
+    for mesh in gltf["meshes"]:
+        for prim in mesh["primitives"]:
+            pos, nrm, tri = _primitive_arrays(gltf, binary, prim)
+            centre = pos.mean(axis=0)
+            a, b, c = pos[tri[:, 0]], pos[tri[:, 1]], pos[tri[:, 2]]
+            face = np.cross(b - a, c - a)
+            outward = (a + b + c) / 3 - centre
+            wrong_winding += int((np.einsum("ij,ij->i", face, outward) <= 0).sum())
+            wrong_normal += int((np.einsum("ij,ij->i", nrm[tri].mean(axis=1), face) <= 0).sum())
+            total += len(tri)
+    check(f"temple: triangles wound inwards (of {total})", float(wrong_winding), 0.0, tol=0)
+    check(f"temple: stored normals against the winding (of {total})", float(wrong_normal), 0.0, tol=0)
+
+
 def test_occlusion_truth():
     """The ground truth behind the hotspot-occlusion test: a triangle in the way blocks, a surface
     turned away never counts as visible, and on the real horse the pedestal hotspot is visible from
@@ -415,5 +449,6 @@ if __name__ == "__main__":
     test_numpy_only()
     test_ar_assets()
     test_occlusion_truth()
+    test_temple_faces_outward()
     test_view_coverage_diagnose_and_fix()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")
