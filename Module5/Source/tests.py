@@ -46,6 +46,20 @@ def test_volume_render():
     check_vec("E2 final pixel colour", final_color, (0.5, 0.25, 0.25))
 
 
+def test_my_ray():
+    """My own phone pixel (Lab 1 no 4): the program must match the by-hand numbers in
+    docs/catatan/fase2-capture-ray.md, and the principal point must give the optical axis."""
+    import my_ray
+    cam = my_ray.load_camera()
+    f, d, n = my_ray.my_ray(cam)
+    check("my camera focal length, px (24 mm equiv. on a 6048x8064 frame)", f, 5591.38, tol=0.01)
+    check_vec("my ray, camera-space (unnormalised)", d, (-0.19101, -0.36986, -1.0), tol=1e-5)
+    check_vec("my ray, normalised", n, (-0.17634, -0.34145, -0.92321), tol=1e-5)
+    cx, cy = cam["principal_point_px"]
+    axis = my_ray.pixel_to_camera_dir(cx, cy, f, f, cx, cy)
+    check_vec("principal point gives the optical axis", axis, (0.0, 0.0, -1.0), tol=1e-12)
+
+
 def test_backward_matches_finite_difference():
     grid = VoxelGrid(resolution=4, seed=1)
     rng = np.random.default_rng(2)
@@ -112,6 +126,7 @@ def test_view_coverage_diagnose_and_fix():
 if __name__ == "__main__":
     test_ray_generator()
     test_volume_render()
+    test_my_ray()
     test_backward_matches_finite_difference()
     test_view_coverage_diagnose_and_fix()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")

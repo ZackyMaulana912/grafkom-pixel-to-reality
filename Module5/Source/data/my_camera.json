@@ -1,0 +1,16 @@
+{
+  "device": "iPhone 17 Pro",
+  "lens": "iPhone 17 Pro back triple camera 6.765mm f/1.78",
+  "source_photo": "IMG_8878.jpg (one of the 28 in data/my_capture/manifest.csv, all with the same values below)",
+  "image_width_px": 4536,
+  "image_height_px": 8064,
+  "sensor_frame_px": [6048, 8064],
+  "focal_length_mm": 6.765,
+  "focal_length_35mm_equiv_mm": 24,
+  "focal_length_note": "Estimate, not a calibration. The 35 mm equivalent is matched here on the frame diagonal (the usual convention; EXIF does not say how the phone computed it): f_px = f35 * diagonal_px / 43.2666 (the diagonal of a 36 x 24 mm frame). EXIF gives the sensor frame as 8064 x 6048 (portrait 6048 x 8064, diagonal 10080 px); the saved photo is 4536 x 8064, the same 8064 px height, so it is a crop at the same pixel scale and f_px is unchanged.",
+  "principal_point_px": [2268, 4032],
+  "principal_point_note": "Assumed at the centre of the saved photo (4536/2, 8064/2). Not measured: if the 9:16 crop was not centred, cx shifts.",
+  "pixel": [1200, 6100],
+  "pixel_note": "My chosen pixel, left of and below the centre. In IMG_8878 it falls on the floor just left of the statue's base.",
+  "pixel_convention": "continuous (u, v) used as is, the same as ray_generator.pixel_to_camera_dir; u = column from the left, v = row from the top (grows downward)"
+}

@@ -47,6 +47,9 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
 | `fit_nerf_toy.py` | trains the grid on the capture; reports train/novel-view PSNR; writes comparison PPMs | Case Study evidence |
 | `nerf_bug.py` | diagnose-and-fix: 2 clustered views vs 8 spread views, same novel view, PSNR gap | Lab 2 diagnose-and-fix |
 | `tests.py` | E1-E2 + an analytic-vs-finite-difference gradient check + the view-coverage regression | MASTER Sec 11.2 |
+| `my_ray.py` | the ray through my own chosen pixel of my own iPhone photo, from `data/my_camera.json` (focal length estimated from EXIF) | Lab 1 no 4, by-hand ray |
+| `document_capture.py` | writes `data/my_capture/` (manifest, checksums, contact sheet) for my 28 photos without committing the photos | Lab 1 no 2, own capture |
+| `figures.py` | the only matplotlib user: draws the PNGs in `../docs/` from the from-scratch functions | doc figures |
 | `ar_app/make_temple_glb.py` | procedurally builds `pusaka_temple.glb` (6 primitives, flat-shaded, no texture) + `hotspots.json` (5 bilingual educational hotspots) | AR app model + content |
 | `ar_app/index.html`, `app.js`, `style.css` | the **Pusaka3D AR Explainer**: `<model-viewer>` + AR button + tap-to-learn hotspots + a quiz mode + EN/ID toggle | Lab 3 "ship" deliverable |
 | `ar_app/verify_ar_app.py` | headless-Chromium (Playwright) end-to-end check of the app, screenshots included | automated AR-app verification |
@@ -59,6 +62,11 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
 - **E2** -- 3 samples (`alpha=0.5, 0.5, 1.0`; colours red/green/blue) composite
   to weights `(0.5, 0.25, 0.25)` and final pixel colour `(0.5, 0.25, 0.25)`;
   weights + background sum to exactly `1.0`.
+- **My own ray** -- iPhone 17 Pro photo, `f = 5591.38` px (24 mm equivalent on the
+  diagonal of the 6048 x 8064 sensor frame), principal point `(2268, 4032)`, pixel
+  `(1200, 6100)` -> `(-0.19101, -0.36986, -1)`, normalised
+  `(-0.17634, -0.34145, -0.92321)`, the by-hand numbers in
+  `../docs/catatan/fase2-capture-ray.md`; the principal point gives `(0, 0, -1)`.
 - **Analytic vs finite-difference gradient** -- `backward_grid()`'s hand-derived
   gradient w.r.t. every probed voxel (density and colour) matches a
   central-difference numerical gradient to `< 1e-6` (typically `~1e-11`).
@@ -148,6 +156,17 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
    has never actually captured.
 
 ## Verified
+
+| Item | Status | Date | Toolchain |
+|---|---|---|---|
+| starter code before any change | `tests.py` 17 ok, all five scripts match the PDF, max gradient error `4.89e-11` | 2026-11-02 | macOS 27.0.1, Apple M5, Python 3.11.8, NumPy 2.4.6 |
+| `ar_app/verify_ar_app.py` on the starter app, served on `127.0.0.1:8743` | **ALL CHECKS PASSED (10 ok)** | 2026-11-02 | Playwright 1.64.1, Chrome Headless Shell 156 |
+| `python tests.py` with `test_my_ray` | **ALL CHECKS PASSED (27 ok)**; the new check fails if the focal length uses the 36 mm width, if the y flip is dropped, or if the principal point moves half a pixel | 2026-11-03 | same |
+| `my_ray.py` vs by-hand ray | equal to 5 decimals | 2026-11-03 | same |
+| `document_capture.py` | 28 photos, identical files on a second run | 2026-11-03 | same, Pillow 13.0.0 |
+| Real device AR session | not yet tested (Fase 5) | -- | -- |
+
+### Verified by the course author (starter, as shipped)
 
 | Item | Status | Date | Toolchain |
 |---|---|---|---|
