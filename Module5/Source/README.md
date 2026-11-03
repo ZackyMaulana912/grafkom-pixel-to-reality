@@ -163,7 +163,8 @@ from the evidence first.
 | `python tests.py` with `test_my_ray` | **ALL CHECKS PASSED (27 ok)**; the new check fails if the focal length uses the 36 mm width, if the y flip is dropped, or if the principal point moves half a pixel | 2026-11-03 | same |
 | `my_ray.py` vs by-hand ray | equal to 5 decimals | 2026-11-03 | same |
 | `document_capture.py` | 28 photos, identical files on a second run | 2026-11-03 | same, Pillow 13.0.0 |
-| Real device AR session | not yet tested (Fase 5) | -- | -- |
+| Real device AR session | **works**: "View in your space (AR)" on the GitHub Pages URL opens Quick Look; the scanned horse stands on the surface, textured, and looks the same size as the real 63 cm statue (judged by eye next to it, not measured in AR); Android not tested | 2026-11-03 | iPhone 17 Pro, iOS 27.2, Safari |
+| GitHub Pages (HTTPS) | served files identical to the repo; `verify_ar_app.py` against the live URL **16 ok**, no JS error | 2026-11-03 | Playwright 1.64.1, Chrome Headless Shell 156 |
 
 ### Verified by the course author (starter, as shipped)
 

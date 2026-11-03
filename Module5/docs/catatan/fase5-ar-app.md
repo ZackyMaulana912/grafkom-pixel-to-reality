@@ -288,3 +288,74 @@ Gambar di atas dibuat dengan `verify_ar_app.py --temple-closeup <file>`: kiri de
 - baris provenance candi di `assets/LICENSE.md` sekarang mencatat perubahan ini.
 
 Candinya tetap sederhana (kotak berwarna polos tanpa tekstur). Itu memang rancangan dosen sebagai contoh yang bisa dibuat ulang dari kode, dan saya biarkan apa adanya.
+
+## 9. Uji di GitHub Pages
+
+Repo ini sudah memakai GitHub Pages dari branch `main` sejak Modul 4, jadi AR app langsung bisa dibuka lewat HTTPS tanpa workflow atau branch tambahan (pilihan hosting K13):
+
+`https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html`
+
+Setelah commit 17 di-push (3 November 2026):
+- `index.html`, `app.js`, `pusaka_temple.glb`, dan `hotspots_kuda.json` yang dilayani Pages identik dengan repo (sha256 sama);
+- `verify_ar_app.py` dijalankan langsung ke URL itu, dengan browser headless dalam sesi baru tanpa cache, mirip mode incognito: **16 ok, tanpa error JavaScript**.
+
+Uji ini membuktikan halaman, model, hotspot, panel, bahasa, quiz, dan tombol Model berjalan lewat HTTPS. Sesi AR sungguhan di HP belum teruji di sini.
+
+## 10. Integrasi: mengganti model di halaman yang sama (Lab 3 no 5)
+
+Saya sudah melakukan satu penggantian sungguhan: candi prosedural diganti scan kuda. Yang berubah hanya aset dan satu entri konfigurasi di `MODELS` (`app.js`):
+- file `.glb`;
+- posisi kamera awal;
+- file hotspot.
+
+Cangkang HTML, CSS, dan JavaScript tidak berubah. Panel info, tombol bahasa, mode quiz, dan tombol AR bekerja untuk kedua model tanpa kode khusus.
+
+Kalau yang dipasang adalah **model bertekstur Modul 3** (ruangan dan patung, OBJ dengan tekstur PPM), yang harus berubah:
+- **format:** OBJ dan PPM perlu dikonversi ke glTF/GLB, dengan tekstur sebagai PNG atau JPEG;
+- **skala:** model Modul 3 sudah dalam meter, tetapi ukuran patungnya terbukti keliru di Fase 5 ini, jadi perlu dikalibrasi ulang ke ukuran tangan;
+- **hotspot:** posisinya harus dihitung ulang dari geometri yang sama (cara ray di `scan_to_glb.py`), dan normalnya dipilih ulang dengan `occlusion.py --tune`. Kalau tidak, hotspot melayang atau tampil saat tertutup, seperti yang saya ukur di bagian 5.
+
+Kalau yang dipasang adalah **scene ter-rig dan beranimasi Modul 4** (Knight KayKit, glTF dengan skeleton dan klip animasi), `<model-viewer>` bisa memutar klipnya lewat atribut `animation-name` dan `autoplay`. Tetapi klip jalan `Walking_A` adalah klip **di tempat**: kakinya berayun, akarnya tidak bergerak. Di Modul 4, gerak maju Knight dihitung `knight_actor.gd` dari kaki yang menapak (root motion). `<model-viewer>` tidak punya logika itu, jadi Knight akan berjalan di tempat. Hotspot di bagian yang bergerak juga perlu `data-surface` supaya ikut bergerak bersama mesh, bukan `data-position` yang diam.
+
+Yang tidak berubah di kedua kasus: cangkang HTML/JS, sistem panel dua bahasa, quiz, tombol AR, dan alat uji (`verify_ar_app.py`, `occlusion.py`).
+
+## 11. Refleksi: apa yang diambil alih `<model-viewer>`, apa yang tetap tanggung jawab saya (Lab 3 no 6)
+
+**Yang diambil alih `<model-viewer>`:**
+- sesi AR di tiga platform dari satu tag: WebXR di browser yang mendukung, Scene Viewer di Android, Quick Look di iPhone, dengan file USDZ yang dibuat otomatis saat tombol ditekan;
+- deteksi lantai dan penempatan;
+- kontrol kamera dan render PBR dengan bayangan;
+- penempatan hotspot di layar mengikuti model.
+
+Tanpa itu, saya harus menulis kode WebXR sendiri dan menyiapkan USDZ terpisah untuk iPhone.
+
+**Yang tetap harus saya benahi sendiri, dan di sinilah sebagian besar kerja Fase 5:**
+- **Konten:** isi hotspot harus benar. Karena itu semua angkanya diambil dari data saya sendiri dan bisa dibuktikan.
+- **Skala:** scan dari foto tidak tahu ukurannya. `ar-scale="fixed"` hanya mengunci ukuran yang ada di file. Kalau file-nya salah, AR akan menampilkan ukuran yang salah dengan sangat meyakinkan. Saya harus mengukur patung dengan tangan, meluruskan model 1,59 derajat, dan memindah lantainya 1 cm supaya tidak melayang.
+- **Provenance:** `<model-viewer>` tidak peduli dari mana model berasal. Lisensi, pembuat patung yang tidak diketahui, dan checksum harus saya catat sendiri, dan sekarang dicek oleh test.
+- **Penempatan hotspot dan occlusion:** `<model-viewer>` hanya meletakkan hotspot di koordinat yang saya beri, dan menyembunyikannya hanya berdasarkan normal (terbukti dari kodenya). Bagian yang tertutup bagian lain model tetap tampil kecuali normalnya saya pilih dengan benar. Saya juga yang harus menyambungkan `data-visibility-attribute` supaya hotspot tersembunyi tidak bisa diketuk.
+- **Bug di bahan yang "sudah jadi":** dua temuan dari starter, keduanya terlihat jalan sampai diuji:
+  - **T10:** puncak candi bolong karena sisi-sisinya menghadap ke dalam. `<model-viewer>` merender persis apa yang diberikan file, termasuk kesalahannya.
+  - **T11:** tombol bahasa tidak mengganti panel yang terbuka. Test starter lolos karena mengklik ulang.
+
+Pelajarannya: `<model-viewer>` menyelesaikan bagian teknologi yang sulit, tetapi tidak bisa membuktikan bahwa isi, ukuran, asal-usul, dan penempatan saya benar. Itu tetap harus diuji sendiri.
+
+## 12. Uji di HP saya (Lab 3 no 3)
+
+Diuji sendiri pada 3 November 2026 lewat URL GitHub Pages di atas:
+
+| | |
+|---|---|
+| Perangkat | iPhone 17 Pro |
+| Sistem | iOS 27.2 |
+| Browser | Safari |
+| Jalur AR | tombol "View in your space (AR)". Di iPhone, `<model-viewer>` memakai Quick Look dengan file USDZ yang dibuat otomatis, karena `ios-src` tidak diisi (dokumentasi `<model-viewer>`) |
+| Yang terlihat | kuda tampil dengan tekstur foto aslinya, termasuk detail surai, mata, kaki terangkat, dan alas, di dalam ruangan saya |
+| Menempel di permukaan | ya, tidak melayang dan tidak tenggelam |
+| Ukuran | terasa sama dengan patung asli (tinggi 63 cm), menurut pengamatan saya di tempat |
+
+![Kuda hasil scan dalam sesi AR di iPhone saya](../img/ar_iphone_kuda.png)
+
+Ini menggantikan baris "Real device AR session: not yet tested" di README starter. Keterbatasannya:
+- ukuran hanya dinilai dengan mata di samping patung asli, tidak diukur dengan meteran di dalam AR;
+- belum diuji di Android (Scene Viewer) maupun browser lain.
