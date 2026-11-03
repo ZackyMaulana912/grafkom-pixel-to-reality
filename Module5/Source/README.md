@@ -54,6 +54,9 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
 | `figures.py` | the only matplotlib user: draws the PNGs in `../docs/` from the from-scratch functions | doc figures |
 | `ar_app/make_temple_glb.py` | procedurally builds `pusaka_temple.glb` (6 primitives, flat-shaded, no texture) + `hotspots.json` (5 bilingual educational hotspots) | AR app model + content |
 | `ar_app/index.html`, `app.js`, `style.css` | the **Pusaka3D AR Explainer**: `<model-viewer>` + AR button + tap-to-learn hotspots + a quiz mode + EN/ID toggle | Lab 3 "ship" deliverable |
+| `ar_app/tools/photogrammetry.swift` | Apple Object Capture on my 28 photos -> a textured USDZ scan of my horse statue (macOS, Apple silicon; the raw scan stays in the git-ignored `ar_app/scan/`) | Lab 3 no 1, my own model |
+| `ar_app/tools/scan_to_glb.py` | inside Blender 5.2: level, turn, scale to my measured 46 cm pedestal, resize textures, ray-cast the hotspots onto the mesh, export `assets/kuda.glb` + `assets/hotspots_kuda.json` | Lab 3 no 1, model in metres |
+| `ar_app/tools/render_views.py` | inside Blender: the nine-view picture `../docs/img/kuda_scan_9sisi.png` | docs |
 | `ar_app/verify_ar_app.py` | headless-Chromium (Playwright) end-to-end check of the app, screenshots included | automated AR-app verification |
 
 ## What `python tests.py` asserts
@@ -148,6 +151,9 @@ from the evidence first.
 |---|---|---|---|
 | starter code before any change | `tests.py` 17 ok, all five scripts match the PDF, max gradient error `4.89e-11` | 2026-11-02 | macOS 27.0.1, Apple M5, Python 3.11.8, NumPy 2.4.6 |
 | `ar_app/verify_ar_app.py` on the starter app, served on `127.0.0.1:8743` | **ALL CHECKS PASSED (10 ok)** | 2026-11-02 | Playwright 1.64.1, Chrome Headless Shell 156 |
+| `python tests.py` after the AR model | **ALL CHECKS PASSED (68 ok)**: `kuda.glb` is 46.0 cm long (my measure), 62.8 cm tall (measured 63), 14.7 cm deep (measured 15), stands on the floor, 4.41 MB; every hotspot within 1.7 mm of the mesh; every asset has a full provenance line | 2026-11-03 | same |
+| `ar_app/verify_ar_app.py` on my version | **ALL CHECKS PASSED (12 ok)**: horse by default, 5 hotspots, panel and language, quiz, switch to the temple with its own 5 hotspots, no JS error | 2026-11-03 | Playwright 1.64.1, Chrome Headless Shell 156 |
+| `ar_app/tools/scan_to_glb.py` | same `kuda.glb` and `hotspots_kuda.json`, byte for byte, when rerun on the same scan | 2026-11-03 | Blender 5.2.2 LTS |
 | `python tests.py` after Fase 3 | **ALL CHECKS PASSED (57 ok)**: one pixel convention, every touched voxel's gradient vs finite differences also at alpha almost 0, almost 1 and exactly 1, compositing, `poses.json` within 1e-9, `load_ppm`, NumPy-only imports; each new check fails when the code is broken on purpose (`../docs/catatan/fase3-renderer-gradien.md`) | 2026-11-03 | same |
 | `python tests.py` with `test_my_ray` | **ALL CHECKS PASSED (27 ok)**; the new check fails if the focal length uses the 36 mm width, if the y flip is dropped, or if the principal point moves half a pixel | 2026-11-03 | same |
 | `my_ray.py` vs by-hand ray | equal to 5 decimals | 2026-11-03 | same |

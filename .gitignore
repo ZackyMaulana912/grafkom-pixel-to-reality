@@ -13,3 +13,6 @@ Module1/Source/photos/original/
 
 # gambar PPM Modul 5 dibuat ulang oleh capture.py; poses.json tetap di-commit
 Module5/Source/data/pusaka_capture/*.ppm
+
+# hasil scan mentah Object Capture (233 MB), cukup di laptop; kuda.glb yang di-commit dibuat darinya
+Module5/Source/ar_app/scan/

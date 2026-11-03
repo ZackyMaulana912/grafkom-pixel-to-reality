@@ -1,5 +1,6 @@
 // Pusaka3D AR Explainer -- Module 5.
-// Loads assets/hotspots.json, injects <model-viewer> hotspot slots, and
+// Two models: my scanned horse statue (default) and the course's procedural temple.
+// Loads the chosen model's hotspot file, injects <model-viewer> hotspot slots, and
 // drives the info panel, language toggle, and a simple "quiz mode" that
 // turns the hotspots into a tap-the-right-part game. Vanilla JS, no
 // framework, no build step -- open index.html (served over http, not
@@ -14,11 +15,29 @@
   const infoText = document.getElementById("info-text");
   const infoClose = document.getElementById("info-close");
   const langToggle = document.getElementById("lang-toggle");
+  const modelToggle = document.getElementById("model-toggle");
   const quizToggle = document.getElementById("quiz-toggle");
   const quizBanner = document.getElementById("quiz-banner");
   const quizTargetEl = document.getElementById("quiz-target");
   const quizScoreEl = document.getElementById("quiz-score");
 
+  // each model brings its own geometry, camera and hotspot file; the page shell stays the same
+  const MODELS = {
+    horse: {
+      src: "assets/kuda.glb",
+      hotspots: "assets/hotspots_kuda.json",
+      orbit: "0deg 80deg auto",
+      alt: "A rearing horse statue on a long pedestal, scanned from 28 photos, shown at its real size of 63 cm",
+    },
+    temple: {
+      src: "assets/pusaka_temple.glb",
+      hotspots: "assets/hotspots.json",
+      orbit: "35deg 75deg 1.2m",
+      alt: "A procedurally generated candi (temple) model with a stepped base, body, roof, and a stupa finial",
+    },
+  };
+
+  let model = "horse";      // "horse" | "temple"
   let lang = "en";          // "en" | "id"
   let quizMode = false;
   let hotspots = [];
@@ -89,9 +108,13 @@
   }
 
   function loadHotspots() {
-    fetch("assets/hotspots.json")
+    viewer.querySelectorAll(".hotspot").forEach((el) => el.remove());
+    hotspots = [];
+    const wanted = model;
+    fetch(MODELS[wanted].hotspots)
       .then((res) => res.json())
       .then((data) => {
+        if (wanted !== model) return;  // switched again while this file was loading
         hotspots = data.hotspots;
         hotspots.forEach((hotspot) => {
           viewer.appendChild(buildHotspotButton(hotspot));
@@ -99,7 +122,7 @@
         pickNewQuizTarget();
       })
       .catch((err) => {
-        console.error("Could not load hotspots.json -- run make_temple_glb.py first.", err);
+        console.error(`Could not load ${MODELS[model].hotspots}.`, err);
       });
   }
 
@@ -110,6 +133,17 @@
       // refresh any open panel text in the new language
       quizTargetEl.textContent = t(quizTarget, "name");
     }
+  });
+
+  modelToggle.addEventListener("click", () => {
+    model = model === "horse" ? "temple" : "horse";
+    modelToggle.textContent = `Model: ${model}`;
+    viewer.src = MODELS[model].src;
+    viewer.alt = MODELS[model].alt;
+    viewer.cameraOrbit = MODELS[model].orbit;
+    hideInfo();
+    quizScore = { correct: 0, attempts: 0 };
+    loadHotspots();
   });
 
   quizToggle.addEventListener("click", () => {

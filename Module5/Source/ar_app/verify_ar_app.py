@@ -67,18 +67,20 @@ def main():
         check("model reported visible (rendered)", mv["modelIsVisible"])
         check("a real WebGL <canvas> was created inside model-viewer", mv["hasCanvas"])
 
+        src = page.evaluate("document.querySelector('model-viewer').src")
+        check(f"the default model is my scanned horse ({src})", src.endswith("assets/kuda.glb"))
         hotspot_count = page.evaluate("document.querySelectorAll('.hotspot').length")
-        check(f"5 hotspots injected from hotspots.json (found {hotspot_count})", hotspot_count == 5)
+        check(f"5 hotspots injected from hotspots_kuda.json (found {hotspot_count})", hotspot_count == 5)
         check("AR launch button present", page.evaluate("!!document.getElementById('ar-button')"))
 
-        page.click("button[slot='hotspot-stupa']")
+        page.click("button[slot='hotspot-surai']")
         page.wait_for_timeout(300)
         title = page.inner_text("#info-title")
         check(f"clicking a hotspot opens the info panel (title='{title}')",
               not page.evaluate("document.getElementById('info-panel').hidden") and len(title) > 0)
 
         page.click("#lang-toggle")
-        page.click("button[slot='hotspot-stupa']")
+        page.click("button[slot='hotspot-surai']")
         page.wait_for_timeout(300)
         title_id = page.inner_text("#info-title")
         check(f"language toggle changes the panel text ('{title}' -> '{title_id}')", title != title_id)
@@ -91,6 +93,17 @@ def main():
               not page.evaluate("document.getElementById('quiz-banner').hidden") and len(quiz_target) > 0)
 
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "m5_ar_overview.png"))
+
+        page.click("#quiz-toggle")  # quiz off again, then switch to the course's temple
+        page.click("#model-toggle")
+        page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/pusaka_temple.glb')"
+                               " && document.querySelector('model-viewer').loaded"
+                               " && document.querySelectorAll('.hotspot').length === 5", timeout=15000)
+        page.click("button[slot='hotspot-stupa']")
+        page.wait_for_timeout(300)
+        check(f"model switch loads the temple with its own 5 hotspots ('{page.inner_text('#info-title')}')",
+              page.evaluate("!!document.querySelector(\"button[slot='hotspot-stupa']\")")
+              and page.evaluate("document.querySelectorAll(\"button[slot='hotspot-surai']\").length") == 0)
         check("no uncaught JS errors on the page", len(page_errors) == 0)
 
         browser.close()

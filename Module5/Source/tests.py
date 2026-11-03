@@ -292,6 +292,75 @@ def test_backward_every_voxel_and_extremes():
             check(f"{kind} gradient, every touched voxel, {label} (sigma_raw {shift:+g}): rel err", rel, 0.0, tol=1e-3)
 
 
+def _read_glb(path):
+    """Minimal GLB reader (standard library + NumPy): the JSON chunk and the binary chunk."""
+    import json
+    import struct
+    with open(path, "rb") as f:
+        data = f.read()
+    magic, version, length = struct.unpack_from("<4sII", data, 0)
+    assert magic == b"glTF" and version == 2 and length == len(data), f"{path} is not a GLB 2.0 file"
+    json_len, _ = struct.unpack_from("<II", data, 12)
+    gltf = json.loads(data[20:20 + json_len])
+    bin_len, _ = struct.unpack_from("<II", data, 20 + json_len)
+    return gltf, data[28 + json_len:28 + json_len + bin_len], data[20:20 + json_len]
+
+
+def test_ar_assets():
+    """Lab 3: my scanned horse is in metres and matches my own measurements, every hotspot sits on
+    its surface, the file is small enough for a phone, and every asset has a full provenance line."""
+    import json
+    import os
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ar_app", "assets")
+    with open(os.path.join(here, "kuda_ukuran.json")) as f:
+        cm = json.load(f)
+    gltf, binary, json_bytes = _read_glb(os.path.join(here, "kuda.glb"))
+    prim = gltf["meshes"][0]["primitives"][0]
+    acc = gltf["accessors"][prim["attributes"]["POSITION"]]
+    view = gltf["bufferViews"][acc["bufferView"]]
+    start = view.get("byteOffset", 0) + acc.get("byteOffset", 0)
+    pts = np.frombuffer(binary, dtype="<f4", count=acc["count"] * 3, offset=start).reshape(-1, 3).astype(float)
+    size = pts.max(axis=0) - pts.min(axis=0)  # glTF axes: x length, y height, z depth
+    check("horse pedestal length = my measured 46 cm (m)", float(size[0]), cm["base_length_cm"] / 100, tol=1e-3)
+    check("horse height vs my measured 63 cm, relative", float(size[1] / (cm["total_height_cm"] / 100) - 1), 0.0,
+          tol=0.02)
+    check("horse depth vs my measured 15 cm pedestal width, relative", float(size[2] / (cm["base_width_cm"] / 100) - 1),
+          0.0, tol=0.05)
+    # the underside is a little bumpy (32 of ~60k vertices dip up to 5 mm), so judge the floor by a low percentile
+    check("horse stands on the floor: 0.1th percentile of height within 2 mm of y = 0 (m)",
+          float(np.percentile(pts[:, 1], 0.1)), 0.0, tol=2e-3)
+    check("nothing sinks more than 1 cm below the floor (lowest point, m)", float(min(pts[:, 1].min(), 0.0)), 0.0,
+          tol=0.01)
+    mb = os.path.getsize(os.path.join(here, "kuda.glb")) / 1e6
+    check(f"kuda.glb small enough for a phone ({mb:.2f} MB, limit 10 MB)", float(mb < 10.0), 1.0, tol=0)
+    # the only free text a GLB carries is asset metadata and "extras": allow the exporter's name, nothing else
+    clean = (set(gltf["asset"]) <= {"generator", "version"} and gltf["asset"]["generator"].startswith("Khronos glTF")
+             and b'"extras"' not in json_bytes)
+    check(f"kuda.glb metadata is only the exporter's name ('{gltf['asset']['generator']}')", float(clean), 1.0, tol=0)
+
+    with open(os.path.join(here, "hotspots_kuda.json")) as f:
+        spots = json.load(f)["hotspots"]
+    ids = [h["id"] for h in spots]
+    complete = all(h.get(k, "").strip() for h in spots for k in ("name_en", "name_id", "text_en", "text_id"))
+    check(f"5 horse hotspots with unique ids and both languages ({ids})",
+          float(len(spots) == 5 and len(set(ids)) == 5 and complete), 1.0, tol=0)
+    gap = max(float(np.min(np.linalg.norm(pts - np.array(h["position"]), axis=1))) for h in spots)
+    check("every hotspot lies on the horse's surface (largest gap to the mesh, m)", gap, 0.0, tol=5e-3)
+    check("hotspot normals have unit length (worst deviation)",
+          max(abs(float(np.linalg.norm(h["normal"])) - 1) for h in spots), 0.0, tol=1e-3)
+
+    with open(os.path.join(here, "LICENSE.md")) as f:
+        lines = [ln for ln in f.read().splitlines() if ln.startswith("Aset:")]
+    fields = ("sumber:", "pembuat:", "lisensi:", "dibuat:", "dibuat dengan AI:", "diubah:")
+    missing = [ln[:40] for ln in lines
+               if any(not any(part.strip().startswith(k) and part.strip()[len(k):].strip() for part in ln.split("|"))
+                      for k in fields)]
+    covered = {a for ln in lines for a in ("kuda.glb", "hotspots_kuda.json", "pusaka_temple.glb")
+               if ln.startswith(f"Aset: {a}")}
+    check(f"provenance line with every field for each AR asset (missing: {missing})",
+          float(not missing and len(covered) == 3), 1.0, tol=0)
+
+
 def test_view_coverage_diagnose_and_fix():
     result = nerf_bug.diagnose_and_fix()
     gap = result["fixed_novel_psnr"] - result["buggy_novel_psnr"]
@@ -311,5 +380,6 @@ if __name__ == "__main__":
     test_composite_image_matches_composite()
     test_capture_files()
     test_numpy_only()
+    test_ar_assets()
     test_view_coverage_diagnose_and_fix()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")

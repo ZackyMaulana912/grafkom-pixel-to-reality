@@ -1,0 +1,10 @@
+{
+  "object": "my horse statue (the subject of Modules 1-5), base included",
+  "measured_by": "Zacky Maulana, by hand, 3 November 2026",
+  "units": "centimetres",
+  "base_length_cm": 46,
+  "base_width_cm": 15,
+  "base_height_cm": 6,
+  "total_height_cm": 63,
+  "scale_from": "base_length_cm (the longest measured length, so the smallest relative error); the other three are checks"
+}

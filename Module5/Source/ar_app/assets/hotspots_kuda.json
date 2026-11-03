@@ -1,0 +1,101 @@
+{
+  "model": "kuda.glb",
+  "units": "metres, glTF axes (y up)",
+  "measured": {
+    "object": "my horse statue (the subject of Modules 1-5), base included",
+    "measured_by": "Zacky Maulana, by hand, 3 November 2026",
+    "units": "centimetres",
+    "base_length_cm": 46,
+    "base_width_cm": 15,
+    "base_height_cm": 6,
+    "total_height_cm": 63,
+    "scale_from": "base_length_cm (the longest measured length, so the smallest relative error); the other three are checks"
+  },
+  "hotspots": [
+    {
+      "id": "alas",
+      "name_en": "Pedestal: the scale",
+      "name_id": "Alas: patokan ukuran",
+      "text_en": "A photo scan has no size of its own. I measured this pedestal by hand, 46 cm long, and scaled the whole scan to match. My other measurements then check it: the model is 62.8 cm tall (measured 63 cm) and the pedestal 14.7 cm wide (measured 15 cm). glTF stores metres and the AR view is fixed at 100%, so the statue should stand at its real height on your floor.",
+      "text_id": "Hasil scan foto tidak punya ukuran sendiri. Alas ini saya ukur dengan tangan, panjangnya 46 cm, lalu seluruh scan diskalakan supaya cocok. Ukuran lain jadi pengecek: tinggi model 62,8 cm (diukur 63 cm) dan lebar alas 14,7 cm (diukur 15 cm). glTF menyimpan ukuran dalam meter dan tampilan AR dikunci di 100%, jadi patung ini seharusnya berdiri setinggi aslinya di lantaimu.",
+      "position": [
+        0.0,
+        0.0262,
+        0.0698
+      ],
+      "normal": [
+        -0.0289,
+        0.0335,
+        0.999
+      ]
+    },
+    {
+      "id": "surai",
+      "name_en": "Mane: 28 photos",
+      "name_id": "Surai: 28 foto",
+      "text_en": "The detail of this mane comes from 28 photos I took walking around the statue with an iPhone 17 Pro. Apple's Object Capture (photogrammetry: finding the same points in many photos and working out where they sit in 3D) turned them into this mesh of 105,665 triangles in under four minutes on my laptop.",
+      "text_id": "Detail surai ini berasal dari 28 foto yang saya ambil sambil berjalan mengelilingi patung dengan iPhone 17 Pro. Object Capture dari Apple (photogrammetry: mencari titik yang sama di banyak foto lalu menghitung letaknya dalam 3D) mengubahnya menjadi mesh 105.665 segitiga dalam waktu kurang dari empat menit di laptop saya.",
+      "position": [
+        -0.0644,
+        0.522,
+        -0.0101
+      ],
+      "normal": [
+        -0.1804,
+        0.2236,
+        0.9578
+      ]
+    },
+    {
+      "id": "kaki",
+      "name_en": "Raised forelegs",
+      "name_id": "Kaki depan terangkat",
+      "text_en": "Thin legs held up in the air, with empty space behind them, can only be rebuilt when the photos see them from many sides; these came out whole because my photos went all the way around. From some angles the legs cover part of the body, and model-viewer dims any hotspot that ends up behind the model.",
+      "text_id": "Kaki tipis yang terangkat dengan ruang kosong di belakangnya hanya bisa dibangun ulang kalau difoto dari banyak sisi; kaki ini utuh karena foto saya mengelilingi patung. Dari sudut tertentu kaki ini menutupi sebagian badan, dan model-viewer meredupkan hotspot yang berada di belakang model.",
+      "position": [
+        0.184,
+        0.384,
+        0.0572
+      ],
+      "normal": [
+        -0.432,
+        -0.3596,
+        0.8271
+      ]
+    },
+    {
+      "id": "kepala",
+      "name_en": "Head: colours from the photos",
+      "name_id": "Kepala: warna dari foto",
+      "text_en": "The colours are not painted on: they are taken from the photos and baked into one texture image. The scan made it 8192 pixels wide; I reduced it to 4096 so a phone can load the whole model, which is 4.4 MB.",
+      "text_id": "Warnanya tidak dilukis: warna diambil dari foto lalu dipadatkan menjadi satu gambar tekstur. Scan menghasilkan tekstur selebar 8192 pixel; saya perkecil menjadi 4096 supaya HP bisa memuat seluruh model yang besarnya 4,4 MB.",
+      "position": [
+        0.1334,
+        0.5597,
+        0.0547
+      ],
+      "normal": [
+        -0.004,
+        -0.3819,
+        0.9242
+      ]
+    },
+    {
+      "id": "ekor",
+      "name_en": "Tail: the side behind",
+      "name_id": "Ekor: sisi belakang",
+      "text_en": "Photos 10 to 12 of my 28 look at the statue from behind; without them the back of the tail would be guesswork. The scan is one single piece. Its only gaps are 83 short open edges, 80 of them within 1 cm of the floor: under the pedestal, the one side my camera could never see.",
+      "text_id": "Foto ke-10 sampai ke-12 dari 28 foto saya melihat patung dari belakang; tanpa foto itu, bagian belakang ekor hanya tebakan. Hasil scan berupa satu potongan utuh. Celahnya hanya 83 tepi terbuka yang pendek, 80 di antaranya kurang dari 1 cm dari lantai: di bawah alas, satu-satunya sisi yang tidak pernah terlihat kamera saya.",
+      "position": [
+        -0.184,
+        0.1517,
+        0.0411
+      ],
+      "normal": [
+        -0.5436,
+        -0.2127,
+        0.8119
+      ]
+    }
+  ]
+}
