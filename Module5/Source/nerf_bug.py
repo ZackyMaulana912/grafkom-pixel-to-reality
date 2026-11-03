@@ -61,6 +61,32 @@ def diagnose_and_fix():
     )
 
 
+# the angles written down in docs/prediksi/diagnosis-view-coverage.md before this was run;
+# 270 is a training view of the 8-view grid and is reported only for comparison
+SWEEP_ANGLES = [10.0, 22.5, 60.0, 100.0, 160.0, 190.0, 250.0, 340.0, 270.0]
+
+
+def sweep(angles=SWEEP_ANGLES):
+    """Both grids, trained exactly as in diagnose_and_fix, scored on many angles.
+
+    Returns rows (angle, 2-view PSNR, 8-view PSNR, training view of the 2-view grid?,
+    training view of the 8-view grid?) plus the two training-view PSNRs."""
+    buggy, _, buggy_train = _train_on(BUGGY_ANGLES)
+    fixed, _, fixed_train = _train_on(FIXED_ANGLES)
+    rows = []
+    for angle in angles:
+        cam, c2w = ring_camera(angle, radius=RADIUS, height=CAM_HEIGHT)
+        target = render_analytic(W, H, FOV, cam, c2w, NEAR, FAR, N_SAMPLES)
+        p2 = psnr(render_grid(buggy, W, H, FOV, cam, c2w, NEAR, FAR, N_SAMPLES)[0], target)
+        p8 = psnr(render_grid(fixed, W, H, FOV, cam, c2w, NEAR, FAR, N_SAMPLES)[0], target)
+        rows.append((angle, p2, p8, angle % 360 in BUGGY_ANGLES, angle % 360 in FIXED_ANGLES))
+    return rows, buggy_train, fixed_train
+
+
+def _nearest_deg(angle, views):
+    return min(abs((angle - v + 180.0) % 360.0 - 180.0) for v in views)
+
+
 def diagnose():
     """Training evidence of the 2-view grid only (K14): what I may look at before predicting."""
     _, history, train_psnr = _train_on(BUGGY_ANGLES, log_every=50)
@@ -73,6 +99,14 @@ def diagnose():
 
 if __name__ == "__main__" and "--diagnose" in sys.argv[1:]:
     diagnose()
+elif __name__ == "__main__" and "--sweep" in sys.argv[1:]:
+    rows, buggy_train, fixed_train = sweep()
+    print(f"training-view PSNR: 2 views {buggy_train:.2f} dB, 8 views {fixed_train:.2f} dB")
+    print(" angle  nearest view 2v/8v   2 views   8 views    8v - 2v")
+    for angle, p2, p8, t2, t8 in rows:
+        note = "  <- training view of the 8-view grid, not held out" if t8 else ""
+        print(f"{angle:6.1f}  {_nearest_deg(angle, BUGGY_ANGLES):6.1f} / {_nearest_deg(angle, FIXED_ANGLES):4.1f}"
+              f"   {p2:6.2f}    {p8:6.2f}    {p8 - p2:+6.2f}{note}")
 elif __name__ == "__main__":
     result = diagnose_and_fix()
 

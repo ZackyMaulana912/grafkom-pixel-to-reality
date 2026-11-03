@@ -222,9 +222,69 @@ def fig_capture_ring(out_dir):
     save(fig, out_dir, "capture_ring.png")
 
 
+_PAIR = {}
+
+
+def _trained_pair():
+    """The 2-view and 8-view grids of nerf_bug.py, trained once per run of this script."""
+    if not _PAIR:
+        import nerf_bug
+        _PAIR["bug"] = nerf_bug
+        _PAIR["2"] = nerf_bug._train_on(nerf_bug.BUGGY_ANGLES)[0]
+        _PAIR["8"] = nerf_bug._train_on(nerf_bug.FIXED_ANGLES)[0]
+    return _PAIR["bug"], _PAIR["2"], _PAIR["8"]
+
+
+def _psnr_at(nb, grid, angle):
+    cam, c2w = nerf_toy.ring_camera(angle, radius=nb.RADIUS, height=nb.CAM_HEIGHT)
+    target = nerf_toy.render_analytic(nb.W, nb.H, nb.FOV, cam, c2w, nb.NEAR, nb.FAR, nb.N_SAMPLES)
+    pred = nerf_toy.render_grid(grid, nb.W, nb.H, nb.FOV, cam, c2w, nb.NEAR, nb.FAR, nb.N_SAMPLES)[0]
+    return nerf_toy.psnr(pred, target), target, pred
+
+
+def fig_view_coverage(out_dir):
+    """Lab 2 no 3: PSNR of both grids all around the ring, training views marked."""
+    nb, g2, g8 = _trained_pair()
+    angles = np.arange(0.0, 360.0, 2.5)
+    p2 = [_psnr_at(nb, g2, a)[0] for a in angles]
+    p8 = [_psnr_at(nb, g8, a)[0] for a in angles]
+    fig, ax = plt.subplots(figsize=(11.0, 4.2))
+    ax.plot(angles, p8, color=RAY, lw=2, label="8 view (tiap 45 derajat)")
+    ax.plot(angles, p2, color=ACCENT, lw=2, label="2 view (0 dan 20 derajat)")
+    for v in nb.FIXED_ANGLES:
+        ax.axvline(v, color=RAY, lw=0.8, ls=":")
+    for v in nb.BUGGY_ANGLES:
+        ax.axvline(v, color=ACCENT, lw=1.2, ls="--")
+    tested = [a for a in nb.SWEEP_ANGLES if a % 360 not in nb.FIXED_ANGLES]
+    ax.plot(tested, [_psnr_at(nb, g2, a)[0] for a in tested], "o", color=ACCENT, ms=6)
+    ax.plot(tested, [_psnr_at(nb, g8, a)[0] for a in tested], "o", color=RAY, ms=6, label="sudut di prediksi")
+    ax.set_xlim(0, 360)
+    ax.set_xticks(range(0, 361, 45))
+    ax.set_xlabel("sudut kamera di lingkaran (derajat); garis putus = view latih")
+    ax.set_ylabel("PSNR (dB)")
+    ax.grid(alpha=0.3)
+    ax.legend(loc="upper right", fontsize=9, frameon=False)
+    save(fig, out_dir, "view_coverage.png")
+
+
+def fig_novel_views(out_dir):
+    """The largest held-out gap (60 deg) as images: target, both predictions, |error| x4."""
+    nb, g2, g8 = _trained_pair()
+    p2, target, pred2 = _psnr_at(nb, g2, 60.0)
+    p8, _, pred8 = _psnr_at(nb, g8, 60.0)
+    panels = [("target 60 derajat", target), (f"2 view: {p2:.2f} dB", pred2), (f"8 view: {p8:.2f} dB", pred8),
+              ("|selisih| x4, 2 view", np.abs(pred2 - target) * 4), ("|selisih| x4, 8 view", np.abs(pred8 - target) * 4)]
+    fig, axs = plt.subplots(1, 5, figsize=(12.0, 2.6))
+    for ax, (title, img) in zip(axs, panels):
+        ax.imshow(np.clip(img, 0, 1), interpolation="nearest")
+        ax.set_title(title, fontsize=9)
+        ax.axis("off")
+    save(fig, out_dir, "novel_60.png")
+
+
 SETS = {
     "studi": [fig_pinhole_ray, fig_pipeline, fig_three_samples, fig_anchoring],
-    "readme": [fig_capture_ring],
+    "readme": [fig_capture_ring, fig_view_coverage, fig_novel_views],
 }
 
 
