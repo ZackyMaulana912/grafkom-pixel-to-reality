@@ -359,3 +359,60 @@ Diuji sendiri pada 3 November 2026 lewat URL GitHub Pages di atas:
 Ini menggantikan baris "Real device AR session: not yet tested" di README starter. Keterbatasannya:
 - ukuran hanya dinilai dengan mata di samping patung asli, tidak diukur dengan meteran di dalam AR;
 - belum diuji di Android (Scene Viewer) maupun browser lain.
+
+## 13. Model ketiga: mobil F1 Aston Martin AMR23, dan candi keluar dari app
+
+Atas permintaan saya, candi dosen dikeluarkan dari tombol Model karena tampilannya terlalu sederhana, dan diganti model mobil F1 yang saya unduh dari Sketchfab. File candi (`make_temple_glb.py`, `pusaka_temple.glb`, `hotspots.json`) tetap di repo. Dengan begitu, langkah clean clone Lab 3 no 4 tetap berjalan, dan perbaikan T10 beserta test-nya tetap utuh. Bagian 3 dan 8 di atas adalah catatan saat candi masih ada di app.
+
+### Asal dan lisensi
+
+"Aston Martin F1 AMR23 2023" karya **Redgrund** di Sketchfab, lisensi **CC Attribution (CC BY 4.0)**. Ini saya baca langsung dari halaman model pada 4 November 2026. Lisensi itu mencakup karya 3D pembuatnya. Nama tim dan logo sponsor di livery adalah merek dagang pemiliknya dan tidak tercakup. Semua ini dicatat di `assets/LICENSE.md`, footer halaman, dan hotspot "Livery" serta "Kokpit". File sumbernya (235 MB) di-ignore, dengan checksum di `LICENSE.md`.
+
+### Skala dari regulasi FIA, bukan dari tebakan
+
+File Blender aslinya sepanjang 3,7 unit tanpa ukuran nyata. Saya membaca langsung **FIA 2023 Formula 1 Technical Regulations, Issue 7** (31 Agustus 2023):
+
+- **pasal 10.8.1c:** diameter ban kering paling besar 725 mm;
+- **pasal 3.4.1:** selain ban, pelek, dan penutup roda, tidak ada bagian mobil yang lebih dari Y = 1000 mm dari garis tengah;
+- **pasal 3.4.2:** wheelbase paling panjang 3600 mm.
+
+`ar_app/tools/car_to_glb.py` (di Blender) mencari ban sebagai geometri paling luar mobil. Ada dua kelompok terpisah, yaitu poros depan dan poros belakang. Script lalu mengukur diameter keduanya dan menskalakan mobil sampai diameter rata-ratanya 725 mm:
+
+| Ukuran | Model | Aturan FIA | |
+|---|---|---|---|
+| diameter ban (patokan) | 0,722 dan 0,728 m | paling besar 0,725 m (10.8.1c) | patokan |
+| lebar di titik terlebar (ban) | 2,006 m | bodi dalam 2,000 m (3.4.1) | 0,3% |
+| wheelbase | 3,387 m | paling panjang 3,600 m (3.4.2) | sesuai |
+| panjang | 5,304 m | tidak diatur di pasal yang saya baca | |
+| tinggi | 1,188 m | tidak saya cek, karena pasal batas tingginya tidak saya temukan | |
+
+Lebar 2,006 m adalah pengecek yang bebas dari patokannya. Hanya dari diameter ban, lebar mobil sudah jatuh 0,3% dari 2000 mm. Itu tanda pembuat model menggambar dengan proporsi yang benar. Lebar ban sempat saya coba ukur sebagai pengecek ketiga (pasal 10.8.1b), tetapi hasilnya berubah-ubah tergantung batas yang dipakai, karena pelek dan suspensi ikut terhitung. Jadi angka itu tidak saya pakai.
+
+### Ukuran file untuk HP
+
+| Subdivisi | Segitiga | Tekstur | File |
+|---|---|---|---|
+| 1 (dipakai) | 161.184 | 4096 px | **7,67 MB** |
+| 1 | 161.184 | 2048 px | 5,94 MB |
+| 2 (seperti aslinya) | 644.736 | 4096 px | 21,49 MB |
+
+Level 2 sama persis dengan jumlah segitiga di halaman Sketchfab (644,7 ribu), tetapi 21 MB terlalu berat untuk HP dan melewati batas 10 MB yang saya pakai. Level 1 dengan tekstur 4096 px masih di bawah batas itu, dan detail livery tetap terbaca. Material aslinya ikut terbawa: warna, normal, metallic dan roughness, serta clearcoat (ekstensi `KHR_materials_clearcoat`). Kalau dijalankan ulang, `amr23.glb` identik byte per byte.
+
+![Mobil AMR23 dari sembilan arah](../img/amr23_9sisi.png)
+
+### Hotspot dan occlusion
+
+Lima hotspot bertema aset dan skala, dengan sumber yang dibaca langsung:
+- ban: patokan 725 mm;
+- bagian depan: pengecek lebar;
+- di antara roda: wheelbase 3,39 m;
+- livery: merek dagang;
+- kokpit: asal model dan penyederhanaannya.
+
+Posisinya dicari dengan cara yang sama seperti kaki kuda. Dari bidikan pertama, `occlusion.py` mencoba titik-titik di sekitarnya dan memilih yang visibilitasnya paling bisa diwakili satu normal. Total kesalahan di 288 kamera latih turun dari 127 (bidikan pertama, setelah normal dipilih) menjadi 23. Lalu `occlusion.py --tune-car` memilih normal akhirnya. Target dan jarak kamera otomatis `<model-viewer>` untuk mobil berbeda dengan kuda, yaitu target (-0,27; 0,59; 0,00) dan jarak 11,08 m. Nilai itu saya baca dari browser dan dipakai untuk kamera latih.
+
+Hasil `verify_ar_app.py --occlusion --car`, dua run identik: dari 380 keputusan, **2 yang tidak cocok, keduanya hampir menyamping** (ban di 75 dan 270 derajat, dot +0,00 dan +0,01), dan **0 yang tampil padahal tertutup**. Hotspot yang tersembunyi juga tidak bisa diketuk.
+
+### Skala di AR
+
+Kuda tetap `ar-scale="fixed"`, karena ukuran aslinya 63 cm muat di mana saja. Mobil memakai `ar-scale="auto"`: mulai di ukuran asli 5,3 m, tetapi boleh diperkecil dengan cubitan supaya muat di kamar (pilihan saya). `app.js` mengganti nilai ini setiap model diganti. `verify_ar_app.py` (**17 ok**) mengecek bahwa mobil `auto` dan kuda kembali `fixed`.

@@ -30,9 +30,6 @@ import bpy
 import mathutils
 import numpy as np
 
-args = sys.argv[sys.argv.index("--") + 1:]
-SRC, OUT, MEASURE, TEXT, HOTSPOTS_OUT = args[:5]
-TEXTURE_PX = int(args[5]) if len(args) > 5 else 2048
 ROUGHNESS = 0.45  # polished stone-like surface; the scan's own map is 8K and not worth the bytes
 
 
@@ -108,7 +105,7 @@ def main():
     mat.name = "kuda_scan"
     obj.name = obj.data.name = "kuda"
 
-    hotspots = place_hotspots(obj, pts)
+    hotspots = place_hotspots(obj, pts, TEXT)
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     open_edges = sum(1 for e in bm.edges if len(e.link_faces) == 1)
@@ -163,11 +160,13 @@ def level(obj):
     return math.degrees(q.angle), floor
 
 
-def place_hotspots(obj, pts):
-    """Ray-cast every hotspot of the text file onto the mesh (Blender axes), return glTF-axis entries."""
-    if not os.path.exists(TEXT):
+def place_hotspots(obj, pts, text_path):
+    """Ray-cast every hotspot of the text file onto the mesh (Blender axes), return glTF-axis entries.
+
+    Also used by car_to_glb.py, so the second AR model places its hotspots the same way."""
+    if not os.path.exists(text_path):
         return []
-    with open(TEXT) as f:
+    with open(text_path) as f:
         entries = json.load(f)["hotspots"]
     lo, hi = pts.min(axis=0), pts.max(axis=0)
     depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -188,4 +187,8 @@ def place_hotspots(obj, pts):
     return out
 
 
-main()
+if __name__ == "__main__":
+    args = sys.argv[sys.argv.index("--") + 1:]
+    SRC, OUT, MEASURE, TEXT, HOTSPOTS_OUT = args[:5]
+    TEXTURE_PX = int(args[5]) if len(args) > 5 else 2048
+    main()

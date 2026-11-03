@@ -355,10 +355,35 @@ def test_ar_assets():
     missing = [ln[:40] for ln in lines
                if any(not any(part.strip().startswith(k) and part.strip()[len(k):].strip() for part in ln.split("|"))
                       for k in fields)]
-    covered = {a for ln in lines for a in ("kuda.glb", "hotspots_kuda.json", "pusaka_temple.glb")
-               if ln.startswith(f"Aset: {a}")}
+    assets = ("kuda.glb", "hotspots_kuda.json", "amr23.glb", "hotspots_amr23.json", "pusaka_temple.glb")
+    covered = {a for ln in lines for a in assets if ln.startswith(f"Aset: {a}")}
     check(f"provenance line with every field for each AR asset (missing: {missing})",
-          float(not missing and len(covered) == 3), 1.0, tol=0)
+          float(not missing and len(covered) == len(assets)), 1.0, tol=0)
+
+    # the F1 car: scaled by the FIA tyre rule, then checked against the width and wheelbase rules
+    gltf, binary, json_bytes = _read_glb(os.path.join(here, "amr23.glb"))
+    car = np.concatenate([_primitive_arrays(gltf, binary, p)[0] for m in gltf["meshes"] for p in m["primitives"]])
+    outer = car[np.abs(car[:, 2]) > 0.8 * np.abs(car[:, 2]).max()]  # glTF: length x, height y, width z
+    xs = np.sort(outer[:, 0])
+    gap = int(np.argmax(np.diff(xs)))
+    diameters = [float(np.ptp(outer[side, 1])) for side in (outer[:, 0] <= xs[gap], outer[:, 0] > xs[gap])]
+    check(f"car tyres are 725 mm across (FIA 2023 Art. 10.8.1c), worst axle (m) {diameters}",
+          max(abs(d - 0.725) for d in diameters), 0.0, tol=0.005)
+    check("car width vs 2000 mm (Art. 3.4.1), relative", float(np.ptp(car[:, 2]) / 2.0 - 1), 0.0, tol=0.01)
+    check("car stands on the floor: lowest point at y = 0 (m)", float(car[:, 1].min()), 0.0, tol=2e-3)
+    mb = os.path.getsize(os.path.join(here, "amr23.glb")) / 1e6
+    clean = (set(gltf["asset"]) <= {"generator", "version"} and gltf["asset"]["generator"].startswith("Khronos glTF")
+             and b'"extras"' not in json_bytes)
+    check(f"amr23.glb under 10 MB ({mb:.2f}) and its metadata is only the exporter's name", float(mb < 10 and clean),
+          1.0, tol=0)
+    with open(os.path.join(here, "hotspots_amr23.json")) as f:
+        car_spots = json.load(f)["hotspots"]
+    complete = all(h.get(k, "").strip() for h in car_spots for k in ("name_en", "name_id", "text_en", "text_id"))
+    car_tris = np.concatenate([(lambda pos, nrm, tri: pos[tri])(*_primitive_arrays(gltf, binary, p))
+                               for m in gltf["meshes"] for p in m["primitives"]])
+    gap_m = max(_distance_to_mesh(np.array(h["position"]), car_tris) for h in car_spots)
+    check(f"5 car hotspots in both languages, each on the car's surface (largest gap {gap_m * 1000:.2f} mm)",
+          float(len(car_spots) == 5 and complete and gap_m < 0.005), 1.0, tol=0)
 
 
 def _primitive_arrays(gltf, binary, prim):
@@ -371,6 +396,25 @@ def _primitive_arrays(gltf, binary, prim):
     pos = read(prim["attributes"]["POSITION"], 3).reshape(-1, 3).astype(float)
     nrm = read(prim["attributes"]["NORMAL"], 3).reshape(-1, 3).astype(float)
     return pos, nrm, read(prim["indices"], 1).astype(np.int64).reshape(-1, 3)
+
+
+def _distance_to_mesh(point, tris):
+    """Shortest distance from a point to a triangle soup (T, 3, 3): inside the triangle use the plane
+    distance, otherwise the nearest edge."""
+    a, b, c = tris[:, 0], tris[:, 1], tris[:, 2]
+    n = np.cross(b - a, c - a)
+    n = n / np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-20)
+    d = np.einsum("ij,ij->i", point - a, n)
+    q = point - d[:, None] * n
+    inside = np.ones(len(tris), dtype=bool)
+    for u, v in ((a, b), (b, c), (c, a)):
+        inside &= np.einsum("ij,ij->i", np.cross(v - u, q - u), n) >= 0
+    best = np.where(inside, np.abs(d), np.inf)
+    for u, v in ((a, b), (b, c), (c, a)):
+        t = np.clip(np.einsum("ij,ij->i", point - u, v - u) / np.maximum(np.einsum("ij,ij->i", v - u, v - u), 1e-20),
+                    0, 1)
+        best = np.minimum(best, np.linalg.norm(point - (u + t[:, None] * (v - u)), axis=1))
+    return float(best.min())
 
 
 def test_temple_faces_outward():
@@ -426,6 +470,13 @@ def test_occlusion_truth():
     worst = max(float(np.abs(occlusion.tune_normal(h["position"], h["surface_normal"], tris, cams)[0]
                              - np.array(h["normal"])).max()) for h in spots)
     check("hotspot normals are the ones occlusion.py --tune picks (max abs diff)", worst, 0.0, tol=1e-4)
+    with open(os.path.join(sys_path, "assets", "hotspots_amr23.json")) as f:
+        car_spots = json.load(f)["hotspots"]
+    car_tris = occlusion.load_mesh(os.path.join(sys_path, "assets", "amr23.glb"))
+    car_cams = occlusion.tune_cameras(occlusion.CAR_TARGET, occlusion.CAR_RADIUS)
+    worst = max(float(np.abs(occlusion.tune_normal(h["position"], h["surface_normal"], car_tris, car_cams)[0]
+                             - np.array(h["normal"])).max()) for h in car_spots)
+    check("car hotspot normals are the ones occlusion.py --tune-car picks (max abs diff)", worst, 0.0, tol=1e-4)
 
 
 def test_view_coverage_diagnose_and_fix():

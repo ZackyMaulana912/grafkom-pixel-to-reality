@@ -77,15 +77,17 @@ def is_visible(point, normal, camera, tris):
 # from the cameras the browser test uses (verify_ar_app.py --occlusion: polar 75 and 25 deg,
 # azimuth on multiples of 5 deg), so the browser test stays a fair check.
 
-TARGET = (0.0, 0.3086, 0.0)   # <model-viewer>'s automatic camera target and radius for kuda.glb,
-RADIUS = 1.572                # as reported by getCameraTarget() / getCameraOrbit()
+# <model-viewer>'s automatic camera target and radius for each model, as reported by
+# getCameraTarget() / getCameraOrbit() in a 390 x 800 portrait page
+TARGET, RADIUS = (0.0, 0.3086, 0.0), 1.572                       # kuda.glb
+CAR_TARGET, CAR_RADIUS = (-0.2653, 0.5942, 0.0046), 11.082       # amr23.glb
 TUNE_POLAR_DEG = (40.0, 60.0, 80.0, 95.0)
 TUNE_AZIMUTH_DEG = np.arange(2.5, 360.0, 5.0)
 MAX_TILT_DEG = 75.0           # keep the chosen normal within this angle of the surface normal
 
 
-def tune_cameras():
-    return [camera_position(np.radians(t), np.radians(p), RADIUS, TARGET)
+def tune_cameras(target=TARGET, radius=RADIUS):
+    return [camera_position(np.radians(t), np.radians(p), radius, target)
             for p in TUNE_POLAR_DEG for t in TUNE_AZIMUTH_DEG]
 
 
@@ -114,11 +116,12 @@ def tune_normal(point, surface_normal, tris, cameras):
     return cand[best], int(errors[0]), int(errors[best]), len(cameras)
 
 
-def tune_hotspot_file(path=os.path.join(HERE, "assets", "hotspots_kuda.json")):
+def tune_hotspot_file(path=os.path.join(HERE, "assets", "hotspots_kuda.json"),
+                      glb=os.path.join(HERE, "assets", "kuda.glb"), target=TARGET, radius=RADIUS):
     """Rewrite the normals of a hotspot file in place; the face normal is kept as surface_normal."""
     with open(path) as f:
         data = json.load(f)
-    tris, cameras = load_mesh(), tune_cameras()
+    tris, cameras = load_mesh(glb), tune_cameras(target, radius)
     for h in data["hotspots"]:
         surface = h.get("surface_normal", h["normal"])
         normal, before, after, n = tune_normal(h["position"], surface, tris, cameras)
@@ -138,3 +141,6 @@ if __name__ == "__main__":
     import sys
     if "--tune" in sys.argv[1:]:
         tune_hotspot_file()
+    if "--tune-car" in sys.argv[1:]:
+        tune_hotspot_file(os.path.join(HERE, "assets", "hotspots_amr23.json"),
+                          os.path.join(HERE, "assets", "amr23.glb"), CAR_TARGET, CAR_RADIUS)

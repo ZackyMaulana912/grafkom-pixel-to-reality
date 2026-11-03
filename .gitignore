@@ -16,3 +16,6 @@ Module5/Source/data/pusaka_capture/*.ppm
 
 # hasil scan mentah Object Capture (233 MB), cukup di laptop; kuda.glb yang di-commit dibuat darinya
 Module5/Source/ar_app/scan/
+
+# sumber model mobil AR (Sketchfab, 235 MB), cukup di laptop; amr23.glb yang di-commit dibuat darinya
+Module5/aston-martin-f1-amr23-2023/

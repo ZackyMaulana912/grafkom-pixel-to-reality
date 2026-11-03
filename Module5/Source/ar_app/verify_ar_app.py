@@ -45,12 +45,13 @@ def check(name, condition):
 ORBITS = [(float(t), 75.0) for t in range(0, 360, 5)] + [(float(t), 25.0) for t in (0, 90, 180, 270)]
 
 
-def occlusion_sweep():
-    """Lab 3 no 2 test: turn the camera around the horse and compare, for every hotspot, what
-    <model-viewer> shows (its opacity) with the geometric truth from occlusion.py."""
+def occlusion_sweep(car=False):
+    """Lab 3 no 2 test: turn the camera around the model (the horse, or the car with --car) and
+    compare, for every hotspot, what <model-viewer> shows (its opacity) with the geometric truth
+    from occlusion.py."""
     import numpy as np
     import occlusion
-    tris = occlusion.load_mesh()
+    tris = occlusion.load_mesh(os.path.join(HERE, "assets", "amr23.glb" if car else "kuda.glb"))
     rows = []
     with sync_playwright() as p:
         browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"])
@@ -58,7 +59,12 @@ def occlusion_sweep():
         page.goto(f"{BASE_URL}/index.html", wait_until="networkidle", timeout=30000)
         page.wait_for_function("document.querySelector('model-viewer').loaded"
                                " && document.querySelectorAll('.hotspot').length === 5", timeout=30000)
-        spots = {h["id"]: h for h in page.evaluate("fetch('assets/hotspots_kuda.json').then(r => r.json())")["hotspots"]}
+        if car:
+            page.click("#model-toggle")
+            page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/amr23.glb')"
+                                   " && document.querySelector('model-viewer').loaded", timeout=30000)
+        name = "hotspots_amr23.json" if car else "hotspots_kuda.json"
+        spots = {h["id"]: h for h in page.evaluate(f"fetch('assets/{name}').then(r => r.json())")["hotspots"]}
         # the idle "interaction prompt" wiggles the camera a few degrees; switch it off for measuring only
         page.evaluate("document.querySelector('model-viewer').interactionPrompt = 'none'")
         for theta, phi in ORBITS:
@@ -92,7 +98,8 @@ def occlusion_sweep():
                 rows.append((theta, phi, sid, state["shown"][sid] > 0.5,
                              occlusion.is_visible(h["position"], h["normal"], cam, tris), facing))
         docs_img = os.path.join(HERE, "..", "..", "docs", "img")
-        for theta, name in ((255, "occlusion_kaki_255.png"), (70, "occlusion_surai_70.png")):
+        shots = () if car else ((255, "occlusion_kaki_255.png"), (70, "occlusion_surai_70.png"))
+        for theta, name in shots:
             page.evaluate("""async (t) => { const v = document.querySelector('model-viewer');
                 v.cameraOrbit = `${t}deg 75deg auto`; await v.updateComplete; v.jumpCameraToGoal(); }""", theta)
             page.wait_for_timeout(600)
@@ -101,8 +108,9 @@ def occlusion_sweep():
         page.evaluate("""async () => { const v = document.querySelector('model-viewer');
             v.cameraOrbit = '180deg 75deg auto'; await v.updateComplete; v.jumpCameraToGoal(); }""")
         page.wait_for_timeout(400)
-        opacity = page.evaluate("parseFloat(getComputedStyle(document.querySelector(\"button[slot='hotspot-alas']\")).opacity)")
-        page.click("button[slot='hotspot-alas']", force=True)
+        first = f"button[slot='hotspot-{next(iter(spots))}']"
+        opacity = page.evaluate(f"parseFloat(getComputedStyle(document.querySelector(\"{first}\")).opacity)")
+        page.click(first, force=True)
         page.wait_for_timeout(300)
         clicked = not page.evaluate("document.getElementById('info-panel').hidden")
         browser.close()
@@ -113,7 +121,7 @@ GRAZING = 0.1  # below this the surface is nearly edge-on and a hair of differen
 
 
 def print_occlusion(rows, opacity, clicked):
-    ids = ["alas", "surai", "kaki", "kepala", "ekor"]
+    ids = list(dict.fromkeys(r[2] for r in rows))
     print("angle  phi   " + "  ".join(f"{i:>6s}" for i in ids) + "    (shown/true: V visible, - hidden, ! wrong)")
     by_angle = {}
     for theta, phi, sid, shown, true, facing in rows:
@@ -220,19 +228,25 @@ def main():
         page.wait_for_timeout(800)
 
 
-        page.click("#model-toggle")  # switch to the course's temple
-        page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/pusaka_temple.glb')"
+        page.click("#model-toggle")  # switch to the F1 car
+        page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/amr23.glb')"
                                " && document.querySelector('model-viewer').loaded"
-                               " && document.querySelectorAll('.hotspot').length === 5", timeout=15000)
-        page.wait_for_timeout(1500)  # the temple's camera is set when its model has loaded
+                               " && document.querySelectorAll('.hotspot').length === 5", timeout=30000)
+        page.wait_for_timeout(1500)  # the car's camera is set when its model has loaded
         phi = page.evaluate("document.querySelector('model-viewer').getCameraOrbit().phi * 180 / Math.PI")
-        check(f"model switch also moves the camera to the temple's own view (polar {phi:.1f} deg, want 75)",
+        check(f"model switch also moves the camera to the car's own view (polar {phi:.1f} deg, want 75)",
               abs(phi - 75.0) < 0.5)
-        page.click("button[slot='hotspot-stupa']")
+        page.click("button[slot='hotspot-ban']")
         page.wait_for_timeout(300)
-        check(f"model switch loads the temple with its own 5 hotspots ('{page.inner_text('#info-title')}')",
-              page.evaluate("!!document.querySelector(\"button[slot='hotspot-stupa']\")")
+        check(f"model switch loads the car with its own 5 hotspots ('{page.inner_text('#info-title')}')",
+              page.evaluate("!!document.querySelector(\"button[slot='hotspot-ban']\")")
               and page.evaluate("document.querySelectorAll(\"button[slot='hotspot-surai']\").length") == 0)
+        scales = page.evaluate("document.querySelector('model-viewer').arScale")
+        page.click("#model-toggle")  # and back to the horse
+        page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/kuda.glb')", timeout=15000)
+        horse_scale = page.evaluate("document.querySelector('model-viewer').arScale")
+        check(f"AR scale: the car may be pinched ({scales}), the horse is fixed at 100% ({horse_scale})",
+              scales == "auto" and horse_scale == "fixed")
         check("no uncaught JS errors on the page", len(page_errors) == 0)
 
         browser.close()
@@ -249,7 +263,8 @@ def temple_closeup(out_path):
         page = browser.new_page(viewport={"width": 390, "height": 800})
         page.goto(f"{BASE_URL}/index.html", wait_until="networkidle", timeout=30000)
         page.evaluate("document.querySelector('model-viewer').interactionPrompt = 'none'")
-        page.click("#model-toggle")
+        # the temple is no longer offered by the model switch; load its file directly
+        page.evaluate("document.querySelector('model-viewer').src = 'assets/pusaka_temple.glb'")
         page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/pusaka_temple.glb')"
                                " && document.querySelector('model-viewer').loaded", timeout=15000)
         page.wait_for_timeout(1500)
@@ -265,6 +280,6 @@ def temple_closeup(out_path):
 if __name__ == "__main__" and "--temple-closeup" in sys.argv[1:]:
     temple_closeup(sys.argv[sys.argv.index("--temple-closeup") + 1])
 elif __name__ == "__main__" and "--occlusion" in sys.argv[1:]:
-    print_occlusion(*occlusion_sweep())
+    print_occlusion(*occlusion_sweep(car="--car" in sys.argv[1:]))
 elif __name__ == "__main__":
     main()

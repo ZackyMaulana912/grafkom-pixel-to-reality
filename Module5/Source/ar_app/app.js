@@ -1,5 +1,6 @@
 // Pusaka3D AR Explainer -- Module 5.
-// Two models: my scanned horse statue (default) and the course's procedural temple.
+// Two models: my scanned horse statue (default) and a downloaded Aston Martin F1 car (CC BY).
+// The course's procedural temple stays in assets/ (make_temple_glb.py) but is not offered here.
 // Loads the chosen model's hotspot file, injects <model-viewer> hotspot slots, and
 // drives the info panel, language toggle, and a simple "quiz mode" that
 // turns the hotspots into a tap-the-right-part game. Vanilla JS, no
@@ -27,17 +28,19 @@
       src: "assets/kuda.glb",
       hotspots: "assets/hotspots_kuda.json",
       orbit: "0deg 80deg auto",
+      arScale: "fixed",   // always its real 63 cm
       alt: "A rearing horse statue on a long pedestal, scanned from 28 photos, shown at its real size of 63 cm",
     },
-    temple: {
-      src: "assets/pusaka_temple.glb",
-      hotspots: "assets/hotspots.json",
-      orbit: "35deg 75deg 1.2m",
-      alt: "A procedurally generated candi (temple) model with a stepped base, body, roof, and a stupa finial",
+    car: {
+      src: "assets/amr23.glb",
+      hotspots: "assets/hotspots_amr23.json",
+      orbit: "30deg 75deg auto",
+      arScale: "auto",    // starts at its real 5.3 m; pinch to shrink it into a room
+      alt: "An Aston Martin AMR23 Formula 1 car, 5.3 m long, scaled to the FIA tyre size rule",
     },
   };
 
-  let model = "horse";      // "horse" | "temple"
+  let model = "horse";      // "horse" | "car"
   let lang = "en";          // "en" | "id"
   let quizMode = false;
   let hotspots = [];
@@ -147,7 +150,7 @@
   });
 
   modelToggle.addEventListener("click", () => {
-    model = model === "horse" ? "temple" : "horse";
+    model = model === "horse" ? "car" : "horse";
     modelToggle.textContent = `Model: ${model}`;
     // model-viewer puts the camera back to the camera-orbit attribute when a new model loads,
     // so the new model's camera is set once that load has finished
@@ -157,6 +160,7 @@
     }, { once: true });
     viewer.src = MODELS[model].src;
     viewer.alt = MODELS[model].alt;
+    viewer.arScale = MODELS[model].arScale;
     hideInfo();
     quizScore = { correct: 0, attempts: 0 };
     loadHotspots();

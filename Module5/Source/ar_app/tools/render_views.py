@@ -1,7 +1,7 @@
 """Render the AR model from eight sides plus the top, into one PNG for the docs.
 
 Runs inside Blender (5.x), headless:
-  Blender -b -P render_views.py -- <model.glb> <out.png>
+  Blender -b -P render_views.py -- <model.glb> <out.png> [distance]
 Workbench renderer with the model's own texture, so the picture shows the scan itself.
 """
 import math
@@ -13,7 +13,9 @@ import bpy
 import mathutils
 import numpy as np
 
-SRC, OUT = sys.argv[sys.argv.index("--") + 1:][:2]
+ARGS = sys.argv[sys.argv.index("--") + 1:]
+SRC, OUT = ARGS[:2]
+DISTANCE = float(ARGS[2]) if len(ARGS) > 2 else 1.25  # camera distance in model diagonals; a long car needs more
 CELL = 360
 VIEWS = [(az, 12) for az in (0, 45, 90, 135, 180, 225, 270, 315)] + [(0, 89)]
 
@@ -47,7 +49,7 @@ def main():
             # azimuth 0 = the glTF front (+z), which is Blender -y after import
             a, e = math.radians(az - 90), math.radians(el)
             cam.location = centre + mathutils.Vector((math.cos(a) * math.cos(e), math.sin(a) * math.cos(e),
-                                                      math.sin(e))) * radius * 1.25
+                                                      math.sin(e))) * radius * DISTANCE
             scene.render.filepath = os.path.join(tmp, f"{az}_{el}.png")
             bpy.ops.render.render(write_still=True)
             img = bpy.data.images.load(scene.render.filepath)

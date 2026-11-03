@@ -1,0 +1,118 @@
+{
+  "model": "amr23.glb",
+  "units": "metres, glTF axes (y up)",
+  "scale_rule": "tyre diameter 725 mm, FIA 2023 F1 Technical Regulations Art. 10.8.1c",
+  "hotspots": [
+    {
+      "id": "ban",
+      "name_en": "Tyre: the scale",
+      "name_id": "Ban: patokan ukuran",
+      "text_en": "The downloaded model was about 3.7 units long, with no real size. The FIA 2023 Technical Regulations (Article 10.8.1c) say a dry tyre may be at most 725 mm across, so I scaled the whole car until its tyres are exactly that. Everything else in this AR view follows from that one rule.",
+      "text_id": "Model yang diunduh panjangnya sekitar 3,7 unit tanpa ukuran nyata. Regulasi Teknis F1 2023 dari FIA (pasal 10.8.1c) menyebut ban kering paling besar 725 mm, jadi seluruh mobil saya skalakan sampai bannya tepat sebesar itu. Semua ukuran lain di tampilan AR ini mengikuti satu aturan itu.",
+      "position": [
+        -1.8564,
+        0.3803,
+        1.003
+      ],
+      "normal": [
+        -0.132,
+        -0.0444,
+        0.9902
+      ],
+      "surface_normal": [
+        -0.1695,
+        0.0153,
+        0.9854
+      ]
+    },
+    {
+      "id": "depan",
+      "name_en": "Front of the car: a check on the width",
+      "name_id": "Bagian depan: pengecek lebar",
+      "text_en": "Article 3.4.1 allows no part of the car, tyres excepted, more than 1000 mm from its centreline, so a car is at most 2000 mm wide. After scaling by the tyres alone, this model is 2.006 m wide at its widest point (the tyres), within 0.3% of that 2000 mm: a sign the modeller drew it in proportion.",
+      "text_id": "Pasal 3.4.1 melarang bagian mobil mana pun, kecuali ban, lebih dari 1000 mm dari garis tengahnya, jadi lebar mobil paling banyak 2000 mm. Setelah diskalakan hanya dari ban, lebar model ini di titik terlebarnya (ban) 2,006 m, hanya 0,3% dari 2000 mm itu: tanda bahwa pembuatnya menggambar dengan proporsi yang benar.",
+      "position": [
+        -2.4928,
+        0.4278,
+        0.9099
+      ],
+      "normal": [
+        -0.12,
+        0.1007,
+        0.9877
+      ],
+      "surface_normal": [
+        -0.12,
+        0.1007,
+        0.9877
+      ]
+    },
+    {
+      "id": "lantai",
+      "name_en": "Between the wheels: the wheelbase",
+      "name_id": "Di antara roda: wheelbase",
+      "text_en": "The distance between the front and rear wheel centres is 3.39 m in this model. Article 3.4.2 caps it at 3600 mm, so it is within the rules. The whole car is 5.30 m long: in AR you may pinch it smaller to fit a room, but it starts at its real size.",
+      "text_id": "Jarak antara pusat roda depan dan belakang di model ini 3,39 m. Pasal 3.4.2 membatasinya 3600 mm, jadi masih sesuai aturan. Panjang seluruh mobil 5,30 m: di AR boleh dicubit supaya muat di kamar, tetapi mulainya di ukuran asli.",
+      "position": [
+        0.0529,
+        0.3328,
+        0.6357
+      ],
+      "normal": [
+        -0.2483,
+        -0.4457,
+        0.86
+      ],
+      "surface_normal": [
+        -0.2483,
+        -0.4457,
+        0.86
+      ]
+    },
+    {
+      "id": "livery",
+      "name_en": "Livery: trademarks, not part of the licence",
+      "name_id": "Livery: merek dagang, bukan bagian lisensi",
+      "text_en": "The model is CC BY 4.0, which covers the 3D work by its author. The team name and the sponsor logos painted on it are trademarks of their owners; the licence does not cover them, and this app is not connected to the team or its sponsors.",
+      "text_id": "Model ini berlisensi CC BY 4.0, yang mencakup karya 3D pembuatnya. Nama tim dan logo sponsor yang tergambar di badannya adalah merek dagang milik pemiliknya; lisensi itu tidak mencakupnya, dan app ini tidak ada hubungannya dengan tim maupun sponsornya.",
+      "position": [
+        0.8485,
+        0.8794,
+        0.0976
+      ],
+      "normal": [
+        0.0901,
+        0.2652,
+        0.96
+      ],
+      "surface_normal": [
+        0.0901,
+        0.2652,
+        0.96
+      ]
+    },
+    {
+      "id": "kokpit",
+      "name_en": "Cockpit: where the model comes from",
+      "name_id": "Kokpit: asal model",
+      "text_en": "Unlike my horse, I did not make this car: it is 'Aston Martin F1 AMR23 2023' by Redgrund on Sketchfab. The original has 644,736 triangles and textures up to 6144 pixels; for a phone I kept 161,184 triangles and 4096-pixel textures, about 7.7 MB.",
+      "text_id": "Berbeda dengan kuda saya, mobil ini bukan buatan saya: modelnya 'Aston Martin F1 AMR23 2023' karya Redgrund di Sketchfab. Aslinya 644.736 segitiga dengan tekstur sampai 6144 pixel; untuk HP saya pakai 161.184 segitiga dan tekstur 4096 pixel, sekitar 7,7 MB.",
+      "position": [
+        -0.5305,
+        0.7844,
+        0.6295
+      ],
+      "normal": [
+        0.4032,
+        -0.0024,
+        0.9151
+      ],
+      "surface_normal": [
+        0.4032,
+        -0.0024,
+        0.9151
+      ]
+    }
+  ],
+  "normals": "chosen by occlusion.py --tune so model-viewer's normal test matches the real occlusion; surface_normal is the face normal where the placement ray hit"
+}
