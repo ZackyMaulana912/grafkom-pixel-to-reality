@@ -67,6 +67,15 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
   `(1200, 6100)` -> `(-0.19101, -0.36986, -1)`, normalised
   `(-0.17634, -0.34145, -0.92321)`, the by-hand numbers in
   `../docs/catatan/fase2-capture-ray.md`; the principal point gives `(0, 0, -1)`.
+- **One pixel convention** -- `generate_rays` shoots through pixel centres of the same
+  formula as `pixel_to_camera_dir`, and `nerf_toy` has no copy of its own.
+- **Gradient at every touched voxel, also at the extremes** -- hand-derived vs
+  central-difference gradient for every voxel a sample touches, density and colour,
+  at alpha almost 0, normal, almost 1 and exactly 1 (relative error < 1e-3).
+- **Compositing, capture files, imports** -- `nerf_toy._composite_image` equals
+  `volume_render.composite` per ray; `poses.json` matches the ring cameras within
+  1e-9; `load_ppm` undoes `save_ppm`; the from-scratch files import only NumPy and
+  standard modules.
 - **Analytic vs finite-difference gradient** -- `backward_grid()`'s hand-derived
   gradient w.r.t. every probed voxel (density and colour) matches a
   central-difference numerical gradient to `< 1e-6` (typically `~1e-11`).
@@ -161,6 +170,7 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
 |---|---|---|---|
 | starter code before any change | `tests.py` 17 ok, all five scripts match the PDF, max gradient error `4.89e-11` | 2026-11-02 | macOS 27.0.1, Apple M5, Python 3.11.8, NumPy 2.4.6 |
 | `ar_app/verify_ar_app.py` on the starter app, served on `127.0.0.1:8743` | **ALL CHECKS PASSED (10 ok)** | 2026-11-02 | Playwright 1.64.1, Chrome Headless Shell 156 |
+| `python tests.py` after Fase 3 | **ALL CHECKS PASSED (57 ok)**: one pixel convention, every touched voxel's gradient vs finite differences also at alpha almost 0, almost 1 and exactly 1, compositing, `poses.json` within 1e-9, `load_ppm`, NumPy-only imports; each new check fails when the code is broken on purpose (`../docs/catatan/fase3-renderer-gradien.md`) | 2026-11-03 | same |
 | `python tests.py` with `test_my_ray` | **ALL CHECKS PASSED (27 ok)**; the new check fails if the focal length uses the 36 mm width, if the y flip is dropped, or if the principal point moves half a pixel | 2026-11-03 | same |
 | `my_ray.py` vs by-hand ray | equal to 5 decimals | 2026-11-03 | same |
 | `document_capture.py` | 28 photos, identical files on a second run | 2026-11-03 | same, Pillow 13.0.0 |

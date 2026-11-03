@@ -248,3 +248,48 @@ novel-view PSNR improvement from spreading the views out: +2.66 dB
 `nerf_bug.py` di atas saya ringkas. Selisih 2 view vs 8 view tetap di atas 1 dB (`+2.66`), jadi `tests.py` tetap hijau 34 ok. Diagnosis lengkapnya baru di Fase 4.
 
 Seperti di Fase 0, `capture.py` juga menulis ulang `poses.json` dengan angka yang sama tetapi digit terakhir dan akhiran barisnya berbeda. Posisi kamera tidak berubah, jadi `poses.json` dikembalikan ke versi commit.
+
+## 6. Test baru dan bukti test punya gigi (Lab 2 no 2)
+
+### Selisih terburuk cek gradien
+
+Cek finite difference bawaan starter (`test_backward_matches_finite_difference`, 6 voxel acak, σ_raw di sekitar 0, ambang `1e-6`) saya biarkan apa adanya. Dengan kode versi saya, selisih terburuknya `4.89e-11`. Panduan menulis sekitar `3e-11`, dan run awal di Linux memberi `4.66e-11`. Angka saya berasal dari Mac saya dengan NumPy 2.4.6.
+
+### Test baru (total sekarang 57 ok, sebelumnya 34)
+
+| Test | Isi | Check |
+|---|---|---|
+| `test_backward_every_voxel_and_extremes` | gradien hasil turunan vs finite difference untuk **setiap** voxel yang disentuh sampel (44 voxel, density dan 3 warna), di empat kondisi: normal, hampir kosong (σ_raw -18), hampir padat (+30), padat penuh (+800). Kesalahan diukur relatif terhadap gradien terbesar, ambang `1e-3`, dan hasilnya harus berupa angka (bukan NaN atau tak hingga) | 16 |
+| `test_composite_image_matches_composite` | komposit seluruh gambar di `nerf_toy` sama dengan `volume_render.composite` per ray, termasuk sampel padat dan background, dan jumlah bobot + background = 1 di setiap ray | 2 |
+| `test_capture_files` | `poses.json` cocok dengan kamera dari `capture.py` dengan toleransi `1e-9` (K11, bukan perbandingan byte); `load_ppm(save_ppm(gambar))` sama dengan gambar yang dibulatkan ke 8 bit; header PPM dengan komentar `#` tetap terbaca | 4 |
+| `test_numpy_only` | ketujuh file hitung (`ray_generator`, `volume_render`, `nerf_toy`, `capture`, `fit_nerf_toy`, `nerf_bug`, `my_ray`) hanya meng-import NumPy, modul standar yang dibutuhkan, dan satu sama lain. Dibaca dengan modul `ast`, jadi PyTorch, JAX, atau SciPy tidak bisa diam-diam masuk (K2) | 1 |
+
+Dua kelemahan cek starter yang dicatat di Fase 0 sekarang tertutup:
+- voxel yang tidak dilewati ray tidak lagi ikut dicek (yang dicek hanya voxel yang benar-benar disentuh sampel);
+- kondisi α hampir 0 dan hampir 1 sekarang ikut dicek.
+
+Langkah finite difference di test baru `1e-3`. Galat pemotongannya sebanding dengan `ε²`, sekitar `1e-6`, jadi jauh di bawah ambang. Langkah yang lebih kecil hanya menambah galat pembulatan. Dengan `1e-3`, kesalahan terbesar versi saya `5,4e-05`, hampir 20 kali di bawah ambang.
+
+### Rusak dengan sengaja
+
+Di salinan sementara, saya rusak satu bagian `backward_grid` setiap kali, lalu menjalankan cek starter dan test baru:
+
+| Kerusakan | Cek starter (ambang `1e-6`) | Test baru (ambang `1e-3`) |
+|---|---|---|
+| suku "semua yang di belakang" (`B_k`) dibuang | **gagal**: `1.91e-01` | **gagal**: `2.67` (kondisi normal) |
+| turunan sigmoid warna `c (1 - c)` dibuang | **gagal**: `3.25e-01` | **gagal**: `4.77` |
+| turunan softplus `sigmoid(σ_raw)` dibuang | **gagal**: `3.84e-02` | **gagal**: `1.11` |
+| `backward_grid` diganti versi starter | lolos | **gagal**: `0.229` (hampir kosong) |
+
+Tiga baris pertama membuktikan kedua cek tidak lolos karena kebetulan: setiap suku di rantai turunan, kalau hilang, langsung ketahuan dengan selisih jauh di atas ambang. Baris terakhir membuktikan kenapa test baru diperlukan: rumus starter lolos cek starter, karena cek itu hanya melihat kondisi normal, tetapi gagal di test baru. Test baru berhenti di kegagalan pertama (hampir kosong, 23%). Di kondisi hampir padat, versi starter salah 300% dengan tanda terbalik (bagian 3).
+
+Kenapa membuang suku `B_k` membuat gradien salah: menaikkan opacity sampel k juga menghalangi semua yang ada di belakangnya. Tanpa suku itu, rumusnya hanya menghitung "sampel k jadi lebih terlihat" dan lupa "yang di belakang jadi lebih tertutup". Akibatnya arah geseran density hanya ditentukan oleh warna sampel k sendiri, jadi density bisa dinaikkan padahal warna di belakangnya justru lebih cocok dengan target.
+
+## Ringkasan Fase 3
+
+- Konvensi kamera dan pixel ditulis sekali dan diuji (K12).
+- E1 dan E2 tetap sama persis.
+- Inti renderer ditulis ulang dengan rumus gradien turunan saya sendiri, yang tidak membagi dengan `1 - α` dan tetap benar di kondisi ekstrem tempat rumus starter salah.
+- Scene mendapat patung kuda mini.
+- Model latih membaca gambar dari file PPM.
+- Test bertambah dari 17 (starter) menjadi 57, dan setiap test baru terbukti bisa gagal.

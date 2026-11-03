@@ -150,6 +150,148 @@ def test_backward_matches_finite_difference():
     _checks += 1
 
 
+FROM_SCRATCH = ["ray_generator.py", "volume_render.py", "nerf_toy.py", "capture.py", "fit_nerf_toy.py",
+                "nerf_bug.py", "my_ray.py"]
+ALLOWED_IMPORTS = {"numpy", "json", "os", "sys", "math", "__future__",
+                   "ray_generator", "volume_render", "nerf_toy", "capture", "fit_nerf_toy", "nerf_bug", "my_ray"}
+
+
+def test_numpy_only():
+    """K2: the from-scratch files import nothing but NumPy, the standard modules they need and
+    each other -- no PyTorch, JAX, SciPy or autodiff can slip in unnoticed."""
+    import ast
+    import os
+    here = os.path.dirname(os.path.abspath(__file__))
+    found = set()
+    for name in FROM_SCRATCH:
+        with open(os.path.join(here, name)) as f:
+            tree = ast.parse(f.read())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                found |= {(name, a.name.split(".")[0]) for a in node.names}
+            elif isinstance(node, ast.ImportFrom):
+                found.add((name, (node.module or "").split(".")[0]))
+    bad = sorted(f"{file}: {mod}" for file, mod in found if mod not in ALLOWED_IMPORTS)
+    print(f"  imports seen: {sorted({mod for _, mod in found})}")
+    check(f"from-scratch files import only NumPy + standard modules ({len(FROM_SCRATCH)} files, bad: {bad})",
+          len(bad), 0, tol=0)
+
+
+def test_composite_image_matches_composite():
+    """The vectorised compositing in nerf_toy (every ray at once, with a background) gives the
+    same numbers as volume_render.composite on one ray at a time, opaque samples included."""
+    from nerf_toy import _composite_image
+    from volume_render import composite
+    rng = np.random.default_rng(11)
+    alpha = rng.uniform(0.0, 1.0, size=(5, 4, 9))
+    alpha[rng.uniform(size=alpha.shape) < 0.1] = 1.0
+    color = rng.uniform(0.0, 1.0, size=(5, 4, 9, 3))
+    background = np.array([0.2, 0.7, 1.0])
+    image, weights, bg_weight = _composite_image(alpha, color, background)
+    worst = 0.0
+    for r in range(5):
+        for c in range(4):
+            col, w, _, bg = composite(alpha[r, c], color[r, c])
+            worst = max(worst, float(np.abs(image[r, c] - (col + bg * background)).max()),
+                        float(np.abs(weights[r, c] - w).max()), abs(float(bg_weight[r, c]) - bg))
+    check("nerf_toy._composite_image = volume_render.composite per ray (max abs diff)", worst, 0.0, tol=1e-12)
+    check("weights + background add up to 1 on every ray (max deviation)",
+          float(np.abs(weights.sum(axis=-1) + bg_weight - 1.0).max()), 0.0, tol=1e-12)
+
+
+def test_capture_files():
+    """K11: the committed poses.json still matches the cameras capture.py builds, within 1e-9
+    (the last digits differ between machines, so no byte compare), and load_ppm undoes save_ppm."""
+    import json
+    import os
+    import tempfile
+    import capture
+    with open(os.path.join(capture.DATA_DIR, "poses.json")) as f:
+        manifest = json.load(f)
+    same = all(manifest[k] == v for k, v in (("width", capture.WIDTH), ("height", capture.HEIGHT),
+                                              ("fov_deg", capture.FOV_DEG), ("n_samples", capture.N_SAMPLES)))
+    check("poses.json image size, fov and samples match capture.py", float(same), 1.0, tol=0)
+    worst = 0.0
+    for frame, angle in zip(manifest["frames"], capture.RING_ANGLES):
+        pos, c2w = ring_camera(angle, radius=capture.RADIUS, height=capture.HEIGHT_CAM)
+        worst = max(worst, float(np.abs(np.array(frame["position"]) - pos).max()),
+                    float(np.abs(np.array(frame["camera_to_world_rotation"]) - c2w).max()))
+    check(f"poses.json cameras = ring_camera for {len(manifest['frames'])} views (max abs diff)", worst, 0.0, tol=1e-9)
+
+    image = np.random.default_rng(3).uniform(-0.1, 1.1, size=(16, 20, 3))  # out-of-range on purpose
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "x.ppm")
+        capture.save_ppm(path, image)
+        back = capture.load_ppm(path)
+        with open(path, "rb") as f:
+            raw = f.read()
+        with open(os.path.join(tmp, "c.ppm"), "wb") as f:  # same pixels, header with a comment
+            f.write(b"P6\n# my comment\n20 16\n255\n" + raw[len(b"P6\n20 16\n255\n"):])
+        commented = capture.load_ppm(os.path.join(tmp, "c.ppm"))
+    want = np.clip(np.floor(image * 255.0 + 0.5), 0, 255) / 255.0
+    check("load_ppm(save_ppm(image)) = image rounded to 8 bit (max abs diff)", float(np.abs(back - want).max()), 0.0,
+          tol=1e-12)
+    check("load_ppm skips a '#' comment in the header (max abs diff)", float(np.abs(commented - back).max()), 0.0,
+          tol=0)
+
+
+def _gradient_errors(shift):
+    """Hand-derived vs central-difference gradient for EVERY voxel a sample touches (not a random
+    few), on the 4x3 test image with every sigma_raw moved by `shift`. Errors are relative to the
+    largest finite-difference gradient of that kind, so tiny gradients are judged fairly too."""
+    grid = VoxelGrid(resolution=4, seed=1)
+    rng = np.random.default_rng(2)
+    grid.sigma_raw = rng.normal(0, 1, size=grid.sigma_raw.shape) + shift
+    grid.color_raw = rng.normal(0, 1, size=grid.color_raw.shape)
+    cam_pos, c2w = ring_camera(30.0, radius=3.0, height=1.0)
+    target = np.random.default_rng(4).uniform(0, 1, size=(3, 4, 3))
+
+    def loss():
+        image, _ = render_grid(grid, 4, 3, 50.0, cam_pos, c2w, near=1.0, far=5.0, n_samples=8)
+        return float(np.sum((image - target) ** 2))
+
+    image, cache = render_grid(grid, 4, 3, 50.0, cam_pos, c2w, near=1.0, far=5.0, n_samples=8)
+    grid.zero_grad()
+    backward_grid(grid, cache, 2.0 * (image - target))
+    hit = [np.unravel_index(i, grid.sigma_raw.shape) for i in np.unique(cache["flat_idx"])]
+    eps = 1e-3  # truncation error ~eps^2 stays far below 1e-3; a smaller step only adds round-off noise
+    out = {}
+    for name, param, grad, idxs in (("sigma", grid.sigma_raw, grid.sigma_grad, hit),
+                                    ("colour", grid.color_raw, grid.color_grad,
+                                     [h + (ch,) for h in hit for ch in range(3)])):
+        analytic, numeric = [], []
+        for idx in idxs:
+            orig = param[idx]
+            param[idx] = orig + eps
+            lp = loss()
+            param[idx] = orig - eps
+            lm = loss()
+            param[idx] = orig
+            numeric.append((lp - lm) / (2 * eps))
+            analytic.append(grad[idx])
+        analytic, numeric = np.array(analytic), np.array(numeric)
+        scale = float(np.abs(numeric).max())
+        out[name] = (float(np.abs(analytic - numeric).max()) / scale if scale > 0 else float(np.abs(analytic).max()),
+                     bool(np.all(np.isfinite(analytic))))
+    alpha = cache["alpha"]
+    return out, len(hit), float(alpha.min()), float(1.0 - alpha.max())
+
+
+def test_backward_every_voxel_and_extremes():
+    """T3: the starter check probed 6 random voxels (one of them never hit by a ray) at sigma_raw
+    near 0 only. Here every touched voxel is checked, also where alpha is almost 0, almost 1, and
+    exactly 1. The starter's backward fails the middle two (23% and 300% off, wrong sign)."""
+    cases = ((0.0, "normal"), (-18.0, "almost empty"), (30.0, "almost opaque"), (800.0, "fully opaque"))
+    for shift, label in cases:
+        errors, n_hit, a_min, one_minus = _gradient_errors(shift)
+        print(f"  {label}: {n_hit} voxels touched, alpha min {a_min:.1e}, 1 - alpha max {one_minus:.1e}")
+        for kind in ("sigma", "colour"):
+            rel, finite = errors[kind]
+            check(f"{kind} gradient, every touched voxel, {label} (sigma_raw {shift:+g}): finite", float(finite), 1.0,
+                  tol=0)
+            check(f"{kind} gradient, every touched voxel, {label} (sigma_raw {shift:+g}): rel err", rel, 0.0, tol=1e-3)
+
+
 def test_view_coverage_diagnose_and_fix():
     result = nerf_bug.diagnose_and_fix()
     gap = result["fixed_novel_psnr"] - result["buggy_novel_psnr"]
@@ -165,5 +307,9 @@ if __name__ == "__main__":
     test_ray_convention()
     test_my_ray()
     test_backward_matches_finite_difference()
+    test_backward_every_voxel_and_extremes()
+    test_composite_image_matches_composite()
+    test_capture_files()
+    test_numpy_only()
     test_view_coverage_diagnose_and_fix()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")
