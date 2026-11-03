@@ -2,7 +2,7 @@
 
 Zacky Maulana (NIM 20241337034), Praktikum Grafika Komputer, S1 Informatika UMSurabaya, semester 5.
 
-Semua modul memakai satu subjek yang sama: **patung kuda berdiri milik saya sendiri**, di ruangan tempat patung itu berdiri. Subjek ini dibawa bertahap dari modul ke modul. Modul 1 memakai fotonya, Modul 2 denah ruangannya, Modul 3 model 3D ruangan dan patungnya, dan Modul 4 memakai model itu sebagai panggung scene Godot. Setiap modul punya kode di `Source/` dan tulisan di `docs/`, dengan prediksi dan diagnosis yang di-commit sebelum hasilnya diukur.
+Semua modul memakai satu subjek yang sama: **patung kuda berdiri milik saya sendiri**, di ruangan tempat patung itu berdiri. Subjek ini dibawa bertahap dari modul ke modul. Modul 1 memakai fotonya, Modul 2 denah ruangannya, Modul 3 model 3D ruangan dan patungnya, Modul 4 memakai model itu sebagai panggung scene Godot, dan Modul 5 memindai patungnya dari foto lalu menaruhnya di dunia nyata lewat AR. Setiap modul punya kode di `Source/` dan tulisan di `docs/`, dengan prediksi dan diagnosis yang di-commit sebelum hasilnya diukur.
 
 ## Daftar modul
 
@@ -12,6 +12,7 @@ Semua modul memakai satu subjek yang sama: **patung kuda berdiri milik saya send
 | [Modul 2](Module2/README.md) | Rendering pipeline & primitif 2D | [denah ruangan di WebGL](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/) | [laporan](Module2/docs/laporan) |
 | [Modul 3](Module3/README.md) | Transformasi 3D, proyeksi, texture & real-time rendering | [ruangan dan patung di WebGL](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/) | [laporan](Module3/docs/laporan) |
 | [Modul 4](Module4/README.md) | Animasi, kinematika & game engine | [scene Godot di browser](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/build/web/) | [laporan](Module4/docs/laporan) |
+| [Modul 5](Module5/README.md) | AI graphics: NeRF, world models & AR | [AR app patung kuda](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html) | [catatan](Module5/docs/catatan) |
 
 Ringkasan tiap modul:
 
@@ -19,6 +20,7 @@ Ringkasan tiap modul:
 - **Modul 2.** Rasteriser garis dan segitiga dari nol (aturan top-left, fixed-point) untuk denah ruangan saya, dibandingkan pixel per pixel dengan Three.js.
 - **Modul 3.** Transformasi, rasteriser z-buffer, dan ray tracer dari nol untuk model ruangan saya (394 segitiga, texture dari foto saya), lalu disamakan dengan viewer Three.js.
 - **Modul 4.** FK, IK, spline, dan quaternion dari nol (standard library Python), rantai kinematik dari lengan saya sendiri, dan scene Godot 4.7.2 dengan kamera spline di sekitar patung, rig lengan saya, dan karakter CC0 yang berjalan tanpa kaki tergelincir.
+- **Modul 5.** Ray generator, volume rendering, dan NeRF mini dari nol (NumPy) dengan gradien turunan sendiri yang dicek finite difference, diagnosis 2 vs 8 view yang diprediksi sebelum diukur, lalu AR app dengan scan photogrammetry patung kuda saya (diskalakan ke ukuran tangan saya) dan mobil F1 CC BY yang diskalakan ke regulasi FIA, diuji di iPhone.
 
 ## Cara menjalankan
 
@@ -30,11 +32,11 @@ Setiap modul berdiri sendiri, dengan lingkungan Python (`.venv`) atau Node-nya s
 | 2 | `cd Module2/Source && nvm use && npm ci && npm test` |
 | 3 | `cd Module3/Source && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python make_model.py && python tests.py` |
 | 4 | `cd Module4/Source && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python tests.py`, lalu buka `godot_project/` di Godot 4.7.2 |
+| 5 | `cd Module5/Source && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python capture.py && python tests.py` |
 
 Detail, versi yang dipakai, dan baris Verified ada di `Source/README.md` setiap modul. Server lokal untuk halaman web selalu dibuka di `127.0.0.1`.
 
 ## Catatan repo
 
 - PDF modul dari dosen tidak di-commit. Bahan awal dari dosen selalu masuk lebih dulu sebagai commit tersendiri, jadi perubahan saya bisa dilihat dengan `git diff` terhadap commit itu.
-- Folder `Module5/` belum dikerjakan dan sementara disembunyikan lewat `.gitignore`.
 - Halaman GitHub Pages disajikan langsung dari branch `main` (repo memakai `.nojekyll`).
