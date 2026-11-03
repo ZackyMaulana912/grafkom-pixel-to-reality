@@ -282,9 +282,49 @@ def fig_novel_views(out_dir):
     save(fig, out_dir, "novel_60.png")
 
 
+def fig_pitfall_init(out_dir):
+    """Lab 2 no 4 (a): training MSE for four starting densities at two learning rates."""
+    import pitfall_fix
+    curves = pitfall_fix.init_experiment()
+    colors = {-5.0: "#c0392b", -2.0: ACCENT, 0.0: GOOD, 2.0: RAY}
+    fig, axs = plt.subplots(1, 2, figsize=(11.0, 3.9), sharey=True)
+    for ax, lr in zip(axs, pitfall_fix.LEARNING_RATES):
+        for start in pitfall_fix.INIT_VALUES:
+            it, mse = zip(*curves[(lr, start)])
+            ax.plot(it, mse, color=colors[start], lw=2, label=f"sigma_raw awal {start:+g}")
+        ax.set_title(f"learning rate {lr:g}", fontsize=10)
+        ax.set_xlabel("iterasi")
+        ax.grid(alpha=0.3)
+    axs[0].set_ylabel("MSE latih (8 view)")
+    axs[0].legend(fontsize=8.5, frameon=False)
+    save(fig, out_dir, "pitfall_init.png")
+
+
+def fig_third_view(out_dir):
+    """Lab 2 no 4 (b): what one extra view does, on the fixed held-out angles and around the ring."""
+    import pitfall_fix
+    rows = pitfall_fix.third_view_experiment()
+    names = [r[0] for r in rows]
+    held = [float(np.mean(r[3])) for r in rows]
+    ring = [r[4] for r in rows]
+    x = np.arange(len(rows))
+    fig, ax = plt.subplots(figsize=(11.0, 3.9))
+    ax.bar(x - 0.2, held, 0.38, color="#d9d9d9", ec=INK, label="rata-rata 8 sudut uji (prediksi)")
+    ax.bar(x + 0.2, ring, 0.38, color=RAY, ec=INK, label="rata-rata seluruh lingkaran tiap 5 derajat")
+    for xi, v in zip(x + 0.2, ring):
+        ax.text(xi, v + 0.1, f"{v:.2f}", ha="center", fontsize=8.5)
+    ax.set_xticks(x)
+    ax.set_xticklabels(["2 view\n(0, 20)"] + [f"+ {n[2:]}" for n in names[1:-1]] + ["8 view"], fontsize=9)
+    ax.set_ylim(9, 15)
+    ax.set_ylabel("PSNR (dB)")
+    ax.grid(axis="y", alpha=0.3)
+    ax.legend(loc="upper left", fontsize=8.5, frameon=False)
+    save(fig, out_dir, "third_view.png")
+
+
 SETS = {
     "studi": [fig_pinhole_ray, fig_pipeline, fig_three_samples, fig_anchoring],
-    "readme": [fig_capture_ring, fig_view_coverage, fig_novel_views],
+    "readme": [fig_capture_ring, fig_view_coverage, fig_novel_views, fig_pitfall_init, fig_third_view],
 }
 
 

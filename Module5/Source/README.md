@@ -46,6 +46,8 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
 | `capture.py` | deterministic 8-view ring capture of the toy scene (COLMAP-style `poses.json` + PPM images) | Case Study input |
 | `fit_nerf_toy.py` | trains the grid on the capture; reports train/novel-view PSNR; writes comparison PPMs | Case Study evidence |
 | `nerf_bug.py` | diagnose-and-fix: 2 clustered views vs 8 spread views, same novel view, PSNR gap | Lab 2 diagnose-and-fix |
+| `nerf_bug.py --diagnose` / `--sweep` | training evidence of the 2-view grid only (written before any novel view, K14) / both grids on the 8 predicted angles | Lab 2 no 3 |
+| `pitfall_fix.py` | (a) starting `sigma_raw` -5, -2, 0, +2 at lr 5 and 100; (b) one third view added to the 2-view capture at six angles | Lab 2 no 4 |
 | `tests.py` | E1-E2 + an analytic-vs-finite-difference gradient check + the view-coverage regression | MASTER Sec 11.2 |
 | `my_ray.py` | the ray through my own chosen pixel of my own iPhone photo, from `data/my_camera.json` (focal length estimated from EXIF) | Lab 1 no 4, by-hand ray |
 | `document_capture.py` | writes `data/my_capture/` (manifest, checksums, contact sheet) for my 28 photos without committing the photos | Lab 1 no 2, own capture |

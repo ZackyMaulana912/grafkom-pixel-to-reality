@@ -150,3 +150,72 @@ Di sisa gambar, model 2 view jelas lebih buruk. Tetapi di kuda, kedua model sama
 ### Kesimpulan diagnosis
 
 PSNR latih model 2 view (21.13 dB) lebih tinggi dari model 8 view (19.13 dB), padahal di 7 dari 8 sudut baru ia kalah 1,9 sampai 5 dB. Ini persis pitfall 12.2: kualitas di view latih tidak bisa membedakan model yang paham bentuk 3D-nya dari model yang hanya menghafal dua gambar. Penyebabnya pitfall 12.3: dua foto yang hanya berbeda 20 derajat hampir tidak memberi informasi kedalaman. Hasil di 22,5 derajat menunjukkan bahwa satu sudut uji saja bisa menyesatkan: kalau hanya sudut itu yang diuji, kesimpulannya terbalik. Karena itu saya menguji 8 sudut, dan grafiknya mengukur 144 sudut.
+
+## 4. Perbaikan (a): nilai awal density, pitfall 12.1 (Lab 2 no 4)
+
+Lab 2 no 4 meminta minimal satu perbaikan yang berangkat dari pitfall. Saya kerjakan keduanya sebagai eksperimen baru di `pitfall_fix.py`, bukan dengan menjalankan ulang angka starter.
+
+**Cara.** Grid 12³ dilatih pada 8 file PPM capture saya (sama dengan `fit_nerf_toy.py`) selama 300 iterasi, dengan `sigma_raw` awal -5, -2, 0, dan +2. Warna awalnya sama di semua run (seed 0). Semuanya diulang di dua learning rate: 5 (default `nerf_toy.train`) dan 100 (yang dipakai `fit_nerf_toy.py` dan `nerf_bug.py`). MSE latih dicatat setiap 10 iterasi.
+
+```
+$ .venv/bin/python pitfall_fix.py --init
+   lr   start  it   0  it  10  it  50  it 100  it 299   drop
+    5     -5   0.1109  0.1109  0.1108  0.1108  0.1106   0.0003
+    5     -2   0.0707  0.0703  0.0688  0.0671  0.0612   0.0095
+    5     +0   0.1368  0.1333  0.1214  0.1093  0.0781   0.0587
+    5     +2   0.1522  0.1417  0.1132  0.0941  0.0639   0.0883
+  100     -5   0.1109  0.1107  0.1095  0.0840  0.0603   0.0505
+  100     -2   0.0707  0.0640  0.0499  0.0410  0.0205   0.0502
+  100     +0   0.1368  0.0902  0.0477  0.0323  0.0174   0.1194
+  100     +2   0.1522  0.0736  0.0411  0.0345  0.0256   0.1266
+```
+
+![MSE latih untuk empat nilai awal di dua learning rate](../img/pitfall_init.png)
+
+**Pitfall 12.1 terkonfirmasi, tapi hanya di learning rate kecil.**
+- **Di lr 5, start -5 benar-benar macet:** MSE hanya turun `0.0003` dalam 300 iterasi (`0.1109` ke `0.1106`), padahal start 0 turun `0.0587`. Penyebabnya sesuai rumus: `softplus'(-5) = sigmoid(-5) = 0,0067`, jadi setiap gradien density dikecilkan sekitar 150 kali sejak langkah pertama.
+- **Di lr 100, start -5 tidak macet, hanya terlambat.** Sekitar 70 iterasi pertama hampir datar, lalu MSE-nya turun mendadak sekitar iterasi 70 sampai 80, dan sekali lagi sekitar iterasi 230 sampai 250. Di akhir masih tertinggal jauh (`0.0603` lawan `0.0174` untuk start 0). Learning rate 20 kali lebih besar cukup untuk mengimbangi gradien yang 150 kali lebih kecil, tetapi tidak sepenuhnya. Ini sesuai dengan T8 di panduan: klaim modul bahwa latihan "jelas macet" hanya terbukti di lr kecil.
+
+**Yang tidak sesederhana "pakai 0":**
+- Start -2 punya MSE awal paling rendah (`0.0707`). Density awalnya `softplus(-2) = 0,127`, hampir tembus pandang, sehingga gambar awalnya mendekati latar putih, yang memang menutupi sebagian besar gambar target. Tetapi turunnya lambat di lr 5.
+- Start +2 turun paling cepat di awal (lr 100, iterasi 10: `0.0736`), tetapi berakhir lebih buruk dari start 0 (`0.0256` lawan `0.0174`). Kabut awal yang terlalu tebal harus "dibersihkan" dulu dari ruang kosong.
+- Start 0, yang dipakai starter, memberi MSE akhir terbaik di lr 100. Di lr 5, start -2 (`0.0612`) dan +2 (`0.0639`) justru berakhir lebih rendah dari start 0 (`0.0781`) dalam 300 iterasi, jadi "0 selalu terbaik" juga tidak benar.
+
+Kesimpulan: aturan modul "mulai dari titik netral, bukan dari ujung" terbukti. Yang paling berbahaya adalah ujung negatif, karena di situ turunan softplus hampir nol. Seberapa parah kerusakannya bergantung pada learning rate, jadi pitfall ini harus selalu dilaporkan bersama lr-nya.
+
+## 5. Perbaikan (b): view ketiga, pitfall 12.3
+
+**Tafsir saya atas "intermediate".** Modul meminta view ketiga yang "intermediate" tanpa menjelaskan artinya. Daripada menebak satu sudut, saya coba enam:
+- 5 derajat, di dalam kelompok 0 dan 20 derajat: menambah jumlah foto tanpa menambah sebaran;
+- 45, 90, 135, 180, dan 270 derajat: semakin jauh dari kelompok itu.
+
+Setiap set 3 view dilatih persis seperti model 2 view (500 iterasi, lr 100). Nilainya diukur dengan dua cara:
+- rata-rata di 8 sudut uji dari prediksi, yang semuanya bukan view latih di set mana pun;
+- rata-rata di seluruh lingkaran setiap 5 derajat, tanpa view latih set itu sendiri.
+
+```
+$ .venv/bin/python pitfall_fix.py --third
+  capture        train   held-out mean (vs 2 view)   ring mean every 5 deg (vs 2 view)
+  2 view         21.13       10.50 (+0.00)               10.09 (+0.00)
+  + 5 deg        20.67       11.50 (+1.00)               10.36 (+0.27)
+  + 45 deg       19.25       11.22 (+0.72)               10.61 (+0.52)
+  + 90 deg       20.78       11.09 (+0.60)               10.77 (+0.68)
+  + 135 deg      19.52       11.12 (+0.62)               11.24 (+1.16)
+  + 180 deg      20.73       11.23 (+0.74)               11.08 (+0.99)
+  + 270 deg      20.91       10.98 (+0.48)               10.97 (+0.88)
+  8 view         19.13       13.15 (+2.65)               14.35 (+4.26)
+```
+
+(Kolom PSNR per sudut saya potong di sini. Output lengkapnya dicetak oleh script.)
+
+![Pengaruh satu view tambahan](../img/third_view.png)
+
+**Dua cara ukur memberi pemenang yang berbeda, dan itu sendiri pelajarannya.**
+- **Dengan 8 sudut uji, view di 5 derajat terlihat paling menolong (+1,00 dB).** Tetapi kenaikannya hampir seluruhnya berasal dari dua sudut uji yang letaknya tepat di sebelahnya: di 10 derajat dari 10,23 menjadi 15,82 dB, dan di 22,5 derajat dari 15,97 menjadi 17,50 dB. Di enam sudut lainnya hampir tidak berubah.
+- **Dengan seluruh lingkaran, view di 5 derajat justru paling sedikit menolong (+0,27 dB).** Pemenangnya view di 135 derajat (+1,16 dB), lalu 180 (+0,99) dan 270 (+0,88). Semakin jauh view ketiga dari kelompok, semakin besar bagian lingkaran yang ikut membaik.
+
+Ini pitfall 12.3 dalam bentuk angka: foto yang hampir sama dengan foto yang sudah ada menambah jumlah, bukan sebaran. Kenaikannya hanya terasa di sudut yang sudah dekat dengan foto-foto lama. Ini juga mengulang pelajaran dari 22,5 derajat di bagian 3: memilih sudut uji yang kebetulan dekat dengan view latih bisa membalik kesimpulan, jadi pengukuran keliling lingkaran lebih bisa dipercaya.
+
+**Seberapa banyak yang pulih.** View ketiga terbaik (135 derajat) memulihkan sekitar 1,2 dari 4,3 dB selisih antara model 2 view dan model 8 view di seluruh lingkaran, jadi sekitar seperempatnya. Satu view hanya menolong di sekitar arahnya sendiri, karena model hanya bagus di dekat view latih (grafik di bagian 3). Untuk menutup seluruh lingkaran tetap dibutuhkan view yang tersebar merata.
+
+**Untuk capture HP saya sendiri.** Ke-28 foto patung kuda saya mengelilingi patung sekitar satu putaran (Fase 2), jadi sebarannya mirip model 8 view, bukan model 2 view. Celah antara foto terakhir dan foto pertama adalah bagian yang paling mungkin lemah kalau suatu saat direkonstruksi.

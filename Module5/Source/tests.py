@@ -151,9 +151,9 @@ def test_backward_matches_finite_difference():
 
 
 FROM_SCRATCH = ["ray_generator.py", "volume_render.py", "nerf_toy.py", "capture.py", "fit_nerf_toy.py",
-                "nerf_bug.py", "my_ray.py"]
+                "nerf_bug.py", "my_ray.py", "pitfall_fix.py"]
 ALLOWED_IMPORTS = {"numpy", "json", "os", "sys", "math", "__future__",
-                   "ray_generator", "volume_render", "nerf_toy", "capture", "fit_nerf_toy", "nerf_bug", "my_ray"}
+                   "ray_generator", "volume_render", "nerf_toy", "capture", "fit_nerf_toy", "nerf_bug", "my_ray", "pitfall_fix"}
 
 
 def test_numpy_only():
