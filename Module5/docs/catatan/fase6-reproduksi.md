@@ -34,6 +34,23 @@ Sesuai keputusan saya, kedua file sekarang di-commit persis seperti yang dihasil
 
 Keduanya di-commit sebagai hasil jadi, lengkap dengan script pembuatnya dan checksum sumbernya di `assets/LICENSE.md`. Dari sumber yang sama di laptop saya, script itu menghasilkan GLB yang identik byte per byte. Itu sudah dibuktikan di Fase 5.
 
-## 2. Clone dari GitHub dan uji perangkat
+## 2. Clone dari GitHub, 4 November 2026
 
-Bagian ini diisi setelah commit ini di-push.
+Setelah commit `e0e5cce` di-push, repo saya clone langsung dari `https://github.com/ZackyMaulana912/grafkom-pixel-to-reality.git` ke folder sementara, dengan `.venv` baru. Langkahnya sama dengan bagian 1, ditambah `requirements-verify.txt`:
+
+| Langkah | Hasil |
+|---|---|
+| `pip install -r requirements-verify.txt` (termasuk `requirements.txt`) | `pip freeze` sama persis dengan isi kedua file |
+| `capture.py`, `make_temple_glb.py` | 8 view, 5 hotspot |
+| `tests.py` | **ALL CHECKS PASSED (81 ok)** |
+| `fit_nerf_toy.py` | PSNR latih 20.32 dB, sudut baru 22,5° 14.85 dB |
+| `nerf_bug.py` | +2.66 dB |
+| `my_ray.py` | (-0.17634, -0.34145, -0.92321) |
+| `verify_ar_app.py` ke server `127.0.0.1:8746` | **ALL CHECKS PASSED (17 ok)** |
+| `git status` setelah semua langkah | **bersih**, tidak ada file yang berubah |
+
+Server sudah dimatikan dan folder clone sudah dihapus.
+
+**GitHub Pages:** `index.html`, `app.js`, `kuda.glb`, `amr23.glb`, `hotspots_kuda.json`, dan `hotspots_amr23.json` yang dilayani di https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html identik dengan isi clone (sha256 sama). `verify_ar_app.py` yang dijalankan langsung ke URL itu juga lolos 17 ok, tanpa error JavaScript (Fase 5).
+
+**Uji perangkat:** iPhone 17 Pro, iOS 27.2, Safari, Quick Look. Patung kuda menempel di permukaan, dan ukurannya terlihat sama dengan patung asli (`fase5-ar-app.md` bagian 12). Mobil F1 belum saya uji di HP.
