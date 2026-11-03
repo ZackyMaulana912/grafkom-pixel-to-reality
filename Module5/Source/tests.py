@@ -46,6 +46,42 @@ def test_volume_render():
     check_vec("E2 final pixel colour", final_color, (0.5, 0.25, 0.25))
 
 
+def test_ray_convention():
+    """One pixel convention for the whole module (K12): the batched rays go through pixel
+    centres (col + 0.5, row + 0.5) of the same scalar formula, nerf_toy has no copy of its
+    own, and a ray projected back with Module 3's formula lands on its pixel centre."""
+    import ray_generator
+    import nerf_toy
+    rng = np.random.default_rng(7)
+    worst_batch = worst_toy = worst_back = worst_origin = 0.0
+    for _ in range(20):
+        w, h = (int(n) for n in rng.integers(2, 30, size=2))
+        fx, fy = rng.uniform(5.0, 200.0, size=2)
+        cx, cy = rng.uniform(0.0, w), rng.uniform(0.0, h)
+        rot, _ = np.linalg.qr(rng.normal(size=(3, 3)))
+        pos = rng.normal(size=3)
+        origins, dirs = ray_generator.generate_rays(w, h, fx, fy, cx, cy, rot, pos)
+        for row, col in ((0, 0), (h - 1, w - 1), (h // 2, w // 3)):
+            d = rot @ ray_generator.pixel_to_camera_dir(col + 0.5, row + 0.5, fx, fy, cx, cy)
+            worst_batch = max(worst_batch, float(np.abs(dirs[row, col] - d / np.linalg.norm(d)).max()))
+            cam = rot.T @ dirs[row, col]  # back into camera space, then Module 3's projection
+            u, v = cx + fx * cam[0] / -cam[2], cy - fy * cam[1] / -cam[2]
+            worst_back = max(worst_back, abs(u - (col + 0.5)), abs(v - (row + 0.5)))
+        fov = rng.uniform(20.0, 100.0)
+        f = ray_generator.focal_from_fov(w, fov)
+        mine = ray_generator.generate_rays(w, h, f, f, w / 2.0, h / 2.0, rot, pos)
+        toy = nerf_toy.generate_rays(w, h, fov, pos, rot)
+        worst_toy = max(worst_toy, float(np.abs(mine[1] - toy[1]).max()), float(np.abs(mine[0] - toy[0]).max()))
+        worst_origin = max(worst_origin, float(np.abs(origins - pos).max()))
+    check("ray origins are the camera position (max abs diff)", worst_origin, 0.0, tol=0.0)
+    check("batched ray = scalar ray at the pixel centre (max abs diff)", worst_batch, 0.0, tol=1e-12)
+    check("ray projected back lands on its pixel centre (max px)", worst_back, 0.0, tol=1e-9)
+    check("nerf_toy.generate_rays = ray_generator.generate_rays (max abs diff)", worst_toy, 0.0, tol=0.0)
+    from volume_render import E2_DELTAS, E2_OPAQUE, E2_SIGMAS, alphas_of
+    check_vec("E2 alphas computed from sigma and delta", alphas_of(E2_SIGMAS, E2_DELTAS, E2_OPAQUE), (0.5, 0.5, 1.0),
+              tol=1e-12)
+
+
 def test_my_ray():
     """My own phone pixel (Lab 1 no 4): the program must match the by-hand numbers in
     docs/catatan/fase2-capture-ray.md, and the principal point must give the optical axis."""
@@ -126,6 +162,7 @@ def test_view_coverage_diagnose_and_fix():
 if __name__ == "__main__":
     test_ray_generator()
     test_volume_render()
+    test_ray_convention()
     test_my_ray()
     test_backward_matches_finite_difference()
     test_view_coverage_diagnose_and_fix()

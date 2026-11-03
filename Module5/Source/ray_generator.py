@@ -1,62 +1,68 @@
-"""The pinhole camera ray generator -- from scratch, NumPy only.
+"""Pinhole ray generation: Module 3's projection run backwards (NumPy only).
 
-Inverts Module 3's perspective projection: instead of taking a 3D point and
-projecting it to a pixel, we take a pixel and generate the 3D ray (origin +
-direction) that would have projected onto it. This is the camera model
-behind every NeRF pipeline.
+Module 3 sent a camera-space point (x, y, z) to the pixel
+    u = cx + f x / (-z),   v = cy - f y / (-z).
+Every point t * (x, y, z) with t > 0 lands on the same pixel, so a pixel only
+fixes a direction; the ray through it is origin + t * direction.
+
+Conventions for the whole module (fixed here once; nerf_toy.py and my_ray.py
+use these functions instead of their own copies):
+- Camera space is OpenGL / Module 3: +x right, +y up, the camera looks down -z,
+  and the image plane sits one focal length in front, at z = -1 in focal units.
+- (u, v) are continuous image coordinates in pixels: u grows to the right, v
+  grows DOWNWARD (row order), so the y term is negated. Pixel (col, row) covers
+  [col, col + 1) x [row, row + 1); its centre is (col + 0.5, row + 0.5).
+- pixel_to_camera_dir takes (u, v) exactly as given. generate_rays shoots one
+  ray through the centre of every pixel, i.e. it calls the same function with
+  (col + 0.5, row + 0.5). That half pixel is the only difference between them.
+- cam_to_world is a 3 x 3 rotation whose columns are the camera's +x, +y, +z
+  axes in world space; world directions are normalised before use.
+- Focal lengths and the principal point are in pixels.
 """
 from __future__ import annotations
 
 import numpy as np
 
 
-def pixel_to_camera_dir(u: float, v: float, fx: float, fy: float, cx: float, cy: float) -> np.ndarray:
-    """Direction (in *camera* space, not yet normalised) of the ray through
-    pixel (u, v), for a camera looking down -z with +x right, +y up (the
-    OpenGL / Module 3 convention). Image v grows downward, so the y term is
-    negated to flip into the up-is-positive camera frame.
+def pixel_to_camera_dir(u, v, fx, fy, cx, cy):
+    """Unnormalised camera-space direction through image point (u, v).
+
+    Works on scalars or on arrays of equal shape; the last axis of the result is xyz.
     """
+    u = np.asarray(u, dtype=float)
+    v = np.asarray(v, dtype=float)
     x = (u - cx) / fx
-    y = -(v - cy) / fy
-    z = -1.0
-    return np.array([x, y, z])
+    y = -(v - cy) / fy  # rows grow down, camera y grows up
+    return np.stack([x, y, -np.ones_like(x)], axis=-1)
 
 
-def camera_to_world_ray(origin_dir_cam: np.ndarray, cam_to_world: np.ndarray, cam_pos: np.ndarray):
-    """Rotate a camera-space direction into world space and pair it with the
-    camera's world position as the ray origin."""
-    direction_world = cam_to_world @ origin_dir_cam
-    return cam_pos.copy(), direction_world
+def camera_to_world_ray(dir_cam, cam_to_world, cam_pos):
+    """Rotate a camera-space direction into world space; the camera position is the origin."""
+    return np.array(cam_pos, dtype=float), cam_to_world @ dir_cam
 
 
-def generate_rays(width: int, height: int, fx: float, fy: float, cx: float, cy: float,
-                   cam_to_world: np.ndarray, cam_pos: np.ndarray):
-    """Return (origins, directions) arrays of shape (H, W, 3) -- one ray per
-    pixel, directions normalised."""
-    us, vs = np.meshgrid(np.arange(width) + 0.5, np.arange(height) + 0.5)
-    x = (us - cx) / fx
-    y = -(vs - cy) / fy
-    z = -np.ones_like(x)
-    dirs_cam = np.stack([x, y, z], axis=-1)                  # (H, W, 3)
-    dirs_world = dirs_cam @ cam_to_world.T                   # rotate each direction
-    dirs_world = dirs_world / np.linalg.norm(dirs_world, axis=-1, keepdims=True)
-    origins = np.broadcast_to(cam_pos, dirs_world.shape)
-    return origins, dirs_world
+def focal_from_fov(width, fov_deg):
+    """Focal length in pixels for a horizontal field of view across `width` pixels."""
+    return 0.5 * width / np.tan(np.radians(fov_deg) / 2.0)
+
+
+def generate_rays(width, height, fx, fy, cx, cy, cam_to_world, cam_pos):
+    """One ray per pixel centre: (origins, directions), each (height, width, 3),
+    directions in world space and normalised."""
+    cols, rows = np.meshgrid(np.arange(width) + 0.5, np.arange(height) + 0.5)
+    dirs = pixel_to_camera_dir(cols, rows, fx, fy, cx, cy) @ np.asarray(cam_to_world).T
+    dirs = dirs / np.linalg.norm(dirs, axis=-1, keepdims=True)
+    return np.broadcast_to(np.asarray(cam_pos, dtype=float), dirs.shape), dirs
 
 
 def running_example():
-    """Module 5 running example: f=100 px, principal point (320,240),
-    pixel (400,240), identity camera pose."""
-    fx = fy = 100.0
-    cx, cy = 320.0, 240.0
-    u, v = 400.0, 240.0
-    dir_cam = pixel_to_camera_dir(u, v, fx, fy, cx, cy)
-    norm_dir = dir_cam / np.linalg.norm(dir_cam)
-    return dir_cam, norm_dir
+    """E1: f = 100 px, principal point (320, 240), image point (400, 240), identity pose."""
+    dir_cam = pixel_to_camera_dir(400.0, 240.0, 100.0, 100.0, 320.0, 240.0)
+    return dir_cam, dir_cam / np.linalg.norm(dir_cam)
 
 
 if __name__ == "__main__":
     dir_cam, norm_dir = running_example()
-    print(f"pixel (400, 240), f=100, principal point (320, 240)")
+    print("pixel (400, 240), f=100, principal point (320, 240)")
     print(f"unnormalised camera-space direction = ({dir_cam[0]:.3f}, {dir_cam[1]:.3f}, {dir_cam[2]:.3f})")
     print(f"normalised direction                = ({norm_dir[0]:.3f}, {norm_dir[1]:.3f}, {norm_dir[2]:.3f})")

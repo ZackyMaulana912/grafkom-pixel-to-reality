@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import numpy as np
 
+import ray_generator
+
 
 # ---------------------------------------------------------------------------
 # Ground-truth analytic scene (the "real world" the synthetic cameras see)
@@ -77,17 +79,9 @@ def ring_camera(angle_deg: float, radius: float = 3.0, height: float = 1.0):
 # ---------------------------------------------------------------------------
 
 def generate_rays(width, height, fov_deg, cam_pos, c2w):
-    f = 0.5 * width / np.tan(np.radians(fov_deg) / 2.0)
-    cx, cy = width / 2.0, height / 2.0
-    us, vs = np.meshgrid(np.arange(width) + 0.5, np.arange(height) + 0.5)
-    x = (us - cx) / f
-    y = -(vs - cy) / f
-    z = -np.ones_like(x)
-    dirs_cam = np.stack([x, y, z], axis=-1)
-    dirs_world = dirs_cam @ c2w.T
-    dirs_world = dirs_world / np.linalg.norm(dirs_world, axis=-1, keepdims=True)
-    origins = np.broadcast_to(cam_pos, dirs_world.shape)
-    return origins, dirs_world
+    """One ray per pixel centre, through ray_generator.py (the only ray code in the module)."""
+    f = ray_generator.focal_from_fov(width, fov_deg)
+    return ray_generator.generate_rays(width, height, f, f, width / 2.0, height / 2.0, c2w, cam_pos)
 
 
 def sample_points(origins, dirs, near, far, n_samples):
