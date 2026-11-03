@@ -81,38 +81,14 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
   central-difference numerical gradient to `< 1e-6` (typically `~1e-11`).
   This is the from-scratch code's *own* "match a reference" check, standing
   in for matching an external autodiff library.
-- **View-coverage diagnose-and-fix** -- training a voxel grid on 8 views
-  spread around the full ring beats training on 2 views clustered `20 deg`
-  apart by `> 1 dB` PSNR on the *same* held-out novel view (typically
-  `+2.7 dB`), even though the 2-view grid fits its own (fewer) training
-  views about as well.
+- **View-coverage regression** -- the 8-view grid must beat the 2-view grid by
+  `> 1 dB` PSNR on one held-out novel view (190 deg).
 
 ## Notes on fixes applied while verifying
 
-- **`sigma_raw` initialised at `-5.0` (an "empty" starting scene) silently
-  stalled training.** `softplus'(x) = sigmoid(x)`, and `sigmoid(-5) ~ 0.0067`
-  -- the density gradient was crushed by that factor from the very first
-  step, so 300 iterations barely moved the loss (`0.1107 -> 0.1100`).
-  Re-initialising at `sigma_raw = 0` (density `ln 2`, a neutral "half-there"
-  start) fixed it immediately (loss `0.137 -> 0.009` over 800 iterations).
-  Kept as a named pitfall in `Module5_EN.tex` -- exactly the kind of "the
-  gradient exists in principle but is numerically dead" bug this course's
-  diagnose-and-fix doctrine is meant to catch.
-- **The first view-coverage comparison used the same novel angle
-  (`22.5 deg`) for both the 2-view and 8-view models** and found the
-  *2-view* model generalised *better* -- the opposite of the intended
-  lesson. Root cause: `22.5 deg` is only `2.5 deg` from the 2-view cluster's
-  second view (`20 deg`) -- an easy near-interpolation for that model -- while
-  it is a harder `22.5 deg` from the nearest of the 8 spread views. Fixed by
-  evaluating both models on a novel angle (`190 deg`) chosen to be far from
-  the clustered pair; the intended effect (spread views generalise better)
-  then appears consistently across several tested novel angles.
-- The analytic backward pass (`backward_grid`) was derived by hand from the
-  compositing formula and got the **suffix-sum term** right on the first
-  full implementation, confirmed immediately by the finite-difference check
-  in `tests.py` (`max err ~3e-11`) -- included here as the honest exception
-  to "here is what broke," since MASTER Sec 9.6 asks for this section either
-  way.
+Moved, word for word, to `../docs/catatan/fase4-view-coverage-pitfall.md` (decision
+K14): they explain the outcome of the view-coverage task, which has to be diagnosed
+from the evidence first.
 
 ## Known deviations from the course plan
 
