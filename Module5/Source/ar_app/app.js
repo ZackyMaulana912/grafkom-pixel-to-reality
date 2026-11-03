@@ -93,6 +93,9 @@
     button.dataset.position = hotspot.position.join(" ");
     button.dataset.normal = hotspot.normal.join(" ");
     button.textContent = "+";
+    // ask <model-viewer> to mark this button with data-visible while its normal faces the camera;
+    // without it the button is only dimmed when hidden and can still be tapped (style.css)
+    button.dataset.visibilityAttribute = "visible";
     button.setAttribute("aria-label", hotspot.name_en);
 
     const label = document.createElement("div");
@@ -138,9 +141,14 @@
   modelToggle.addEventListener("click", () => {
     model = model === "horse" ? "temple" : "horse";
     modelToggle.textContent = `Model: ${model}`;
+    // model-viewer puts the camera back to the camera-orbit attribute when a new model loads,
+    // so the new model's camera is set once that load has finished
+    viewer.addEventListener("load", () => {
+      viewer.cameraOrbit = MODELS[model].orbit;
+      viewer.jumpCameraToGoal();
+    }, { once: true });
     viewer.src = MODELS[model].src;
     viewer.alt = MODELS[model].alt;
-    viewer.cameraOrbit = MODELS[model].orbit;
     hideInfo();
     quizScore = { correct: 0, attempts: 0 };
     loadHotspots();

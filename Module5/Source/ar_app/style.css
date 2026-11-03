@@ -77,8 +77,9 @@ model-viewer {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
-/* model-viewer hotspot slots: a small labelled disc, hidden gracefully when
-   occluded (model-viewer toggles the `data-visibility-attribute` target). */
+/* model-viewer hotspot slots: a small labelled disc. model-viewer only toggles
+   `data-visible` on a hotspot that asks for it with data-visibility-attribute="visible"
+   (app.js sets it); it decides from the hotspot's normal alone. */
 .hotspot {
   display: flex;
   align-items: center;
@@ -96,7 +97,8 @@ model-viewer {
   padding: 0;
 }
 
-.hotspot.hidden { display: none; }
+/* turned away from the camera: model-viewer dims it; it must not take taps either */
+.hotspot:not([data-visible]) { pointer-events: none; }
 
 .hotspot:focus { outline: 3px solid #ffd08a; }
 

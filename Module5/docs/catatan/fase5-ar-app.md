@@ -131,9 +131,9 @@ Dari 76 sudut × 5 hotspot = 380 keputusan, 11 tidak cocok dengan geometri, dan 
 | kepala | tidak ada | tidak ada |
 | ekor | tidak ada | tidak ada |
 
-![Kamera di 255 derajat: hotspot kaki tampil di tengah badan, padahal kakinya ada di sisi lain](../img/occlusion_kaki_255.png)
+![Kamera di 255 derajat: hotspot kaki tampil di tengah badan, padahal kakinya ada di sisi lain](../img/occlusion_kaki_255_sebelum.png)
 
-![Kamera di 70 derajat: hotspot surai tampil padahal tertutup leher](../img/occlusion_surai_70.png)
+![Kamera di 70 derajat: hotspot surai tampil padahal tertutup leher](../img/occlusion_surai_70_sebelum.png)
 
 ### Prediksi vs hasil
 
@@ -161,3 +161,63 @@ Dari 76 sudut × 5 hotspot = 380 keputusan, 11 tidak cocok dengan geometri, dan 
 `ar_app/occlusion.py` juga ikut dicek larangan import selain NumPy.
 
 Perbaikannya (hotspot redup yang masih bisa diketuk, dan normal hotspot kaki serta surai) saya kerjakan di commit berikutnya, terpisah dari hasil uji ini.
+
+## 6. Perbaikan occlusion hotspot
+
+Hasil uji di bagian 5 menunjukkan dua masalah: hotspot yang tersembunyi masih bisa diketuk, dan hotspot kaki serta surai tampil saat tertutup. Keduanya saya perbaiki di sini, lalu diukur ulang dengan alat uji yang sama.
+
+### (a) Hotspot tersembunyi tidak bisa diketuk lagi
+
+`app.js` sekarang memasang `data-visibility-attribute="visible"` pada setiap tombol hotspot. Dengan itu, `<model-viewer>` memasang atribut `data-visible` saat normal hotspot menghadap kamera, dan mencabutnya saat membelakangi. Di `style.css`, aturan lama `.hotspot.hidden { display: none; }` yang tidak pernah aktif saya ganti dengan `.hotspot:not([data-visible]) { pointer-events: none; }`. Hotspot yang tersembunyi tetap terlihat samar (redup dari `<model-viewer>`), tetapi ketukan diteruskan ke model. Pengguna masih bisa memutar model dari situ dan tidak membuka panel bagian yang ada di balik patung.
+
+Perbaikan ini memunculkan satu bug dari commit 12 milik saya sendiri. Setelah tombol Model ditekan, kamera candi (`35deg 75deg 1.2m`) tidak pernah dipakai, karena `<model-viewer>` mengembalikan kamera ke atribut `camera-orbit` halaman setiap kali model baru dimuat. Di polar 80 derajat, normal hotspot stupa (lurus ke atas) sedikit membelakangi kamera. Selama hotspot tersembunyi masih bisa diketuk, bug ini tidak terlihat. Sekarang `app.js` memasang kamera model baru setelah event `load`.
+
+`verify_ar_app.py` mendapat dua check baru (total **14 ok**):
+- **dari belakang**, semua hotspot kuda tersembunyi, dan mengetuk salah satunya tidak membuka panel apa pun. Check ini gagal kalau baris `data-visibility-attribute` dibuang dari `app.js`;
+- **tombol Model juga memindah kamera** ke posisi candi (polar 75 derajat). Check ini gagal dengan `app.js` versi commit 12: polarnya tetap 80 derajat.
+
+### (b) Normal yang dipilih untuk visibilitas, bukan sekadar normal permukaan
+
+Bagi `<model-viewer>`, normal hotspot hanya dipakai untuk satu hal: menentukan dari arah mana hotspot dianggap terlihat. Jadi normal itu boleh dipilih supaya tes dot `<model-viewer>` sesuai dengan occlusion yang sebenarnya.
+
+`occlusion.py --tune` melakukan itu untuk setiap hotspot:
+1. Mencoba sekitar 4000 arah yang tersebar rata di bola, dibatasi paling jauh 75 derajat dari normal permukaan.
+2. Untuk setiap arah, menghitung berapa kali tes dot salah dibanding kebenaran ray, pada **288 kamera latih**: polar 40, 60, 80, dan 95 derajat, azimuth 2,5; 7,5; 12,5; ... derajat.
+3. Memilih arah dengan kesalahan paling sedikit. Kalau seri, normal permukaan yang dipakai.
+
+Kamera latih itu sengaja tidak ada yang sama dengan kamera uji browser (polar 75 dan 25 derajat, azimuth kelipatan 5 derajat), supaya uji browser tetap jujur dan normalnya tidak "menghafal" sudut uji. Normal permukaan asli tetap disimpan sebagai `surface_normal` di `hotspots_kuda.json`.
+
+Untuk kaki, satu arah normal tidak cukup: kesalahannya hanya turun dari 20 menjadi 17 di kamera latih. Titik di sisi dalam kaki yang terangkat memang terlihat dari depan, tetapi terhalang badan dari sisi ekor, dan pola seperti itu tidak bisa dibagi dengan satu bidang. Karena itu saya mencari **titik lain di kaki yang sama**. Saya mencoba 109 titik bidik di daerah kaki terangkat, ray dari depan seperti `scan_to_glb.py`. Titik di sisi luar kaki, bidikan `(0,94; 0,62)`, hanya 1,8 cm dari titik lama, punya **0 kesalahan** di semua kamera latih, bahkan dengan normal permukaannya sendiri. Bidikan di `tools/kuda_hotspot_text.json` saya ganti ke titik itu, `scan_to_glb.py` dijalankan ulang (`kuda.glb` tetap identik byte per byte, hanya hotspot yang berubah), lalu `occlusion.py --tune`.
+
+| Hotspot | Kesalahan di 288 kamera latih: normal permukaan → normal terpilih | Normal bergeser |
+|---|---|---|
+| alas | 5 → 1 | 7 derajat |
+| surai | 24 → 10 | 30 derajat |
+| kaki (titik baru) | 0 → 0 | 0 derajat |
+| kepala | 0 → 0 | 0 derajat |
+| ekor | 0 → 0 | 0 derajat |
+
+### Hasil di uji browser (kamera uji yang tidak dipakai memilih)
+
+`verify_ar_app.py --occlusion`, dijalankan dua kali dengan hasil identik:
+
+| | Sebelum (commit 14) | Sesudah |
+|---|---|---|
+| keputusan yang tidak cocok dengan geometri, dari 380 | 11 | **1** |
+| tampil padahal tertutup bagian lain | 7 (kaki 4; surai 3: 70 derajat dan dua dari atas) | **0** |
+| hampir menyamping | 4 | 1 (surai di 255 derajat, dot +0,08) |
+| disembunyikan padahal terlihat | 0 | 0 |
+| hotspot redup bisa diketuk | ya | **tidak** |
+
+![Sesudah: kamera di 255 derajat, hotspot kaki ikut redup](../img/occlusion_kaki_255.png)
+
+`tests.py` (**73 ok**) sekarang juga mengecek bahwa normal di `hotspots_kuda.json` memang hasil `occlusion.py --tune`. Kalau model atau titik bidik diubah tanpa menjalankan ulang langkah itu, test gagal.
+
+**Urutan membuat ulang aset kuda:**
+1. `photogrammetry.swift` (dari foto ke scan);
+2. `scan_to_glb.py` di Blender (scan ke `kuda.glb` dan posisi hotspot);
+3. `occlusion.py --tune` (normal hotspot).
+
+**Keterbatasan:**
+- Normal terpilih bergantung pada posisi kamera otomatis `<model-viewer>` (target dan jarak yang dilaporkannya). Di AR sungguhan kamera bisa berada di mana saja, misalnya jauh lebih dekat, jadi hasilnya mungkin sedikit berbeda.
+- Surai masih punya 10 kesalahan di kamera latih. Di kamera uji browser hanya tersisa satu kasus hampir menyamping, tetapi di sudut lain kesalahan itu tetap bisa muncul.

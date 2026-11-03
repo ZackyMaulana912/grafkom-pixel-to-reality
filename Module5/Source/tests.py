@@ -385,6 +385,13 @@ def test_occlusion_truth():
     check(f"real mesh ({len(tris)} triangles): pedestal hotspot visible from the front, hidden from behind",
           float(occlusion.is_visible(alas["position"], alas["normal"], front, tris)
                 and not occlusion.is_visible(alas["position"], alas["normal"], back, tris)), 1.0, tol=0)
+    # the normals in hotspots_kuda.json are the ones occlusion.py --tune chooses (the file is not stale)
+    with open(os.path.join(sys_path, "assets", "hotspots_kuda.json")) as f:
+        spots = json.load(f)["hotspots"]
+    cams = occlusion.tune_cameras()
+    worst = max(float(np.abs(occlusion.tune_normal(h["position"], h["surface_normal"], tris, cams)[0]
+                             - np.array(h["normal"])).max()) for h in spots)
+    check("hotspot normals are the ones occlusion.py --tune picks (max abs diff)", worst, 0.0, tol=1e-4)
 
 
 def test_view_coverage_diagnose_and_fix():

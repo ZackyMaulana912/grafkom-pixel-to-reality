@@ -24,6 +24,11 @@
         0.0698
       ],
       "normal": [
+        0.0019,
+        -0.0921,
+        0.9958
+      ],
+      "surface_normal": [
         -0.0289,
         0.0335,
         0.999
@@ -41,6 +46,11 @@
         -0.0101
       ],
       "normal": [
+        -0.3675,
+        -0.2537,
+        0.8948
+      ],
+      "surface_normal": [
         -0.1804,
         0.2236,
         0.9578
@@ -53,14 +63,19 @@
       "text_en": "Thin legs held up in the air, with empty space behind them, can only be rebuilt when the photos see them from many sides; these came out whole because my photos went all the way around. From some angles the legs cover part of the body, and model-viewer dims any hotspot that ends up behind the model.",
       "text_id": "Kaki tipis yang terangkat dengan ruang kosong di belakangnya hanya bisa dibangun ulang kalau difoto dari banyak sisi; kaki ini utuh karena foto saya mengelilingi patung. Dari sudut tertentu kaki ini menutupi sebagian badan, dan model-viewer meredupkan hotspot yang berada di belakang model.",
       "position": [
-        0.184,
+        0.2024,
         0.384,
-        0.0572
+        0.0611
       ],
       "normal": [
-        -0.432,
-        -0.3596,
-        0.8271
+        0.1189,
+        0.0222,
+        0.9927
+      ],
+      "surface_normal": [
+        0.1189,
+        0.0222,
+        0.9927
       ]
     },
     {
@@ -75,6 +90,11 @@
         0.0547
       ],
       "normal": [
+        -0.004,
+        -0.3819,
+        0.9242
+      ],
+      "surface_normal": [
         -0.004,
         -0.3819,
         0.9242
@@ -95,7 +115,13 @@
         -0.5436,
         -0.2127,
         0.8119
+      ],
+      "surface_normal": [
+        -0.5436,
+        -0.2127,
+        0.8119
       ]
     }
-  ]
+  ],
+  "normals": "chosen by occlusion.py --tune so model-viewer's normal test matches the real occlusion; surface_normal is the face normal where the placement ray hit"
 }

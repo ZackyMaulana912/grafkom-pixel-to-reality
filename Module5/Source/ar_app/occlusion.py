@@ -66,3 +66,75 @@ def is_visible(point, normal, camera, tris):
     t = np.einsum("ij,ij->i", e2, q) * inv
     hit = ok & (u >= 0) & (v >= 0) & (u + v <= 1) & (t > 1e-6) & (t < dist)
     return not bool(hit.any())
+
+
+# --- choosing better normals ---------------------------------------------------------------
+# <model-viewer> shows a hotspot whenever dot(normal, direction to camera) >= 0. The normal the
+# ray-cast placement gives is the face normal at the hit point, and on a curved part it can lean
+# towards a side from which the point is blocked (the raised foreleg leans towards the tail).
+# The normal only steers visibility, so it may be any direction that makes the dot test agree
+# with the real occlusion as often as possible. It is chosen on TUNE cameras that are disjoint
+# from the cameras the browser test uses (verify_ar_app.py --occlusion: polar 75 and 25 deg,
+# azimuth on multiples of 5 deg), so the browser test stays a fair check.
+
+TARGET = (0.0, 0.3086, 0.0)   # <model-viewer>'s automatic camera target and radius for kuda.glb,
+RADIUS = 1.572                # as reported by getCameraTarget() / getCameraOrbit()
+TUNE_POLAR_DEG = (40.0, 60.0, 80.0, 95.0)
+TUNE_AZIMUTH_DEG = np.arange(2.5, 360.0, 5.0)
+MAX_TILT_DEG = 75.0           # keep the chosen normal within this angle of the surface normal
+
+
+def tune_cameras():
+    return [camera_position(np.radians(t), np.radians(p), RADIUS, TARGET)
+            for p in TUNE_POLAR_DEG for t in TUNE_AZIMUTH_DEG]
+
+
+def _sphere(n=4000):
+    """n nearly even directions on the unit sphere (Fibonacci lattice), deterministic."""
+    i = np.arange(n) + 0.5
+    z = 1 - 2 * i / n
+    r = np.sqrt(1 - z * z)
+    phi = np.pi * (1 + 5 ** 0.5) * i
+    return np.stack([r * np.cos(phi), r * np.sin(phi), z], axis=1)
+
+
+def tune_normal(point, surface_normal, tris, cameras):
+    """The direction whose dot test best matches the real visibility over `cameras`.
+
+    Returns (normal, mismatches before, mismatches after, number of cameras)."""
+    point, surface_normal = np.asarray(point, float), np.asarray(surface_normal, float)
+    truth = np.array([is_visible(point, surface_normal, c, tris) for c in cameras])
+    dirs = np.array([c - point for c in cameras])
+    dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
+    cand = _sphere()
+    cand = cand[cand @ surface_normal >= np.cos(np.radians(MAX_TILT_DEG))]
+    cand = np.vstack([surface_normal, cand])  # the surface normal itself competes and wins ties
+    errors = ((cand @ dirs.T >= 0) != truth).sum(axis=1)
+    best = int(np.argmin(errors))
+    return cand[best], int(errors[0]), int(errors[best]), len(cameras)
+
+
+def tune_hotspot_file(path=os.path.join(HERE, "assets", "hotspots_kuda.json")):
+    """Rewrite the normals of a hotspot file in place; the face normal is kept as surface_normal."""
+    with open(path) as f:
+        data = json.load(f)
+    tris, cameras = load_mesh(), tune_cameras()
+    for h in data["hotspots"]:
+        surface = h.get("surface_normal", h["normal"])
+        normal, before, after, n = tune_normal(h["position"], surface, tris, cameras)
+        h["surface_normal"] = surface
+        h["normal"] = [round(float(c), 4) for c in normal]
+        tilt = np.degrees(np.arccos(np.clip(np.dot(normal, surface) / np.linalg.norm(surface), -1, 1)))
+        print(f"{h['id']:7s} mismatches on {n} tune cameras: {before:3d} -> {after:3d}, "
+              f"normal {h['normal']} ({tilt:.0f} deg from the surface normal)")
+    data["normals"] = ("chosen by occlusion.py --tune so model-viewer's normal test matches the real occlusion; "
+                       "surface_normal is the face normal where the placement ray hit")
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+if __name__ == "__main__":
+    import sys
+    if "--tune" in sys.argv[1:]:
+        tune_hotspot_file()

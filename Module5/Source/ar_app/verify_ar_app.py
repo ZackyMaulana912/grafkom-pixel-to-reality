@@ -179,6 +179,18 @@ def main():
         check(f"language toggle changes the panel text ('{title}' -> '{title_id}')", title != title_id)
 
         page.click("#info-close")
+        # from behind, every horse hotspot faces away: dimmed by model-viewer, and taps must not reach it
+        page.evaluate("""async () => { const v = document.querySelector('model-viewer');
+            v.interactionPrompt = 'none'; v.cameraOrbit = '180deg 75deg auto'; await v.updateComplete; v.jumpCameraToGoal(); }""")
+        page.wait_for_timeout(800)
+        dimmed = page.evaluate("[...document.querySelectorAll('.hotspot')].every(h => !h.hasAttribute('data-visible'))")
+        page.click("button[slot='hotspot-alas']", force=True)  # force: click there even though it is not tappable
+        page.wait_for_timeout(300)
+        check("from behind every hotspot is hidden and tapping one opens nothing",
+              dimmed and page.evaluate("document.getElementById('info-panel').hidden"))
+        page.evaluate("""async () => { const v = document.querySelector('model-viewer');
+            v.cameraOrbit = '0deg 80deg auto'; await v.updateComplete; v.jumpCameraToGoal(); }""")
+        page.wait_for_timeout(800)
         page.click("#quiz-toggle")
         page.wait_for_timeout(300)
         quiz_target = page.inner_text("#quiz-target")
@@ -192,6 +204,10 @@ def main():
         page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/pusaka_temple.glb')"
                                " && document.querySelector('model-viewer').loaded"
                                " && document.querySelectorAll('.hotspot').length === 5", timeout=15000)
+        page.wait_for_timeout(1500)  # the temple's camera is set when its model has loaded
+        phi = page.evaluate("document.querySelector('model-viewer').getCameraOrbit().phi * 180 / Math.PI")
+        check(f"model switch also moves the camera to the temple's own view (polar {phi:.1f} deg, want 75)",
+              abs(phi - 75.0) < 0.5)
         page.click("button[slot='hotspot-stupa']")
         page.wait_for_timeout(300)
         check(f"model switch loads the temple with its own 5 hotspots ('{page.inner_text('#info-title')}')",
