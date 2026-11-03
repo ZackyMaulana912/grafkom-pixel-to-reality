@@ -26,7 +26,8 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-BASE_URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8743"
+URLS = [a for a in sys.argv[1:] if not a.startswith("--")]
+BASE_URL = URLS[0] if URLS else "http://localhost:8743"
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCREENSHOT_DIR = os.path.join(HERE, "screenshots")
 
@@ -39,6 +40,98 @@ def check(name, condition):
     print(f"[{status}] {name}")
     assert condition, f"failed: {name}"
     _checks += 1
+
+
+ORBITS = [(float(t), 75.0) for t in range(0, 360, 5)] + [(float(t), 25.0) for t in (0, 90, 180, 270)]
+
+
+def occlusion_sweep():
+    """Lab 3 no 2 test: turn the camera around the horse and compare, for every hotspot, what
+    <model-viewer> shows (its opacity) with the geometric truth from occlusion.py."""
+    import numpy as np
+    import occlusion
+    tris = occlusion.load_mesh()
+    rows = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"])
+        page = browser.new_page(viewport={"width": 390, "height": 800})
+        page.goto(f"{BASE_URL}/index.html", wait_until="networkidle", timeout=30000)
+        page.wait_for_function("document.querySelector('model-viewer').loaded"
+                               " && document.querySelectorAll('.hotspot').length === 5", timeout=30000)
+        spots = {h["id"]: h for h in page.evaluate("fetch('assets/hotspots_kuda.json').then(r => r.json())")["hotspots"]}
+        # the idle "interaction prompt" wiggles the camera a few degrees; switch it off for measuring only
+        page.evaluate("document.querySelector('model-viewer').interactionPrompt = 'none'")
+        for theta, phi in ORBITS:
+            state = page.evaluate("""async ([t, p]) => {
+                const v = document.querySelector('model-viewer');
+                const want = [t * Math.PI / 180, p * Math.PI / 180];
+                const off = () => { const o = v.getCameraOrbit();
+                    return Math.max(Math.abs(Math.atan2(Math.sin(o.theta - want[0]), Math.cos(o.theta - want[0]))),
+                                    Math.abs(o.phi - want[1])); };
+                // set the goal, jump, and wait until the camera really sits there (retry if it does not)
+                for (let attempt = 0; attempt < 3 && off() > 1e-4; attempt++) {
+                    v.cameraOrbit = `${t}deg ${p}deg auto`;
+                    await v.updateComplete;
+                    v.jumpCameraToGoal();
+                    for (let i = 0; i < 100 && off() > 1e-4; i++) await new Promise(r => setTimeout(r, 50));
+                }
+                // <model-viewer> refreshes hotspot visibility while it renders; give it time to do so
+                for (let i = 0; i < 6; i++) await new Promise(r => requestAnimationFrame(r));
+                await new Promise(r => setTimeout(r, 300));
+                const o = v.getCameraOrbit(), g = v.getCameraTarget();
+                return {orbit: [o.theta, o.phi, o.radius], target: [g.x, g.y, g.z], reached: off() <= 1e-4,
+                        shown: Object.fromEntries([...document.querySelectorAll('.hotspot')].map(
+                            h => [h.slot.replace('hotspot-', ''), parseFloat(getComputedStyle(h).opacity)]))};
+            }""", [theta, phi])
+            if not state["reached"]:
+                raise SystemExit(f"camera did not reach {theta}/{phi} deg; refusing to label a wrong angle")
+            cam = occlusion.camera_position(*state["orbit"], state["target"])
+            for sid, h in spots.items():
+                to_cam = cam - np.array(h["position"])
+                facing = float(np.dot(to_cam / np.linalg.norm(to_cam), h["normal"]))  # what <model-viewer> tests
+                rows.append((theta, phi, sid, state["shown"][sid] > 0.5,
+                             occlusion.is_visible(h["position"], h["normal"], cam, tris), facing))
+        docs_img = os.path.join(HERE, "..", "..", "docs", "img")
+        for theta, name in ((255, "occlusion_kaki_255.png"), (70, "occlusion_surai_70.png")):
+            page.evaluate("""async (t) => { const v = document.querySelector('model-viewer');
+                v.cameraOrbit = `${t}deg 75deg auto`; await v.updateComplete; v.jumpCameraToGoal(); }""", theta)
+            page.wait_for_timeout(600)
+            page.screenshot(path=os.path.join(docs_img, name), clip={"x": 0, "y": 80, "width": 390, "height": 620})
+        # is a dimmed hotspot still clickable? (from behind every hotspot is dimmed)
+        page.evaluate("""async () => { const v = document.querySelector('model-viewer');
+            v.cameraOrbit = '180deg 75deg auto'; await v.updateComplete; v.jumpCameraToGoal(); }""")
+        page.wait_for_timeout(400)
+        opacity = page.evaluate("parseFloat(getComputedStyle(document.querySelector(\"button[slot='hotspot-alas']\")).opacity)")
+        page.click("button[slot='hotspot-alas']", force=True)
+        page.wait_for_timeout(300)
+        clicked = not page.evaluate("document.getElementById('info-panel').hidden")
+        browser.close()
+    return rows, opacity, clicked
+
+
+GRAZING = 0.1  # below this the surface is nearly edge-on and a hair of difference flips the answer
+
+
+def print_occlusion(rows, opacity, clicked):
+    ids = ["alas", "surai", "kaki", "kepala", "ekor"]
+    print("angle  phi   " + "  ".join(f"{i:>6s}" for i in ids) + "    (shown/true: V visible, - hidden, ! wrong)")
+    by_angle = {}
+    for theta, phi, sid, shown, true, facing in rows:
+        by_angle.setdefault((theta, phi), {})[sid] = (shown, true, facing)
+    wrong = {i: [] for i in ids}
+    for (theta, phi), d in by_angle.items():
+        cells = []
+        for i in ids:
+            shown, true, facing = d[i]
+            cells.append(("V" if shown else "-") + ("V" if true else "-") + ("!" if shown != true else " "))
+            if shown != true:
+                kind = "grazing" if abs(facing) < GRAZING else ("shown but blocked" if shown else "hidden but visible")
+                wrong[i].append((theta, phi, f"{kind} ({facing:+.2f})"))
+        print(f"{theta:5.0f}  {phi:4.0f}   " + "  ".join(f"{c:>6s}" for c in cells))
+    print(f"mismatches per hotspot (in brackets: normal . direction to camera; 'grazing' = |value| < {GRAZING}):")
+    for i in ids:
+        print(f"  {i:7s} {len(wrong[i]):2d}  " + ", ".join(f"{t:.0f}/{p:.0f} {w}" for t, p, w in wrong[i]))
+    print(f"a dimmed hotspot seen from behind: opacity {opacity}, clicking it opens the panel: {clicked}")
 
 
 def main():
@@ -113,5 +206,7 @@ def main():
           "Scene Viewer/Quick Look handoff needs a real phone -- see README.md.")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and "--occlusion" in sys.argv[1:]:
+    print_occlusion(*occlusion_sweep())
+elif __name__ == "__main__":
     main()

@@ -151,8 +151,8 @@ def test_backward_matches_finite_difference():
 
 
 FROM_SCRATCH = ["ray_generator.py", "volume_render.py", "nerf_toy.py", "capture.py", "fit_nerf_toy.py",
-                "nerf_bug.py", "my_ray.py", "pitfall_fix.py"]
-ALLOWED_IMPORTS = {"numpy", "json", "os", "sys", "math", "__future__",
+                "nerf_bug.py", "my_ray.py", "pitfall_fix.py", "ar_app/occlusion.py"]
+ALLOWED_IMPORTS = {"numpy", "json", "os", "sys", "math", "struct", "__future__",
                    "ray_generator", "volume_render", "nerf_toy", "capture", "fit_nerf_toy", "nerf_bug", "my_ray", "pitfall_fix"}
 
 
@@ -361,6 +361,32 @@ def test_ar_assets():
           float(not missing and len(covered) == 3), 1.0, tol=0)
 
 
+def test_occlusion_truth():
+    """The ground truth behind the hotspot-occlusion test: a triangle in the way blocks, a surface
+    turned away never counts as visible, and on the real horse the pedestal hotspot is visible from
+    the front but not from behind."""
+    import os
+    sys_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ar_app")
+    import sys
+    sys.path.insert(0, sys_path)
+    import occlusion
+    wall = np.array([[[-1.0, -1.0, 1.0], [1.0, -1.0, 1.0], [0.0, 1.0, 1.0]]])
+    check("a triangle between point and camera blocks it", float(occlusion.is_visible([0, 0, 0], [0, 0, 1],
+                                                                                        [0, 0, 5], wall)), 0.0, tol=0)
+    check("nothing in between: visible", float(occlusion.is_visible([0, 0, 0], [0, 0, 1], [5, 0, 1], wall)), 1.0, tol=0)
+    check("a surface turned away from the camera is never visible",
+          float(occlusion.is_visible([0, 0, 0], [0, 0, 1], [0, 0, -5], wall[:0])), 0.0, tol=0)
+    import json
+    tris = occlusion.load_mesh()
+    with open(os.path.join(sys_path, "assets", "hotspots_kuda.json")) as f:
+        alas = json.load(f)["hotspots"][0]
+    front = occlusion.camera_position(0.0, np.radians(75), 1.5, [0, 0.31, 0])
+    back = occlusion.camera_position(np.pi, np.radians(75), 1.5, [0, 0.31, 0])
+    check(f"real mesh ({len(tris)} triangles): pedestal hotspot visible from the front, hidden from behind",
+          float(occlusion.is_visible(alas["position"], alas["normal"], front, tris)
+                and not occlusion.is_visible(alas["position"], alas["normal"], back, tris)), 1.0, tol=0)
+
+
 def test_view_coverage_diagnose_and_fix():
     result = nerf_bug.diagnose_and_fix()
     gap = result["fixed_novel_psnr"] - result["buggy_novel_psnr"]
@@ -381,5 +407,6 @@ if __name__ == "__main__":
     test_capture_files()
     test_numpy_only()
     test_ar_assets()
+    test_occlusion_truth()
     test_view_coverage_diagnose_and_fix()
     print(f"\nALL CHECKS PASSED ({_checks} ok)")

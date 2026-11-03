@@ -96,3 +96,68 @@ Rusak dengan sengaja di salinan sementara, ketiganya gagal:
 | hotspot surai digeser 2 cm keluar dari permukaan | gagal: jarak ke mesh 1,8 cm |
 
 Uji di HP (sesi AR sungguhan) belum dilakukan. Itu langkah terakhir Fase 5, dan saya sendiri yang mengujinya.
+
+## 5. Uji occlusion hotspot, setelah prediksi di-commit (Lab 3 no 2)
+
+Prediksi di-commit di `24bd4c0` (3 November 2026, 20.05). Baru setelah itu alat ujinya dibuat dan dijalankan.
+
+### Cara uji
+
+- **Yang ditampilkan `<model-viewer>`:** `verify_ar_app.py --occlusion` memutar kamera setiap 5 derajat di sekeliling kuda pada polar 75 derajat (72 sudut), ditambah 4 sudut dari atas (polar 25 derajat). Di setiap sudut, dicatat opacity tiap hotspot di browser: 1 berarti tampil, 0,25 berarti diredupkan.
+- **Kebenaran geometri** (`ar_app/occlusion.py`, NumPy saja). Hotspot dianggap benar-benar terlihat kalau dua syarat terpenuhi:
+  1. permukaan tempatnya menghadap kamera;
+  2. ray dari hotspot ke posisi kamera tidak menabrak satu pun dari 105.665 segitiga mesh.
+- **Tiga kesalahan alat uji yang saya temukan dan perbaiki sebelum percaya hasilnya:**
+  - **Titik awal ray.** Awalnya titik awal ray diangkat 2 mm dari permukaan, tanpa syarat 1. Di sudut yang hampir menyamping, ray dari titik yang diangkat itu bisa lolos dari tepi bagian tipis seperti ekor, sehingga titik yang membelakangi kamera dihitung terlihat. Sekarang angkatannya 0,1 mm dan syarat 1 diberlakukan.
+  - **Waktu membaca.** Awalnya status hotspot dibaca terlalu cepat setelah kamera dipindah. Di sudut atas, `<model-viewer>` belum sempat memperbarui status hotspot, sehingga beberapa hotspot tercatat tampil padahal normalnya jelas membelakangi kamera (nilai -0,27 sampai -0,52), dan itu mustahil menurut kodenya sendiri. Sekarang alat uji menunggu sampai kamera tepat di sudut tujuan, lalu 6 frame dan 300 ms lagi.
+  - **Kamera yang bergoyang sendiri.** Run konfirmasi ternyata tidak identik dengan run sebelumnya. Penyebabnya *interaction prompt* `<model-viewer>`: selama pengguna belum menyentuh model, kamera digoyang beberapa derajat sebagai petunjuk bahwa model bisa diputar. Kamera tidak pernah tepat di sudut yang diminta, dan alat uji yang diperketat (kamera wajib sampai di sudut tujuan, kalau tidak berhenti) tidak pernah bisa melewati sudut 15 derajat. Untuk pengukuran, prompt itu dimatikan lewat alat uji saja. AR app-nya tidak diubah.
+- Setelah tiga perbaikan itu, dua run berturut-turut memberi hasil yang identik, dan kamera terbukti berada tepat di setiap sudut (selisih di bawah 0,006 derajat).
+
+### Bukti cara kerja `<model-viewer>` 3.5.0, dari kodenya sendiri
+
+Saya baca kode `model-viewer.min.js` versi 3.5.0, versi yang dimuat AR app:
+- **Fungsi `updateHotspotsVisibility`** menghitung arah dari hotspot ke kamera, mengalikannya (dot) dengan normal hotspot, lalu memanggil `hide()` kalau hasilnya negatif dan `show()` kalau tidak. Tidak ada ray, tidak ada depth buffer. **D1 terbukti.**
+- **`hide()`** hanya memasang class `hide` pada pembungkus internal hotspot (di dalam shadow DOM, sehingga tidak terlihat oleh CSS halaman). Atribut `data-visible` hanya dipasang pada tombol kalau tombolnya punya `data-visibility-attribute`. `app.js` starter tidak memasangnya, jadi aturan `.hotspot.hidden { display: none; }` di `style.css` tidak pernah aktif. Hotspot yang "tersembunyi" tetap ada dengan opacity 0,25. Uji di browser: dari belakang (`180deg 75deg`), hotspot alas beropacity 0,25, dan **mengetuknya tetap membuka panel info**. **D2 terbukti.** Komentar di `style.css` menyebut `<model-viewer>` mengatur atribut itu, tetapi kodenya tidak pernah menyambungkannya. Kasusnya mirip T11: klaim di komentar tidak sesuai dengan yang dikerjakan kode.
+
+### Hasil
+
+Dari 76 sudut × 5 hotspot = 380 keputusan, 11 tidak cocok dengan geometri, dan **semuanya ke arah yang sama: hotspot tampil penuh padahal titiknya tidak terlihat**. Tidak ada hotspot yang disembunyikan padahal terlihat. Nilai dalam kurung adalah dot normal dengan arah ke kamera, yaitu angka yang dipakai `<model-viewer>`:
+
+| Hotspot | Tampil padahal tertutup bagian lain | Hampir menyamping (\|dot\| < 0,1) |
+|---|---|---|
+| kaki | **255, 260, 265, 270 derajat** (dot +0,13 sampai +0,33) | 250 |
+| surai | **70 derajat** (+0,18); dari atas: 90/25 (+0,11), 270/25 (+0,29) | 75, 80 |
+| alas | tidak ada | 270/25 |
+| kepala | tidak ada | tidak ada |
+| ekor | tidak ada | tidak ada |
+
+![Kamera di 255 derajat: hotspot kaki tampil di tengah badan, padahal kakinya ada di sisi lain](../img/occlusion_kaki_255.png)
+
+![Kamera di 70 derajat: hotspot surai tampil padahal tertutup leher](../img/occlusion_surai_70.png)
+
+### Prediksi vs hasil
+
+| No | Prediksi | Hasil | |
+|---|---|---|---|
+| D1 | `<model-viewer>` memutuskan hanya dari normal | terbukti dari kodenya: hanya dot normal dengan arah kamera | tepat |
+| D2 | hotspot tersembunyi hanya redup (sekitar 0,25), aturan `.hotspot.hidden` tidak aktif, mungkin masih bisa diketuk | opacity 0,25, `display` tetap `flex`, dan mengetuknya membuka panel | tepat |
+| 1 | dari `0deg 80deg` kelima hotspot terlihat dan benar | benar | tepat |
+| 2 | dari belakang kelima hotspot dianggap tersembunyi, dan itu benar | benar, tetapi masih bisa diketuk (D2) | tepat |
+| 3 | yang paling sulit surai, salah tampil di sekitar 55 sampai 79 derajat | surai memang salah tampil di 70 derajat (tertutup leher), tetapi rentangnya lebih sempit: di 55 sampai 65 derajat leher belum menutupinya. Perkiraan lebar leher saya terlalu besar | **sebagian tepat** |
+| 4 | kaki, alas, kepala, ekor hampir selalu benar | kepala, ekor, dan alas benar; **kaki paling sering salah**, 4 sudut tertutup ditambah 1 sudut menyamping | **meleset untuk kaki** |
+| 5 | dari atas, kaki dianggap tersembunyi dan itu benar | benar | tepat |
+
+**Kenapa prediksi kaki meleset.** Saya hanya memikirkan kamera di sisi kepala. Ternyata normal hotspot kaki `(-0,43; -0,36; 0,83)` condong ke **-x**, ke arah ekor, karena ray penempatnya mengenai sisi dalam kaki yang terangkat. Jadi dari sisi ekor (azimuth sekitar 255 sampai 270 derajat), normal itu masih "menghadap" kamera, padahal di antara kaki dan kamera ada seluruh badan kuda. Pelajarannya: normal di permukaan yang melengkung bisa menunjuk ke arah yang tidak terduga, dan `<model-viewer>` mempercayai normal itu sepenuhnya.
+
+**Keterbatasan uji ini:**
+- Kebenaran geometrinya dihitung dengan rumus kamera saya sendiri dari sudut dan target yang dilaporkan `<model-viewer>`. Kasus hampir menyamping (\|dot\| < 0,1) bisa berbalik karena selisih yang sangat kecil, jadi kasus itu saya pisahkan dan tidak saya hitung sebagai kegagalan occlusion.
+- Pengujian ini memakai browser headless di Mac, bukan HP.
+
+`tests.py` mendapat `test_occlusion_truth` (4 check, total 72 ok). Test ini memastikan dasar uji di atas benar:
+- segitiga di antara titik dan kamera menghalangi;
+- tanpa penghalang, titik terlihat;
+- permukaan yang membelakangi kamera tidak pernah dihitung terlihat;
+- di mesh kuda yang asli, hotspot alas terlihat dari depan dan tidak terlihat dari belakang.
+`ar_app/occlusion.py` juga ikut dicek larangan import selain NumPy.
+
+Perbaikannya (hotspot redup yang masih bisa diketuk, dan normal hotspot kaki serta surai) saya kerjakan di commit berikutnya, terpisah dari hasil uji ini.
