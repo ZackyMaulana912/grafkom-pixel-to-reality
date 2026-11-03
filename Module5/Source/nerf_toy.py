@@ -30,14 +30,31 @@ _TIERS = [
 ]
 SCENE_SIGMA = 15.0  # opaque enough that a handful of samples suffices
 
+# My own addition (Lab 2 no 1): a small rearing horse, after the statue I photographed for
+# Modules 1-4, standing on the front (+z) terrace of the first tier. It fits in the strip
+# 0.65 < z < 0.9 between the second tier's face and the first tier's edge, so it stays inside
+# [-1, 1]^3 and touches nothing but the terrace it stands on.
+_HORSE = [
+    # (x_lo, x_hi, y_lo, y_hi, z_lo, z_hi, color)
+    (0.20, 0.80, -0.60, -0.54, 0.69, 0.86, (0.40, 0.26, 0.14)),  # pedestal
+    (0.32, 0.46, -0.54, -0.40, 0.745, 0.805, (0.60, 0.38, 0.18)),  # hind legs
+    (0.30, 0.66, -0.40, -0.24, 0.72, 0.83, (0.60, 0.38, 0.18)),  # body, rising to the front
+    (0.60, 0.74, -0.30, -0.08, 0.73, 0.82, (0.60, 0.38, 0.18)),  # neck and head, raised
+]
+
+
+def _box_mask(x, y, z, x_lo, x_hi, y_lo, y_hi, z_lo, z_hi):
+    return (x >= x_lo) & (x <= x_hi) & (y >= y_lo) & (y <= y_hi) & (z >= z_lo) & (z <= z_hi)
+
 
 def scene_density_color(points):
     """Analytic (sigma, colour) at points (..., 3): solid boxes, empty space elsewhere."""
     x, y, z = points[..., 0], points[..., 1], points[..., 2]
     sigma = np.zeros(points.shape[:-1])
     color = np.zeros(points.shape[:-1] + (3,))
-    for hx, hz, y_lo, y_hi, c in _TIERS:
-        inside = (np.abs(x) <= hx) & (np.abs(z) <= hz) & (y >= y_lo) & (y <= y_hi)
+    boxes = [(-hx, hx, y_lo, y_hi, -hz, hz, c) for hx, hz, y_lo, y_hi, c in _TIERS] + _HORSE
+    for *bounds, c in boxes:
+        inside = _box_mask(x, y, z, *bounds)
         sigma = np.where(inside, SCENE_SIGMA, sigma)
         color = np.where(inside[..., None], c, color)
     return sigma, color

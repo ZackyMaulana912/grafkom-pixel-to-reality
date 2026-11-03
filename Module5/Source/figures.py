@@ -7,6 +7,7 @@ this file.
 
 Run (from Source/):
   .venv/bin/python figures.py --set studi    -> ../docs/studi-pendahuluan/img/*.png
+  .venv/bin/python figures.py --set readme   -> ../docs/img/*.png  (run capture.py first)
 """
 from __future__ import annotations
 
@@ -20,12 +21,15 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Polygon, Rectangle  # noqa: E402
 
+import nerf_toy  # noqa: E402
+from capture import DATA_DIR, FOV_DEG, RING_ANGLES, load_ppm  # noqa: E402
 from ray_generator import pixel_to_camera_dir  # noqa: E402
 from volume_render import composite  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_OUT = {
     "studi": os.path.join(HERE, "..", "docs", "studi-pendahuluan", "img"),
+    "readme": os.path.join(HERE, "..", "docs", "img"),
 }
 
 INK = "#222222"
@@ -197,8 +201,30 @@ def fig_anchoring(out_dir):
     save(fig, out_dir, "q5_anchoring.png")
 
 
+def fig_capture_ring(out_dir):
+    """Lab 2 no 1: the scene with my horse, large renders for the eye (top) and the eight
+    20 x 16 training images exactly as read from data/pusaka_capture/ (bottom)."""
+    fig = plt.figure(figsize=(11.0, 6.6))
+    big = [0, 90, 180, 225]
+    for i, angle in enumerate(big):
+        ax = fig.add_subplot(3, 4, i + 1)
+        cam, c2w = nerf_toy.ring_camera(angle)
+        ax.imshow(np.clip(nerf_toy.render_analytic(200, 160, FOV_DEG, cam, c2w, n_samples=96), 0, 1))
+        ax.set_title(f"{angle} deg" + (" (kuda tertutup candi)" if angle == 225 else ""), fontsize=9)
+        ax.axis("off")
+    for i, angle in enumerate(RING_ANGLES):
+        ax = fig.add_subplot(3, 4, 5 + i)
+        ax.imshow(load_ppm(os.path.join(DATA_DIR, f"view_{angle:03d}.ppm")), interpolation="nearest")
+        ax.set_title(f"view_{angle:03d}.ppm", fontsize=8.5)
+        ax.axis("off")
+    fig.suptitle("Atas: render besar untuk dilihat (200 x 160). Bawah: 8 gambar latih 20 x 16 px apa adanya",
+                 fontsize=10)
+    save(fig, out_dir, "capture_ring.png")
+
+
 SETS = {
     "studi": [fig_pinhole_ray, fig_pipeline, fig_three_samples, fig_anchoring],
+    "readme": [fig_capture_ring],
 }
 
 

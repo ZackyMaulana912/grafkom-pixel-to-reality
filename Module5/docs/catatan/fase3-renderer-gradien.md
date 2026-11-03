@@ -173,3 +173,78 @@ Contoh di geseran +30: finite difference memberi `+4.4000e-08`, versi saya `+4.4
 - **di sisi hampir padat:** `1 - α` di antara `1e-9` dan `1e-6` tidak masuk cabang khusus, tetapi penyebutnya dijepit ke `1e-6`, jadi hasil baginya terlalu kecil. Inilah celah yang dicatat T3 di panduan, dan ternyata memang salah.
 
 Kesalahan versi saya `7e-05` dan `9e-05` adalah batas ketelitian finite difference itu sendiri, bukan kesalahan rumus. Kondisi ekstrem ini tidak pernah muncul saat training di modul ini (σ_raw tetap di antara -4,5 dan 6,6), jadi angka starter di PDF tetap sah. Tetapi test starter tidak akan menangkapnya, karena ia hanya mengecek σ_raw di sekitar 0. Test untuk kedua kondisi ekstrem ini saya tambahkan di commit berikutnya.
+
+## 4. Bentuk tambahan saya: patung kuda mini (Lab 2 no 1)
+
+### Bentuk dan tempatnya
+
+Subjek saya di Modul 1 sampai 4 adalah patung kuda yang berdiri dengan dua kaki belakang. Versi mini-nya saya tambahkan ke scene candi sebagai empat kotak (`_HORSE` di `nerf_toy.py`):
+
+| Bagian | x | y | z | Warna |
+|---|---|---|---|---|
+| alas | 0,20 sampai 0,80 | -0,60 sampai -0,54 | 0,69 sampai 0,86 | cokelat tua `(0,40; 0,26; 0,14)` |
+| kaki belakang | 0,32 sampai 0,46 | -0,54 sampai -0,40 | 0,745 sampai 0,805 | cokelat kayu `(0,60; 0,38; 0,18)` |
+| badan | 0,30 sampai 0,66 | -0,40 sampai -0,24 | 0,72 sampai 0,83 | cokelat kayu |
+| leher dan kepala, terangkat | 0,60 sampai 0,74 | -0,30 sampai -0,08 | 0,73 sampai 0,82 | cokelat kayu |
+
+Tempatnya ditentukan oleh syarat panduan: semua bentuk harus di dalam kubus `[-1, 1]³` (T9), karena voxel grid hanya mencakup kubus itu. Alas candi sudah memenuhi hampir seluruh lantai kubus (`|x|, |z| ≤ 0,9`). Tempat kosong yang tersisa adalah teras pertama: di depan dinding teras kedua (`z > 0,65`) sampai tepi teras pertama (`z < 0,9`), di atas lantai teras (`y > -0,6`). Kuda berdiri di sana, menghadap +x, dengan kepala terangkat seperti patung aslinya.
+
+Yang saya cek dengan 200.000 titik acak:
+- tidak ada titik yang sekaligus berada di dalam kuda dan di dalam candi;
+- semua batas kotak ada di dalam kubus;
+- titik yang berubah setelah kuda ditambahkan (294 titik) semuanya titik kuda, jadi keempat teras candi tidak berubah sedikit pun.
+
+### Kelihatan dari mana
+
+![Scene dengan patung kuda dan 8 gambar latih](../img/capture_ring.png)
+
+Jumlah pixel yang berubah (lebih dari 1/255) di tiap gambar latih 20 × 16 setelah kuda ditambahkan:
+
+| View | 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315 |
+|---|---|---|---|---|---|---|---|---|
+| pixel berubah | 6 | 6 | 9 | 4 | 3 | **0** | 2 | 4 |
+
+Kuda terlihat di 7 dari 8 view. Di view 225 derajat ia tertutup sepenuhnya oleh badan candi. Di view 270 derajat hanya ujung kepalanya yang mengintip dari balik sudut teras kedua. Ini kasus kecil yang menarik untuk Fase 4, karena ada bagian scene yang hanya dilihat sebagian view.
+
+Bentuknya kecil di gambar latih (paling banyak 9 pixel), karena gambarnya hanya 20 × 16. Itu keterbatasan scene toy ini, bukan pilihan saya.
+
+## 5. Data latih dibaca dari file PPM (keputusan K17)
+
+`capture.py` mendapat fungsi `load_ppm`, kebalikan dari `save_ppm`: membaca header P6 (termasuk baris komentar `#` kalau ada), lalu mengubah byte menjadi warna `k / 255`. `fit_nerf_toy.load_capture` sekarang membaca gambar latih dari 8 file PPM di `data/pusaka_capture/`, bukan merender ulang scene analitik. Kalau file belum ada atau ukurannya tidak cocok dengan `poses.json`, script berhenti dengan pesan yang menyuruh menjalankan `capture.py` dulu.
+
+`nerf_bug.py` tetap merender targetnya sendiri, karena sudut 2 view-nya (0 dan 20 derajat) tidak ada di capture 8 view.
+
+### Angka baru dan dari mana perubahannya
+
+Ada dua hal yang berubah sekaligus: scene mendapat kuda, dan target menjadi 8 bit. Supaya jelas mana penyebab perubahan angka, saya latih tiga kali dengan pengaturan yang sama:
+
+| Scene dan target | MSE akhir | PSNR view latih | PSNR novel 22,5° |
+|---|---|---|---|
+| candi saja, render pas (Fase 0) | 0.00912 | 20.69 dB | 14.44 dB |
+| candi + kuda, render pas | 0.00972 | 20.31 dB | 14.84 dB |
+| candi + kuda, file PPM 8 bit (sekarang) | 0.00972 | 20.32 dB | 14.85 dB |
+
+- **Pembulatan 8 bit hampir tidak berpengaruh.** Selisih file PPM dengan render pas paling besar `0,00196`, tepat setengah langkah `1/255`. PSNR file terhadap render pas 63,11 dB, dan hasil latihnya hanya bergeser 0,01 dB.
+- **Hampir semua perubahan berasal dari kuda.** PSNR view latih turun 0,37 dB karena ada detail kecil baru yang tidak bisa dipelajari grid 12³ dengan voxel selebar 0,167. Kuda hanya selebar satu sampai dua voxel. PSNR novel justru naik 0,41 dB. Penyebabnya belum saya selidiki. Dugaan saya: di 22,5 derajat kuda kebetulan menutupi bagian candi yang sebelumnya salah ditebak grid, tetapi ini belum terbukti.
+
+Output lengkap sekarang:
+
+```
+$ .venv/bin/python capture.py && .venv/bin/python fit_nerf_toy.py
+  iter    0   train MSE = 0.13676
+  iter  200   train MSE = 0.02183
+  iter  400   train MSE = 0.01468
+  iter  600   train MSE = 0.01152
+  iter  799   train MSE = 0.00972
+mean training-view PSNR = 20.32 dB
+held-out novel view (22.5 deg, between two training views): PSNR = 14.85 dB
+
+$ .venv/bin/python nerf_bug.py
+BUGGY: training-view PSNR 21.13 dB, novel (190 deg) 9.39 dB
+FIXED: training-view PSNR 19.13 dB, novel (190 deg) 12.05 dB
+novel-view PSNR improvement from spreading the views out: +2.66 dB
+```
+
+`nerf_bug.py` di atas saya ringkas. Selisih 2 view vs 8 view tetap di atas 1 dB (`+2.66`), jadi `tests.py` tetap hijau 34 ok. Diagnosis lengkapnya baru di Fase 4.
+
+Seperti di Fase 0, `capture.py` juga menulis ulang `poses.json` dengan angka yang sama tetapi digit terakhir dan akhiran barisnya berbeda. Posisi kamera tidak berubah, jadi `poses.json` dikembalikan ke versi commit.

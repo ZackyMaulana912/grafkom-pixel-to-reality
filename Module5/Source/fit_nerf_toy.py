@@ -1,6 +1,7 @@
 """Train the from-scratch VoxelGrid to reconstruct the toy Pusaka3D temple
-from the 8-view capture.json dataset, then render a genuinely held-out
-novel view and compare it to the analytic ground truth.
+from the 8-view capture (the PPM images and poses.json in data/pusaka_capture/,
+written by capture.py), then render a genuinely held-out novel view and
+compare it to the analytic ground truth.
 
 This is the from-scratch stand-in for `ns-train nerfacto` (see
 Module5_EN.tex's Software section for the real nerfstudio command) --
@@ -16,7 +17,7 @@ import os
 
 import numpy as np
 
-from capture import DATA_DIR, save_ppm
+from capture import DATA_DIR, load_ppm, save_ppm
 from nerf_toy import VoxelGrid, render_analytic, render_grid, train, ring_camera, psnr
 
 RESOLUTION = 12
@@ -26,16 +27,24 @@ NOVEL_ANGLE_DEG = 22.5  # exactly between two training views (0 and 45) -- a fai
 
 
 def load_capture():
+    """Poses from poses.json and the training images from the PPM files capture.py wrote.
+
+    The images are read from disk (decision K17), not re-rendered from the analytic scene,
+    so the grid learns from exactly the 8-bit files in data/pusaka_capture/.
+    """
     with open(os.path.join(DATA_DIR, "poses.json")) as f:
         manifest = json.load(f)
     views, targets = [], []
     for frame in manifest["frames"]:
-        pos = np.array(frame["position"])
-        c2w = np.array(frame["camera_to_world_rotation"])
-        views.append((pos, c2w))
-        target = render_analytic(manifest["width"], manifest["height"], manifest["fov_deg"],
-                                  pos, c2w, manifest["near"], manifest["far"], manifest["n_samples"])
-        targets.append(target)
+        path = os.path.join(DATA_DIR, frame["file"])
+        if not os.path.exists(path):
+            raise SystemExit(f"missing {path}: run `python capture.py` first to write the 8 training images")
+        image = load_ppm(path)
+        if image.shape != (manifest["height"], manifest["width"], 3):
+            raise SystemExit(f"{path} is {image.shape[1]}x{image.shape[0]}, poses.json says "
+                             f"{manifest['width']}x{manifest['height']}: run `python capture.py` again")
+        views.append((np.array(frame["position"]), np.array(frame["camera_to_world_rotation"])))
+        targets.append(image)
     return manifest, views, targets
 
 

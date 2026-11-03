@@ -35,6 +35,32 @@ def save_ppm(path, image):
         f.write(img8.tobytes())
 
 
+def load_ppm(path):
+    """Read an 8-bit binary PPM (P6) back into a float image in [0, 1], shape (H, W, 3).
+
+    The inverse of save_ppm up to its rounding: values come back as k / 255.
+    """
+    with open(path, "rb") as f:
+        data = f.read()
+    fields, pos = [], 0
+    while len(fields) < 4:  # magic, width, height, maxval; '#' starts a comment line
+        while data[pos:pos + 1].isspace():
+            pos += 1
+        if data[pos:pos + 1] == b"#":
+            pos = data.index(b"\n", pos) + 1
+            continue
+        end = pos
+        while not data[end:end + 1].isspace():
+            end += 1
+        fields.append(data[pos:end].decode("ascii"))
+        pos = end
+    magic, w, h, maxval = fields[0], int(fields[1]), int(fields[2]), int(fields[3])
+    if magic != "P6" or maxval != 255:
+        raise ValueError(f"{path}: expected an 8-bit P6 PPM, got {magic} with maxval {maxval}")
+    pixels = np.frombuffer(data, dtype=np.uint8, count=w * h * 3, offset=pos + 1)  # one whitespace byte
+    return pixels.reshape(h, w, 3).astype(float) / 255.0
+
+
 def build_capture():
     os.makedirs(DATA_DIR, exist_ok=True)
     poses = []
