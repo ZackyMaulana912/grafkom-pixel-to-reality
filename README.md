@@ -12,7 +12,7 @@ Semua modul memakai satu subjek yang sama: **patung kuda berdiri milik saya send
 | [Modul 2](Module2/README.md) | Rendering pipeline & primitif 2D | [denah ruangan di WebGL](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/) | [laporan](Module2/docs/laporan) |
 | [Modul 3](Module3/README.md) | Transformasi 3D, proyeksi, texture & real-time rendering | [ruangan dan patung di WebGL](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module3/Source/web/) | [laporan](Module3/docs/laporan) |
 | [Modul 4](Module4/README.md) | Animasi, kinematika & game engine | [scene Godot di browser](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module4/build/web/) | [laporan](Module4/docs/laporan) |
-| [Modul 5](Module5/README.md) | AI graphics: NeRF, world models & AR | [AR app patung kuda](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html) | [catatan](Module5/docs/catatan) |
+| [Modul 5](Module5/README.md) | AI graphics: NeRF, world models & AR | [AR app patung kuda](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html) | [laporan](Module5/docs/laporan) |
 
 Hasil akhir Modul 5, [AR app](https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html) yang bisa dibuka di HP dan menaruh model di dunia nyata dengan ukuran aslinya:
 

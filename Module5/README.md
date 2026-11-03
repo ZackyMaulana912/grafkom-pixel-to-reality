@@ -110,6 +110,8 @@ Satu view tambahan paling menolong kalau diambil jauh dari dua foto lama (135°:
 
 ## Dokumen
 
+- Laporan (A1 sampai A5): [docs/laporan/laporan-modul5.md](docs/laporan/laporan-modul5.md)
+- Persiapan viva: [docs/catatan/persiapan-viva.md](docs/catatan/persiapan-viva.md)
 - Studi pendahuluan: [docs/studi-pendahuluan/studi-pendahuluan.md](docs/studi-pendahuluan/studi-pendahuluan.md)
 - Catatan per fase: [docs/catatan/](docs/catatan/)
 - Prediksi yang di-commit sebelum hasil: [docs/prediksi/](docs/prediksi/)
