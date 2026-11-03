@@ -165,20 +165,47 @@ def main():
         hotspot_count = page.evaluate("document.querySelectorAll('.hotspot').length")
         check(f"5 hotspots injected from hotspots_kuda.json (found {hotspot_count})", hotspot_count == 5)
         check("AR launch button present", page.evaluate("!!document.getElementById('ar-button')"))
+        page.evaluate("document.querySelector('model-viewer').interactionPrompt = 'none'")  # steady pictures
+        page.wait_for_timeout(500)
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "m5_ar_overview.png"))
 
         page.click("button[slot='hotspot-surai']")
         page.wait_for_timeout(300)
         title = page.inner_text("#info-title")
         check(f"clicking a hotspot opens the info panel (title='{title}')",
               not page.evaluate("document.getElementById('info-panel').hidden") and len(title) > 0)
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "m5_ar_infopanel_en.png"))
+        text = page.inner_text("#info-text")
 
         page.click("#lang-toggle")
+        page.wait_for_timeout(300)
+        # T11: the module says the toggle swaps every OPEN panel; check it without tapping the hotspot again
+        title_now, text_now = page.inner_text("#info-title"), page.inner_text("#info-text")
+        check(f"language toggle swaps the panel that is already open ('{title}' -> '{title_now}')",
+              title_now != title and text_now != text and title_now == "Surai: 28 foto")
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "m5_ar_infopanel_id.png"))
         page.click("button[slot='hotspot-surai']")
         page.wait_for_timeout(300)
         title_id = page.inner_text("#info-title")
         check(f"language toggle changes the panel text ('{title}' -> '{title_id}')", title != title_id)
 
         page.click("#info-close")
+        page.click("#quiz-toggle")
+        page.wait_for_timeout(300)
+        quiz_target = page.inner_text("#quiz-target")
+        check(f"quiz mode picks a target ('{quiz_target}')",
+              not page.evaluate("document.getElementById('quiz-banner').hidden") and len(quiz_target) > 0)
+        page.click("button[slot='hotspot-alas']")
+        page.wait_for_timeout(300)
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "m5_ar_quizmode.png"))
+        feedback = page.inner_text("#info-text")
+        page.click("#lang-toggle")
+        page.wait_for_timeout(300)
+        feedback_now = page.inner_text("#info-text")
+        check("language toggle also swaps the open quiz answer", feedback_now != feedback)
+        page.click("#lang-toggle")
+        page.click("#info-close")
+        page.click("#quiz-toggle")  # quiz off again
         # from behind, every horse hotspot faces away: dimmed by model-viewer, and taps must not reach it
         page.evaluate("""async () => { const v = document.querySelector('model-viewer');
             v.interactionPrompt = 'none'; v.cameraOrbit = '180deg 75deg auto'; await v.updateComplete; v.jumpCameraToGoal(); }""")
@@ -191,16 +218,9 @@ def main():
         page.evaluate("""async () => { const v = document.querySelector('model-viewer');
             v.cameraOrbit = '0deg 80deg auto'; await v.updateComplete; v.jumpCameraToGoal(); }""")
         page.wait_for_timeout(800)
-        page.click("#quiz-toggle")
-        page.wait_for_timeout(300)
-        quiz_target = page.inner_text("#quiz-target")
-        check(f"quiz mode picks a target ('{quiz_target}')",
-              not page.evaluate("document.getElementById('quiz-banner').hidden") and len(quiz_target) > 0)
 
-        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "m5_ar_overview.png"))
 
-        page.click("#quiz-toggle")  # quiz off again, then switch to the course's temple
-        page.click("#model-toggle")
+        page.click("#model-toggle")  # switch to the course's temple
         page.wait_for_function("document.querySelector('model-viewer').src.endsWith('assets/pusaka_temple.glb')"
                                " && document.querySelector('model-viewer').loaded"
                                " && document.querySelectorAll('.hotspot').length === 5", timeout=15000)

@@ -102,16 +102,6 @@ model-viewer {
 
 .hotspot:focus { outline: 3px solid #ffd08a; }
 
-.hotspot-annotation {
-  background: rgba(0, 51, 102, 0.9);
-  color: white;
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  transform: translateY(-140%);
-}
-
 .info-panel {
   position: absolute;
   left: 50%;

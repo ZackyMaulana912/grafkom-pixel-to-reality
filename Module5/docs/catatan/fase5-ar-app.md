@@ -221,3 +221,38 @@ Untuk kaki, satu arah normal tidak cukup: kesalahannya hanya turun dari 20 menja
 **Keterbatasan:**
 - Normal terpilih bergantung pada posisi kamera otomatis `<model-viewer>` (target dan jarak yang dilaporkannya). Di AR sungguhan kamera bisa berada di mana saja, misalnya jauh lebih dekat, jadi hasilnya mungkin sedikit berbeda.
 - Surai masih punya 10 kesalahan di kamera latih. Di kamera uji browser hanya tersisa satu kasus hampir menyamping, tetapi di sudut lain kesalahan itu tetap bisa muncul.
+
+## 7. Tombol bahasa: panel yang sedang terbuka tidak ikut berganti (T11, K16)
+
+**Klaim modul:** di Walk-through no 4, tombol bahasa disebut mengganti setiap panel yang sedang terbuka maupun yang dibuka nanti. Komentar di `app.js` starter juga menulis "refresh any open panel text", tetapi kodenya hanya mengganti nama target quiz. Check starter di `verify_ar_app.py` lolos karena setelah mengganti bahasa ia **mengklik hotspot lagi**, jadi yang teruji adalah panel baru, bukan panel yang sedang terbuka.
+
+**Bukti di browser dulu, baru diperbaiki.** Saya tambahkan check yang mengganti bahasa **tanpa** mengklik ulang, lalu menjalankannya pada `app.js` yang belum diubah:
+
+```
+[ok] clicking a hotspot opens the info panel (title='Mane: 28 photos')
+[FAIL] language toggle swaps the panel that is already open ('Mane: 28 photos' -> 'Mane: 28 photos')
+```
+
+**Perbaikan di `app.js`:** isi panel sekarang disimpan dalam satu keadaan, `panel`, yang berisi:
+- `null` kalau panel tertutup;
+- hotspot yang diketuk;
+- atau jawaban quiz (hotspot yang diketuk, yang dicari, benar atau salah).
+
+Satu fungsi, `renderPanel()`, menggambar panel dari keadaan itu dalam bahasa yang sedang aktif. Fungsi itu dipanggil saat hotspot diketuk, saat quiz dijawab, dan saat bahasa diganti. Label aksesibilitas (`aria-label`) tiap hotspot juga ikut berganti bahasa. Kode starter yang membuat elemen label anotasi tetapi tidak pernah memasangnya ke halaman (temuan T11) saya hapus, bersama aturan CSS-nya yang jadi tidak terpakai.
+
+**Bukti sesudahnya** (`verify_ar_app.py`, **16 ok**):
+- panel yang sedang terbuka berganti dari "Mane: 28 photos" ke "Surai: 28 foto" tanpa diklik ulang;
+- jawaban quiz yang sedang tampil ikut berganti bahasa. Check ini gagal kalau baris `renderPanel()` di tombol bahasa dibuang;
+- check starter yang mengklik ulang tetap ada dan tetap lolos.
+
+**Screenshot milik saya (K5, K16).** `verify_ar_app.py` sekarang menulis keempat screenshot dengan nama yang sama seperti milik dosen di `ar_app/screenshots/`, jadi screenshot dosen sudah tergantikan oleh hasil app saya sendiri:
+- `m5_ar_overview.png`: tampilan awal kuda dengan lima hotspot;
+- `m5_ar_infopanel_en.png`: panel surai dalam bahasa Inggris;
+- `m5_ar_infopanel_id.png`: panel yang sama setelah tombol bahasa ditekan, tanpa diklik ulang;
+- `m5_ar_quizmode.png`: mode quiz dengan jawaban salah.
+
+Screenshot tidak saya salin ke `docs/img/`, supaya tidak ada dua salinan file yang sama. Dokumen merujuk langsung ke `Source/ar_app/screenshots/`.
+
+![Panel yang sedang terbuka berganti ke bahasa Indonesia](../../Source/ar_app/screenshots/m5_ar_infopanel_id.png)
+
+Satu hal yang saya temukan saat membuat screenshot dan belum saya selidiki: setelah kamera diputar ke belakang lalu dikembalikan ke `0deg 80deg` lewat kode, `<model-viewer>` melaporkan sudut dan jarak yang sama, tetapi kuda tampak lebih kecil dan lebih tinggi di layar. Supaya semua screenshot diambil dari kamera awal yang sama, check "dari belakang" saya pindahkan ke setelah screenshot diambil.

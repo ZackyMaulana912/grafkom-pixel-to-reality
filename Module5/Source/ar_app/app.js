@@ -48,13 +48,35 @@
     return hotspot[`${field}_${lang}`];
   }
 
-  function showInfo(hotspot) {
-    infoTitle.textContent = t(hotspot, "name");
-    infoText.textContent = t(hotspot, "text");
+  // what the info panel is showing, kept so the language toggle can redraw it (T11):
+  // null, { hotspot } for a normal tap, or { hotspot, wanted, correct } for a quiz answer
+  let panel = null;
+
+  function renderPanel() {
+    if (!panel) return;
+    const { hotspot, wanted, correct } = panel;
+    if (!wanted) {
+      infoTitle.textContent = t(hotspot, "name");
+      infoText.textContent = t(hotspot, "text");
+    } else if (correct) {
+      infoTitle.textContent = `Correct! / Benar!`;
+      infoText.textContent = `${t(hotspot, "name")} -- ${t(hotspot, "text")}`;
+    } else {
+      infoTitle.textContent = `Not quite / Belum tepat`;
+      infoText.textContent = lang === "en"
+        ? `That was the ${t(hotspot, "name")}. Looking for the ${t(wanted, "name")}.`
+        : `Itu adalah ${t(hotspot, "name")}. Yang dicari adalah ${t(wanted, "name")}.`;
+    }
     infoPanel.hidden = false;
   }
 
+  function showInfo(hotspot) {
+    panel = { hotspot };
+    renderPanel();
+  }
+
   function hideInfo() {
+    panel = null;
     infoPanel.hidden = true;
   }
 
@@ -72,17 +94,10 @@
       return;
     }
     quizScore.attempts += 1;
-    if (hotspot.id === quizTarget.id) {
-      quizScore.correct += 1;
-      infoTitle.textContent = `Correct! / Benar!`;
-      infoText.textContent = `${t(hotspot, "name")} -- ${t(hotspot, "text")}`;
-    } else {
-      infoTitle.textContent = `Not quite / Belum tepat`;
-      infoText.textContent = lang === "en"
-        ? `That was the ${t(hotspot, "name")}. Looking for the ${t(quizTarget, "name")}.`
-        : `Itu adalah ${t(hotspot, "name")}. Yang dicari adalah ${t(quizTarget, "name")}.`;
-    }
-    infoPanel.hidden = false;
+    const correct = hotspot.id === quizTarget.id;
+    if (correct) quizScore.correct += 1;
+    panel = { hotspot, wanted: quizTarget, correct };
+    renderPanel();
     pickNewQuizTarget();
   }
 
@@ -96,16 +111,7 @@
     // ask <model-viewer> to mark this button with data-visible while its normal faces the camera;
     // without it the button is only dimmed when hidden and can still be tapped (style.css)
     button.dataset.visibilityAttribute = "visible";
-    button.setAttribute("aria-label", hotspot.name_en);
-
-    const label = document.createElement("div");
-    label.className = "hotspot-annotation";
-    label.slot = `hotspot-${hotspot.id}`; // model-viewer also supports a second slotted annotation
-    label.dataset.position = hotspot.position.join(" ");
-    label.dataset.normal = hotspot.normal.join(" ");
-    label.textContent = hotspot.name_en;
-    label.hidden = true; // shown only via CSS ::after in a richer build; kept simple here
-
+    button.setAttribute("aria-label", t(hotspot, "name"));
     button.addEventListener("click", () => handleHotspotClick(hotspot));
     return button;
   }
@@ -132,10 +138,12 @@
   langToggle.addEventListener("click", () => {
     lang = lang === "en" ? "id" : "en";
     langToggle.textContent = lang === "en" ? "EN / ID" : "ID / EN";
-    if (!infoPanel.hidden && quizTarget) {
-      // refresh any open panel text in the new language
-      quizTargetEl.textContent = t(quizTarget, "name");
-    }
+    if (quizTarget) quizTargetEl.textContent = t(quizTarget, "name");
+    hotspots.forEach((h) => {
+      const button = viewer.querySelector(`button[slot="hotspot-${h.id}"]`);
+      if (button) button.setAttribute("aria-label", t(h, "name"));
+    });
+    renderPanel();  // the open panel, if any, follows the new language
   });
 
   modelToggle.addEventListener("click", () => {
