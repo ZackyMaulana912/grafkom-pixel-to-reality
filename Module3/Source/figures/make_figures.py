@@ -157,7 +157,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for name, fn in (("q1_space_chain", space_chain), ("q2_pinhole", pinhole),
                      ("q3_depth_curve", depth_curve), ("q5_webgl_drawcall", webgl_drawcall)):
-        with open(os.path.join(OUT, name + ".svg"), "w") as fh:
+        with open(os.path.join(OUT, name + ".svg"), "w", encoding="utf-8") as fh:
             fh.write(fn())
     print(f"wrote 4 diagrams to {os.path.normpath(OUT)}/")
 
