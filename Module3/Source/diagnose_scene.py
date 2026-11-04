@@ -105,7 +105,7 @@ def zfight():
                    ("diff", diff_image(bad, normal))):
         save(f"zfight_{k}.ppm", img)
     P = perspective(45.0, W / H, 1e-3, 200)
-    print(f"  camera eye (0,1,6) looking at (0,1,-1); near = 1e-3, far = 200; depth buffer 16-bit")
+    print("  camera eye (0,1,6) looking at (0,1,-1); near = 1e-3, far = 200; depth buffer 16-bit")
     print("  projection matrix:\n" + np.array2string(P, precision=6, suppress_small=True))
     fin = np.isfinite(db)
     z = db[fin]
@@ -118,7 +118,7 @@ def zfight():
           f"  -> 16-bit codes {np.round((ndc * 0.5 + 0.5) * 2 ** 16).astype(int)}")
     img, counts, edges = histogram_image((z * 0.5 + 0.5) * 2 ** 16, bins=np.arange(codes.min() - 0.5, codes.max() + 1.5))
     save("zfight_hist.ppm", img)
-    print(f"  depth histogram (16-bit code: pixels): " +
+    print("  depth histogram (16-bit code: pixels): " +
           ", ".join(f"{int(e + 0.5)}: {c}" for e, c in zip(edges[:-1], counts) if c))
     blue = (np.abs(bad.astype(int) - np.array((60, 120, 210))).max(2) < 80) & fin
     blue_n = (np.abs(normal.astype(int) - np.array((60, 120, 210))).max(2) < 80) & np.isfinite(dn)
