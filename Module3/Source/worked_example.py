@@ -35,7 +35,7 @@ def running_point():
 
     P = perspective(60, 1.0, 1.0, 50.0)
     clip = P @ eye
-    print(f"proj   P = perspective(60deg, 1, 1, 50)")
+    print("proj   P = perspective(60deg, 1, 1, 50)")
     print(f"clip            = P eye              = {clip}")
     ndc = clip[:3] / clip[3]
     print(f"ndc  = clip/clip.w                   = {ndc}")
