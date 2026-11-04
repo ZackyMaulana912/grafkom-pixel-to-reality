@@ -394,7 +394,7 @@ def main():
     sc = load_scene(args.scene or "scenes/temple.json")
     if args.model:
         sc["model"]["obj"] = args.model
-    out = args.out or f"out/{sc['name']}_raster.ppm"
+    out = args.out or f"out/{sc['name']}{'_shadow' if args.shadow else ''}_raster.ppm"
     stats = {}
     t0 = time.perf_counter()
     col, dep, filled = render_scene(sc, args.w or (512 if args.model else None), args.h or (512 if args.model else None),
