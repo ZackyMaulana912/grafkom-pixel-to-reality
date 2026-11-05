@@ -32,14 +32,41 @@ python worked_example.py --scene scenes/mymodel.json --vertex 134   # my model, 
 python raster3d.py --scene scenes/mymodel.json             # out/mymodel_raster.ppm + out/mymodel_depth.ppm
 python raytrace.py --scene scenes/mymodel.json             # out/mymodel_rt.ppm   (--shadow for shadow rays)
 python compare.py out/mymodel_raster.ppm out/mymodel_rt.ppm --diff out/diff_rt.ppm
-python diff_regions.py --scene scenes/mymodel.json out/mymodel_raster.ppm web/mymodel_three.ppm
+python diff_regions.py --scene scenes/mymodel.json out/mymodel_raster.ppm web/mymodel_three.ppm   # needs Export PPM first
 python persp_check.py                                      # E4 + the swimming floor
 python mip_check.py                                        # far temple with / without mipmap
 python diagnose_scene.py                                   # evidence only (written before any fix)
 python broken_scene.py --all                               # the three fixes + depth formats / reverse-Z
 python bench.py                                            # frame time, raster vs ray tracer
-python export_png.py --src out --out ../docs/img           # PNG copies for the README
 ```
+
+`web/mymodel_three.ppm` comes from the viewer's **Export PPM** button (camera as loaded), so `diff_regions.py`
+fails with "No such file" until that file is saved there.
+
+### README pictures
+
+29 of the 36 PNGs in `../docs/img/` come back byte-identical from these commands (checked 4 Nov in a clean
+clone). With `--shadow`, `raster3d.py` writes `out/mymodel_shadow_raster.ppm`; before 4 Nov it wrote over
+`out/mymodel_raster.ppm`, and `compare.py` against the ray tracer then gave 12.3 dB instead of inf.
+
+```bash
+python raster3d.py --scene scenes/mymodel.json && python raytrace.py --scene scenes/mymodel.json
+python raster3d.py --scene scenes/mymodel.json --shadow && python raytrace.py --scene scenes/mymodel.json --shadow
+python compare.py out/mymodel_shadow_raster.ppm out/mymodel_rt_shadow.ppm --diff out/diff_shadow.ppm
+python raster3d.py --scene scenes/temple.json && python raytrace.py --scene scenes/temple.json
+python compare.py out/temple_raster.ppm out/temple_rt.ppm --diff out/diff_temple_rt.ppm
+python persp_check.py && python mip_check.py && python broken_scene.py --all
+python export_png.py --src out --out ../docs/img mymodel_raster mymodel_depth mymodel_rt mymodel_shadow_raster \
+    mymodel_rt_shadow diff_shadow temple_raster temple_rt diff_temple_rt floor_naive floor_naive_shift floor_pc \
+    floor_pc_shift far_nomip_zoom far_mip_zoom far_nomip_slide_zoom far_mip_slide_zoom far_truth_zoom
+python export_png.py --src out/bugs --out ../docs/img bug_inside-out_bad bug_inside-out_fixed bug_stretched_bad \
+    bug_stretched_fixed bug_zfight_bad bug_zfight_fixed bug_zfight_hist_bad bug_zfight_hist_fixed bug_zfight_normal \
+    zfight_reverse_f32
+```
+
+The other 7 (`*three*`, `diffmap_*`) start from the WebGL viewer's Export PPM in Chrome; the steps are in
+`../docs/catatan/fase5-realtime-hosting.md`. Without names, `export_png.py --src out` exports every frame in
+`out/`, including frames that the README does not use.
 
 The starter's forms still work: `python raster3d.py --model data/pusaka_model.obj --w 512 --h 512` and
 `python raytrace.py --model data/pusaka_model.obj --w 256 --h 256` (render both at the same size before
@@ -93,6 +120,8 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | T4 | `--demo-overlap` printed fixed text; the back triangle alone covers 648 px, but only 136 are visible outside the overlap | now counted |
 | T5 | `--out` without "raster" wrote the depth image over the colour image | fixed in `depth_path()` |
 | T9 | swapping the uniform scale and the rotation changes nothing; the stretch is an extra `diag(2.2, 0.5, 1)` | column lengths 3.08 / 0.70 / 1.40 |
+| audit | `raster3d.py --shadow` wrote its frame over `out/mymodel_raster.ppm` (the ray tracer already used `_rt_shadow`) | raster vs ray tracer 12.3 dB instead of inf; now `out/mymodel_shadow_raster.ppm` |
+| audit | `figures/make_figures.py` wrote the SVGs in the system's default encoding; under a non-UTF-8 locale it stopped at the first minus sign and left a cut-off SVG | `UnicodeEncodeError` with `LC_ALL=en_US.ISO8859-1`; now written as UTF-8, same files on this Mac |
 
 ## Verified
 
@@ -113,4 +142,5 @@ They are generated from one hand-written file, `data/mymodel_ukuran.json`, by `m
 | fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install`, `make_model.py`, `tests.py` 17 ok, `git status` clean | 2026-10-31 | same Mac |
 | winding per face (`orient_faces`) | temple: 180 faces reversed, my model: 0, both identical to the old global rule, so both reference frames stay byte-identical; 30% random flips and one inside-out closed part restored exactly; the new check fails without neighbour propagation or without the per-part volume; `tests.py` **18 ok, 0 fail** | 2026-11-02 | same Mac |
 | clean local clone (commit `8c436ed`, before the push) + new `.venv` | `make_model.py`, `tests.py` **18 ok, 0 fail**, `git status` clean | 2026-11-02 | same |
+| audit, clean local clone of `58658ae` | `tests.py` **18 ok, 0 fail** (also under a non-UTF-8 locale); every Quick start command prints the numbers in `../README.md` (`bench.py` timings vary with load); 29 README PNGs rebuild byte-identical; `make_mymodel.py` and `import_texture.py` rebuild the committed model and atlas | 2026-11-04 | same Mac |
 | other GPUs, Windows, Linux | **not tested** | | |
