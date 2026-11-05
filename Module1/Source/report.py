@@ -37,7 +37,8 @@ PHOTO_EDGE = ("data/IMG_8884.ppm", 1000, 550, 256)   # statue edge against the w
 
 # ---- numbers -------------------------------------------------------------
 def photo_budget(path: str = "photos/originals.csv") -> dict:
-    rows = [r for r in csv.DictReader(open(path)) if r["used"] == "ya"]
+    with open(path, newline="", encoding="utf-8") as f:
+        rows = [r for r in csv.DictReader(f) if r["used"] == "ya"]
     sizes = {(int(r["width"]), int(r["height"])) for r in rows}
     assert len(sizes) == 1, f"photos have mixed resolutions: {sizes}"
     (w, h), = sizes
@@ -123,7 +124,9 @@ def md_to_html(path: str) -> str:
     if not os.path.exists(path):
         return f'<p class="missing">belum ada: {html.escape(path)}</p>'
     out, table = [], []
-    for line in open(path, encoding="utf-8").read().splitlines() + [""]:
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    for line in lines + [""]:
         if line.startswith("|"):
             if not set(line) <= set("|-: "):
                 table.append([c.strip() for c in line.strip("|").split("|")])
