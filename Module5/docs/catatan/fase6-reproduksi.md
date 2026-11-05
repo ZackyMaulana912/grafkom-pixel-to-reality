@@ -51,6 +51,8 @@ Setelah commit `e0e5cce` di-push, repo saya clone langsung dari `https://github.
 
 Server sudah dimatikan dan folder clone sudah dihapus.
 
+**Koreksi 4 November (audit).** Baris `git status` di atas ternyata tidak berlaku untuk `verify_ar_app.py`. Script itu selalu menulis ulang empat screenshot di `ar_app/screenshots/`. Di clone bersih `58658ae`, keempatnya berubah, karena screenshot yang di-commit masih dari 3 November: footer-nya masih menyebut candi, padahal app sudah memakai mobil F1. Screenshot sudah saya ambil ulang dari app sekarang. Tiga di antaranya keluar identik di setiap run. `m5_ar_quizmode.png` berubah setiap run, karena target quiz dipilih acak, jadi setelah `verify_ar_app.py` file itu memang akan muncul di `git status`.
+
 **GitHub Pages:** `index.html`, `app.js`, `kuda.glb`, `amr23.glb`, `hotspots_kuda.json`, dan `hotspots_amr23.json` yang dilayani di https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html identik dengan isi clone (sha256 sama). `verify_ar_app.py` yang dijalankan langsung ke URL itu juga lolos 17 ok, tanpa error JavaScript (Fase 5).
 
 **Uji perangkat:** iPhone 17 Pro, iOS 27.2, Safari, Quick Look. Patung kuda menempel di permukaan, dan ukurannya terlihat sama dengan patung asli (`fase5-ar-app.md` bagian 12). Mobil F1 belum saya uji di HP.
