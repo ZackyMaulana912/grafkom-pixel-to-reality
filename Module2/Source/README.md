@@ -69,6 +69,22 @@ leave `Source/`. `three` is loaded from a CDN in `web/index.html`, pinned to
 - **reference raster** -- `draw_square` fill is byte-identical to
   `ref/square_fill_ref.ppm` (regenerated on first run; commit it).
 
+Added in this repo (25 checks in total, none of the 10 above loosened):
+
+- **lines** -- the 8 reflections of `(0,0)->(9,4)` keep start, end, 8-connectivity and stay within 0.5 px;
+  the 24-spoke asterisk reaches R +/- 1 px.
+- **E1b, E4** -- the inclusive corner test lights a 3x3 block where the centre rule lights 2x2; the
+  barycentric of P1 `(3,3)` is `(3/7, 2/7, 2/7)`.
+- **triangle()** -- equals the independent integer reference on 1934 triangles and `ref/tri_ref.ppm` /
+  `ref/tri_t8_ref.ppm`; `fillRule: "gpu"` matches the pixels WebGL drew; a reversed triangle fills the
+  same pixels.
+- **my plan** -- every point inside 800 x 600, all 5 legend categories used, the footprint fills exactly
+  260 x 520 px once each.
+- **legend** -- all 5 categories stay >= 20 apart under the page's CVD filters (red/green fails), and
+  Machado et al. 2009 gives the same verdict.
+- **export_png, serve.mjs** -- the PNG encoder round-trips; the server stays inside `Source/`, refuses
+  traversal and listens on 127.0.0.1 only.
+
 ## Notes on fixes applied while verifying
 
 - `triangle()`: the coverage helper passes a plain `{w,h}` object as the
@@ -116,6 +132,7 @@ since 1 Nov the `serve` package is replaced by `serve.mjs`).
 | clean local clone (`cf0ad24` + the 1 Nov changes, not yet pushed) | `nvm use`, `npm ci` (1 package, 0 vulnerabilities), `npm test` **25 ok, 0 fail**, `npm run plan` exit 0, `git status` clean. GitHub and Pages still to be retested after the push | 2026-11-01 | Node 22.23.4, same Mac |
 | fresh clone from GitHub (commit `377dfa1`) | `npm ci` (1 package, 0 vulnerabilities), `npm test` **25 ok, 0 fail**, `npm run plan` exit 0, `git status` clean; viewer page on Pages 200 | 2026-11-02 | Node 22.23.4, same Mac |
 | Clean copy reproduction | see `../docs/laporan/laporan-modul2.md`, section 8 | 2026-10-28 | same |
+| audit, clean local clone of `58658ae` | `npm test` **25 ok, 0 fail**; `square`, `bug` and `plan` print the numbers in `../README.md`; `bench` 0.038 / 25.3 ms at 1x and 0.163 / 25.2 ms at 10x (README: 0.04 / 25.3 and 0.17 / 25.2); `npm run png` rebuilds every README PNG byte-identical; the viewer page on GitHub Pages answers 200 | 2026-11-04 | Node 22.23.4, same Mac |
 | GitHub Pages (`https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module2/Source/web/`) | every file 200 with the right type (`.mjs` as `text/javascript`, `cvd.css`, `myplan.json`, three.js from jsDelivr); 0 console errors (only the browser's own `/favicon.ico` 404); 5 legend rows; each of the 4 toggles changes the picture and switching it back restores it exactly; Export PPM byte-identical to the local export (479929/480000 vs from-scratch) | 2026-10-28 | Chrome 156.0.8078.48 headless, ANGLE Metal, Apple M5 |
 | Fresh clone from GitHub (commit `cceae00`) | `npm ci` 0 vulnerabilities, `npm test` 22 ok; every regenerated image and reference identical to the 33 committed ones; viewer export from the clone identical to the working copy (479929/480000 vs from-scratch) | 2026-10-28 | same |
 
@@ -132,9 +149,8 @@ Not yet verified: other GPUs, Windows or Linux.
 | `draw_square` / `triangle_gap_bug` / `draw_plan` / `bench` / `compare` | **run green** -- transcripts in `Module2_EN.tex` are the actual output | 2026-09-04 | Node v22.19.0 |
 | `web/` Three.js viewer | **authored, not browser-verified on this host** (no display); loads `three@0.160.0` from jsdelivr, draws the plan + legend, exports PPM for `compare.mjs` | 2026-09-04 | -- |
 
-Before the module fully meets the MASTER Definition of Done, open `web/` in a
-browser (`npx serve .` -> `/web/`), confirm the plan and 5-category legend
-render, toggle the deuteranopia/protanopia filters (all five stay distinct),
-click **Export PPM**, and run
-`node compare.mjs out/plan_scratch.ppm plan_three.ppm` -- expect a
-high-but-finite PSNR (edge anti-aliasing only). Record the browser + version.
+The starter asked for one more step before the Definition of Done: open `web/`
+in a browser, check the legend and the CVD toggles, export a PPM and compare it.
+That is done (rows "Viewer vs from-scratch", "Legend under CVD filters" and
+"GitHub Pages" above). `npx serve .` from that note is no longer used; the local
+server is `npm run serve` (`serve.mjs`).
