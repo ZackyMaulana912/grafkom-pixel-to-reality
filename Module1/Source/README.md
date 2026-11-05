@@ -70,6 +70,17 @@ the `Makefile` directly.
   `x30x10 = 1_866_240_000`; `4096x4096 RGBA8 = 67_108_864 = 64 MiB`;
   `*4/3 ~= 85.33 MiB`; `1000/60 = 16.67 ms`, `1000/144 = 6.94 ms`.
 
+Added in this repo (18 checks in total, the 10 above unchanged):
+
+- **dither:** bands 2 px (8-bit) and 16 px (5-bit), and the Bayer dither breaks them.
+- **boxblur / bilinear:** the 3x3 blur equals the hand neighbour mean; bilinear keeps an identity, a constant
+  and the clamped edge.
+- **luma:** flat greys 0..255 equal Pillow `"L"` within 1.
+- **cvd:** the chart legend survives deuteranopia, protanopia and grayscale, and Machado et al. 2009 gives
+  the same verdict as the course matrices.
+- **aliasing:** every frequency lands at its predicted `|f - fs|`.
+- **metrics:** the windowed SSIM equals a brute-force sum, and the flattened texture is checked against C2.
+
 ## Notes on fixes applied while verifying
 
 - `ppm_io._selftest`: NumPy 2.x rejects `uint8_array % 256` (Python int out of
@@ -111,17 +122,15 @@ the `Makefile` directly.
 | `make test` | **ALL CHECKS PASSED** (16/16) | 2026-10-27 | same |
 | `make report` | `budget.md` + `report.html` (7 sections, 18 inline images, no external file) | 2026-10-27 | same, Pillow has WebP + AVIF |
 | Reproducible | every `report/` file, `data/manifest.csv` and all 47 `data/` images byte-identical to the working copy | 2026-10-27 | same |
-
 | Matrix source (31 Oct) | the course matrices are colorjack.com's "ColorMatrix" values (Wayback 2008-12-18), fitted to Matthew Wickline's formulas, not Vienot/Brettel; Machado et al. 2009 (Table 1, severity 1.0) gives the same legend verdict: red/green collapses (4.7 / 10.1), viridis survives (82.2 / 92.1) | 2026-10-31 | same Mac |
 | `make test` after adding the Machado check | **ALL CHECKS PASSED** (17/17); the new check fails if Machado is replaced by the identity | 2026-10-31 | same |
 | `make report` after the `cvd.py` change | every tracked `report/` file unchanged (`git status` clean) | 2026-10-31 | same |
-
 | Fresh clone from GitHub (commit `3f30c76`) + new `.venv` | `pip install -r requirements.txt` gives numpy 2.4.6 and pillow 13.0.0 exactly; `make data`, `make test` (**ALL CHECKS PASSED**, 17/17) and `make report` all succeed, and `git status` stays clean afterwards (every regenerated `data/` and `report/` file is identical to the committed one) | 2026-10-31 | same Mac |
-
 | windowed SSIM (`ssim_windowed`, 2 Nov) | equals a brute-force per-window sum (< 1e-12) and `skimage.metrics.structural_similarity` 0.26.0 with Gaussian weights, sigma 1.5, population covariance (largest difference 5.1e-14 over 10 image pairs; checked in a throw-away venv, not a dependency) | 2026-11-02 | same Mac |
 | `make test` after adding it | **ALL CHECKS PASSED** (18/18); the new check fails for a wrong covariance, an unnormalised Gaussian, or a window that does not slide | 2026-11-02 | same |
 | `make report` after adding `ssim_compare.py` | new `report/ssim_windowed.md` + one figure (`report.html` now 19 images); every other tracked `report/` file unchanged | 2026-11-02 | same |
 | clean local clone (commit `8c436ed`, before the push) + new `.venv` | `make data`, `make test` (**18/18**), `make report`; `git status` clean, so the SSIM table and figure rebuild byte-identical | 2026-11-02 | same |
+| audit, clean local clone of `58658ae` | `make data`, `make test` (**18/18**, also under a non-UTF-8 locale), `make report`, `make png`: `git status` clean; every number in `../README.md` matches what the scripts print (20.24 codes and 21.48 dB come from `gamma_diagnosis.py` / `gamma_fix_check.py`); `report.html` on GitHub Pages is identical to the repo. After closing the files that `report.py` and `prepare_photos.py` left open, `make report` and `prepare_photos.py` (on my 28 originals) give byte-identical files | 2026-11-04 | same Mac |
 
 Not yet verified: Windows or Linux.
 
