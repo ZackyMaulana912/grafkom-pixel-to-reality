@@ -1,8 +1,8 @@
-# Module 5 -- AI Graphics: NeRF, World Models & AR (reference repo)
+# Module 5 -- AI Graphics: NeRF, World Models & AR
 
-Course: *Grafika Komputer / Computer Graphics* (`25MP7716G030`), S1 Informatika
-semester 5. Companion to `../../Module5_EN.tex`. **Integrates Modules 1-4 and
-is the capstone dry run.**
+Course: *Grafika Komputer* (`25MP7716G030`), S1 Informatika UMSurabaya. Student: Zacky Maulana (20241337034).
+The PDF and the starter README say `code/Module5/`; in this repo that folder is `Module5/Source/`.
+**Integrates Modules 1-4 and is the capstone dry run.**
 
 **Rule:** the pinhole ray generator, the volume-rendering compositing
 formula, and a full differentiable-rendering training loop are **NumPy
@@ -15,26 +15,47 @@ space" launches a real AR session.
 ## Quick start
 
 ```bash
-cd code/Module5
-python -m pip install -r requirements.txt
+cd Module5/Source
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt     # numpy 2.4.6, pygltflib 1.16.5, matplotlib 3.11.2 and their pins
 python ray_generator.py             # E1: pinhole ray through pixel (400,240)
 python volume_render.py             # E2: composite 3 samples -> 1 pixel
+python my_ray.py                    # the ray through pixel (1200, 6100) of my own iPhone photo
 python capture.py                   # writes data/pusaka_capture/ (8 synthetic views)
-python fit_nerf_toy.py              # trains a voxel grid on the capture; novel-view PSNR
-python nerf_bug.py                  # diagnose-and-fix: 2 clustered views vs 8 spread views
-python tests.py                     # -> ALL CHECKS PASSED (17 ok), ~10 s
+python fit_nerf_toy.py              # train PSNR 20.32 dB, novel view (22.5 deg) 14.85 dB
+python nerf_bug.py                  # 2 views 9.39 dB vs 8 views 12.05 dB at 190 deg (+2.66 dB)
+python nerf_bug.py --sweep          # both grids on the 8 predicted angles
+python pitfall_fix.py               # (a) starting density, (b) one third view
+python tests.py                     # -> ALL CHECKS PASSED (81 ok)
 
 cd ar_app
-python make_temple_glb.py           # writes assets/pusaka_temple.glb + hotspots.json
-python -m http.server 8743          # serve the app (needed for the hotspots.json fetch)
-# open http://localhost:8743/index.html in a browser -- or on a phone on the
-# same network, open http://<your-computer-ip>:8743/index.html and tap
-# "View in your space" for real AR.
+python make_temple_glb.py           # the starter's temple + hotspots.json (kept, no longer shown in the app)
+python -m http.server 8743 --bind 127.0.0.1   # serve the app (needed for the hotspot fetch)
+# open http://127.0.0.1:8743/index.html. On a phone, use the GitHub Pages URL
+# (HTTPS, needed for AR) and tap "View in your space (AR)":
+# https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html
 
 # optional, heavier: automated headless-browser verification (see below)
-pip install playwright && python -m playwright install chromium
-python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
+pip install -r ../requirements-verify.txt && python -m playwright install chromium
+python verify_ar_app.py http://127.0.0.1:8743   # -> ALL CHECKS PASSED (17 ok)
 ```
+
+`verify_ar_app.py` rewrites the four PNGs in `ar_app/screenshots/` every run. Three come out identical each
+time; `m5_ar_quizmode.png` does not, because the quiz picks its next target at random (`Math.random` in
+`app.js`), so `git status` shows that one file as changed after a run.
+
+The two AR models are made from files that are not in Git (the raw scan, 233 MB, and the downloaded car,
+235 MB). With the scan on disk, Blender 5.2.2 rebuilds the horse:
+
+```bash
+cd ar_app/tools
+$BLENDER -b -P scan_to_glb.py -- ../scan/kuda_full.usdz ../assets/kuda.glb ../assets/kuda_ukuran.json kuda_hotspot_text.json ../assets/hotspots_kuda.json 4096
+cd .. && python occlusion.py --tune     # picks the hotspot normals (writes them into hotspots_kuda.json)
+```
+
+`$BLENDER` is the Blender binary (`/Applications/Blender.app/Contents/MacOS/Blender` on my Mac).
+`car_to_glb.py` and `render_views.py` give their command line in their first lines. Checked on 4 Nov: the two
+commands above give `kuda.glb` and `hotspots_kuda.json` byte-identical to the committed files.
 
 ## Unit table
 
@@ -53,7 +74,7 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
 | `document_capture.py` | writes `data/my_capture/` (manifest, checksums, contact sheet) for my 28 photos without committing the photos | Lab 1 no 2, own capture |
 | `figures.py` | the only matplotlib user: draws the PNGs in `../docs/` from the from-scratch functions | doc figures |
 | `ar_app/make_temple_glb.py` | procedurally builds `pusaka_temple.glb` (6 primitives, flat-shaded, no texture) + `hotspots.json` (5 bilingual educational hotspots) | AR app model + content |
-| `ar_app/index.html`, `app.js`, `style.css` | the **Pusaka3D AR Explainer**: `<model-viewer>` + AR button + tap-to-learn hotspots + a quiz mode + EN/ID toggle | Lab 3 "ship" deliverable |
+| `ar_app/index.html`, `app.js`, `style.css` | the **Pusaka3D AR Explainer**: `<model-viewer>` + AR button + tap-to-learn hotspots + a quiz mode + EN/ID toggle; a **Model** button switches between my scanned horse (`kuda.glb`, default) and the F1 car (`amr23.glb`), each with its own 5 hotspots | Lab 3 "ship" deliverable |
 | `ar_app/tools/photogrammetry.swift` | Apple Object Capture on my 28 photos -> a textured USDZ scan of my horse statue (macOS, Apple silicon; the raw scan stays in the git-ignored `ar_app/scan/`) | Lab 3 no 1, my own model |
 | `ar_app/tools/scan_to_glb.py` | inside Blender 5.2: level, turn, scale to my measured 46 cm pedestal, resize textures, ray-cast the hotspots onto the mesh, export `assets/kuda.glb` + `assets/hotspots_kuda.json` | Lab 3 no 1, model in metres |
 | `ar_app/tools/car_to_glb.py` | inside Blender: the downloaded Aston Martin AMR23 (Redgrund, Sketchfab, CC BY 4.0) -> `assets/amr23.glb` scaled to the FIA 2023 tyre rule (725 mm, Art. 10.8.1c), + `assets/hotspots_amr23.json` | the second AR model |
@@ -90,6 +111,16 @@ python verify_ar_app.py             # -> ALL CHECKS PASSED (10 ok)
   in for matching an external autodiff library.
 - **View-coverage regression** -- the 8-view grid must beat the 2-view grid by
   `> 1 dB` PSNR on one held-out novel view (190 deg).
+- **My horse (`kuda.glb`)** -- pedestal 46 cm long as I measured it, height and depth within 2% of my
+  63 cm / 15 cm, standing on the floor, under 10 MB, no metadata but the exporter's name; 5 hotspots in
+  both languages, each within 2 mm of the mesh, unit normals, and the normals are the ones
+  `occlusion.py --tune` picks.
+- **The F1 car (`amr23.glb`)** -- tyres 725 mm (FIA 2023 Art. 10.8.1c), width within 0.3% of 2000 mm
+  (Art. 3.4.1), on the floor, under 10 MB; 5 hotspots on the surface; tuned normals.
+- **Occlusion and provenance** -- the ray test of `occlusion.py` on three hand-made cases and on the real
+  mesh; a provenance line with every field for each AR asset in `assets/LICENSE.md`.
+- **Temple (T10)** -- none of the 66 triangles of `pusaka_temple.glb` is wound inwards or has a stored
+  normal against its winding.
 
 ## Notes on fixes applied while verifying
 
@@ -120,32 +151,21 @@ from the evidence first.
    voxel grid would give. Absolute PSNRs here (training views ~20 dB, novel
    views ~10-14 dB) are toy-scale; the point is the *relative* comparison
    in the diagnose-and-fix task, not photorealism.
-3. **The AR app's 3D model is procedurally generated** (`make_temple_glb.py`,
-   6 flat-coloured primitives), not downloaded from a marketplace or scanned
-   from a real building -- avoids any asset-licence ambiguity and keeps the
-   whole pipeline reproducible from source with no binary asset committed
-   beyond the small (~9 KB) generated `.glb`. A student's own free/CC0
-   asset or their own Module 3/4 model is a straightforward drop-in
-   (swap `assets/pusaka_temple.glb` and regenerate `hotspots.json` for the
-   new geometry).
-4. **The AR session itself (WebXR / Android Scene Viewer / iOS Quick Look)
-   was not tested on physical hardware** in this authoring session --
-   `verify_ar_app.py` (headless Chromium via Playwright) verifies everything
-   up to that handoff: the page loads, `<model-viewer>` parses and renders
-   the `.glb` in a real WebGL canvas, all 5 hotspots inject and respond to
-   taps with the correct bilingual text, and the "View in your space" button
-   is present. Before this module fully meets the MASTER Definition of Done,
-   open the hosted app on an actual Android phone (Chrome, triggers Scene
-   Viewer) and an iPhone (Safari, triggers Quick Look via a generated
-   `.usdz` -- see the note in `Module5_EN.tex`) and confirm the model
-   anchors to a real surface at a plausible scale. Record the device +
-   browser here.
-5. **Educational content is generic, not site-specific.** `hotspots.json`'s
-   text describes widely-documented Hindu-Buddhist candi cosmology (the
-   three-tier Bhurloka/Bhuvarloka/Svarloka structure; the finial as Mount
-   Meru) rather than claiming to describe any single named real temple --
-   deliberate, so the app cannot misrepresent a specific heritage site it
-   has never actually captured.
+3. **The AR models.** The starter showed a procedurally generated temple (`make_temple_glb.py`, 6
+   flat-coloured primitives). This repo shows **my own horse statue, scanned with Apple Object Capture from
+   my 28 photos** (`kuda.glb`, 105,665 triangles, 4.41 MB, scaled to my measured 46 cm pedestal) and a
+   second model, the **Aston Martin AMR23 by Redgrund** (Sketchfab, CC BY 4.0, `amr23.glb`, scaled to the
+   FIA 2023 tyre rule). The temple files stay in the repo and `make_temple_glb.py` still runs (T10 fixed),
+   but the app no longer offers the temple. Source, licence and checksum of every asset are in
+   `ar_app/assets/LICENSE.md`.
+4. **Real device AR session.** Tested on an **iPhone 17 Pro, iOS 27.2, Safari**: the GitHub Pages URL opens
+   Quick Look and the horse stands on the surface at its real size (see Verified). **Android (Scene Viewer /
+   WebXR) was not tested**, and the car was not tested on the phone. `verify_ar_app.py` still covers
+   everything up to the AR handoff in headless Chromium.
+5. **Educational content.** The starter's `hotspots.json` described generic candi cosmology. My hotspots
+   (`hotspots_kuda.json`, `hotspots_amr23.json`) explain **how each model was made**: the scale reference,
+   the 28 photos, where the colours come from, the side the camera never saw, and for the car the FIA
+   rules, the wheelbase check, and the licence.
 
 ## Verified
 
@@ -168,6 +188,7 @@ from the evidence first.
 | fresh clone from GitHub (commit `e0e5cce`) + new `.venv` | `pip freeze` = `requirements.txt` + `requirements-verify.txt`; `capture.py`, `make_temple_glb.py`; `tests.py` **81 ok**; `verify_ar_app.py` **17 ok**; `git status` clean afterwards; GitHub Pages serves files identical to the clone | 2026-11-04 | same Mac |
 | Real device AR session | **works**: "View in your space (AR)" on the GitHub Pages URL opens Quick Look; the scanned horse stands on the surface, textured, and looks the same size as the real 63 cm statue (judged by eye next to it, not measured in AR); Android not tested | 2026-11-03 | iPhone 17 Pro, iOS 27.2, Safari |
 | GitHub Pages (HTTPS) | served files identical to the repo; `verify_ar_app.py` against the live URL **16 ok**, no JS error | 2026-11-03 | Playwright 1.64.1, Chrome Headless Shell 156 |
+| audit, clean local clone of `58658ae` | `tests.py` **81 ok**, also under a non-UTF-8 locale; every Quick start command prints the numbers above; `verify_ar_app.py` **17 ok**; README figures rebuild byte-identical. The four `ar_app/screenshots/` were still from 3 Nov (their footer named the temple), so they were taken again; the quiz screenshot changes on every run (random target). `scan_to_glb.py` + `occlusion.py --tune` rerun: `kuda.glb` and `hotspots_kuda.json` byte-identical to the committed ones | 2026-11-04 | same Mac, Blender 5.2.2 |
 
 ### Verified by the course author (starter, as shipped)
 
