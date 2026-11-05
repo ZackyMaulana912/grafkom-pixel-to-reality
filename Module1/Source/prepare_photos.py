@@ -92,11 +92,12 @@ def read_excluded(path: str) -> dict[str, str]:
     """photos/excluded.txt: '<filename>  <reason>' per line, '#' for comments."""
     out = {}
     if os.path.exists(path):
-        for line in open(path, encoding="utf-8"):
-            line = line.strip()
-            if line and not line.startswith("#"):
-                name, _, reason = line.partition(" ")
-                out[name] = reason.strip()
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    name, _, reason = line.partition(" ")
+                    out[name] = reason.strip()
     return out
 
 
@@ -138,7 +139,8 @@ def main() -> None:
     rows, sums = [], []
     for f in files:
         name = os.path.basename(f)
-        raw = open(f, "rb").read()
+        with open(f, "rb") as fh:
+            raw = fh.read()
         digest = hashlib.sha256(raw).hexdigest()
         sums.append(f"{digest}  {name}\n")
         img = Image.open(io.BytesIO(raw))
