@@ -90,12 +90,10 @@ def main():
 
     # material: keep colour + normal map, resized; constant roughness instead of the 8K map
     mat = obj.data.materials[0]
-    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    nodes = mat.node_tree.nodes
     bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
     for n in list(nodes):
-        if n.type == "TEX_IMAGE" and "roughness" in n.image.name:
-            nodes.remove(n)
-        elif n.type == "SEPARATE_COLOR":
+        if (n.type == "TEX_IMAGE" and "roughness" in n.image.name) or n.type == "SEPARATE_COLOR":
             nodes.remove(n)
     bsdf.inputs["Roughness"].default_value = ROUGHNESS
     bsdf.inputs["Metallic"].default_value = 0.0
