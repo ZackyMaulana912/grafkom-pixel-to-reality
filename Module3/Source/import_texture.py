@@ -57,7 +57,8 @@ def main():
     ap.add_argument("--spec", default="data/mymodel_ukuran.json")
     ap.add_argument("--out", default="data/mymodel_tex.ppm")
     args = ap.parse_args()
-    spec = json.load(open(args.spec))
+    with open(args.spec, encoding="utf-8") as fh:
+        spec = json.load(fh)
     tex = build_atlas(spec)                     # photos_dir is relative to Source/
     nbytes = write_ppm(args.out, tex)
     print(f"wrote {args.out}  ({tex.shape[1]}x{tex.shape[0]}, {nbytes} bytes, "
