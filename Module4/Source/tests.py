@@ -131,7 +131,8 @@ ALLOWED_IMPORTS = {"__future__", "math", "json", "dataclasses", "os", "argparse"
 def test_stdlib_only():
     """The from-scratch files may import only the standard library and each other (K2)."""
     for name in FROM_SCRATCH:
-        tree = ast.parse(open(os.path.join(HERE, name)).read(), name)
+        with open(os.path.join(HERE, name), encoding="utf-8") as f:
+            tree = ast.parse(f.read(), name)
         found = set()
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -203,7 +204,8 @@ def test_my_path():
     dense = sample_path(cps, samples_per_segment=100)
     clearance = min(min(p[0] + 1.0, 0.6 - p[0], p[2] + 2.0, 2.0 - p[2]) for p in dense)
     check("my path keeps >= 0.2 m from the walls and the cabinet", clearance >= 0.2, True)
-    centre = json.load(open(os.path.join(HERE, "data", "my_path.json")))["centre"]
+    with open(os.path.join(HERE, "data", "my_path.json"), encoding="utf-8") as f:
+        centre = json.load(f)["centre"]
     r = [math.hypot(p[0] - centre[0], p[2] - centre[2]) for p in dense]
     print(f"     (clearance {clearance:.3f} m, distance to the statue {min(r):.3f} .. {max(r):.4f} m)")
     for t in (0.0, 0.3, 0.5, 1.0):
@@ -352,8 +354,9 @@ def test_camera_path_copies():
     b = load_path(os.path.join(HERE, "godot_project", "data", "camera_path.json"))
     check("data/ and godot_project/data/ camera_path.json control points identical", a == b, True)
     for name in ("my_path.json", "my_chain.json"):
-        same = open(os.path.join(HERE, "data", name)).read() == open(os.path.join(HERE, "godot_project", "data",
-                                                                                   name)).read()
+        with open(os.path.join(HERE, "data", name), "rb") as a, \
+                open(os.path.join(HERE, "godot_project", "data", name), "rb") as b:
+            same = a.read() == b.read()
         check(f"data/{name} and godot_project/data/{name} are the same file", same, True)
 
 
