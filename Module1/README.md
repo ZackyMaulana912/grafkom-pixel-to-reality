@@ -15,6 +15,8 @@ make data && make test && make report && make png
 
 Lalu buka `Source/report/report.html` di browser. Semua gambarnya sudah ada di dalam satu file itu.
 
+Versi yang sudah jadi juga bisa langsung dibuka di GitHub Pages: **https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module1/Source/report/report.html** (isinya sama persis dengan file di repo, dicek 4 November 2026).
+
 ## Hasil utama
 
 ### Downscale naif vs gamma-correct
