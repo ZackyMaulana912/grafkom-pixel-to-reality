@@ -209,7 +209,8 @@ def main():
     ap.add_argument("--spec", default="data/mymodel_ukuran.json")
     ap.add_argument("--out", default="data/mymodel.obj")
     args = ap.parse_args()
-    spec = json.load(open(args.spec))
+    with open(args.spec, encoding="utf-8") as fh:
+        spec = json.load(fh)
     b = Builder(spec["atlas"]["size"])
     room(b, spec)
     statue(b, spec)
