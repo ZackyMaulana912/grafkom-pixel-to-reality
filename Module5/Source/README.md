@@ -40,9 +40,10 @@ pip install -r ../requirements-verify.txt && python -m playwright install chromi
 python verify_ar_app.py http://127.0.0.1:8743   # -> ALL CHECKS PASSED (17 ok)
 ```
 
-`verify_ar_app.py` rewrites the four PNGs in `ar_app/screenshots/` every run. Three come out identical each
-time; `m5_ar_quizmode.png` does not, because the quiz picks its next target at random (`Math.random` in
-`app.js`), so `git status` shows that one file as changed after a run.
+`verify_ar_app.py` rewrites the four PNGs in `ar_app/screenshots/` every run. The quiz picks its target with
+`Math.random` in `app.js`; since 6 Nov the check replaces `Math.random` with a seeded generator inside its own
+browser page only (the app is unchanged), so all four come out identical on every run and `git status` stays
+clean (three runs compared byte for byte).
 
 The two AR models are made from files that are not in Git (the raw scan, 233 MB, and the downloaded car,
 235 MB). With the scan on disk, Blender 5.2.2 rebuilds the horse:
@@ -188,7 +189,7 @@ from the evidence first.
 | fresh clone from GitHub (commit `e0e5cce`) + new `.venv` | `pip freeze` = `requirements.txt` + `requirements-verify.txt`; `capture.py`, `make_temple_glb.py`; `tests.py` **81 ok**; `verify_ar_app.py` **17 ok**; `git status` clean afterwards; GitHub Pages serves files identical to the clone | 2026-11-04 | same Mac |
 | Real device AR session | **works**: "View in your space (AR)" on the GitHub Pages URL opens Quick Look; the scanned horse stands on the surface, textured, and looks the same size as the real 63 cm statue (judged by eye next to it, not measured in AR); Android not tested | 2026-11-03 | iPhone 17 Pro, iOS 27.2, Safari |
 | GitHub Pages (HTTPS) | served files identical to the repo; `verify_ar_app.py` against the live URL **16 ok**, no JS error | 2026-11-03 | Playwright 1.64.1, Chrome Headless Shell 156 |
-| audit, clean local clone of `58658ae` | `tests.py` **81 ok**, also under a non-UTF-8 locale; every Quick start command prints the numbers above; `verify_ar_app.py` **17 ok**; README figures rebuild byte-identical. The four `ar_app/screenshots/` were still from 3 Nov (their footer named the temple), so they were taken again; the quiz screenshot changes on every run (random target). `scan_to_glb.py` + `occlusion.py --tune` rerun: `kuda.glb` and `hotspots_kuda.json` byte-identical to the committed ones | 2026-11-04 | same Mac, Blender 5.2.2 |
+| audit, clean local clone of `58658ae` | `tests.py` **81 ok**, also under a non-UTF-8 locale; every Quick start command prints the numbers above; `verify_ar_app.py` **17 ok**; README figures rebuild byte-identical. The four `ar_app/screenshots/` were still from 3 Nov (their footer named the temple), so they were taken again; the quiz screenshot changed on every run (random target) until the check seeded `Math.random` on 6 Nov. `scan_to_glb.py` + `occlusion.py --tune` rerun: `kuda.glb` and `hotspots_kuda.json` byte-identical to the committed ones | 2026-11-04 | same Mac, Blender 5.2.2 |
 
 ### Verified by the course author (starter, as shipped)
 
