@@ -149,6 +149,11 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"])
         page = browser.new_page(viewport={"width": 390, "height": 800})
+        # the quiz picks its target with Math.random; a seeded generator (only in this test, app.js is
+        # unchanged) gives the same target, and so the same quiz screenshot, on every run
+        page.add_init_script("""
+            Math.random = (() => { let s = 12345; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+        """)
         page.on("pageerror", lambda exc: page_errors.append(str(exc)))
         page.goto(f"{BASE_URL}/index.html", wait_until="networkidle", timeout=30000)
         page.wait_for_timeout(2500)
