@@ -64,9 +64,9 @@ def fix(orig, buggy, out: str) -> None:
 
     d = np.abs(correct.astype(int) - naive.astype(int))
     print("== after fix (decode -> average -> encode) ==")
-    print(f"root cause : the 2x2 mean was taken on sRGB codes, not linear light.")
-    print(f"the fix    : one line -- srgb_to_linear() before .mean(), "
-          f"linear_to_srgb() after.")
+    print("root cause : the 2x2 mean was taken on sRGB codes, not linear light.")
+    print("the fix    : one line -- srgb_to_linear() before .mean(), "
+          "linear_to_srgb() after.")
     print(f"mean abs difference : {d.mean():.1f} code levels")
     print(f"max  abs difference : {int(d.max())} code levels")
     print(f"PSNR(naive vs linear) : {psnr(naive, correct):.1f} dB")

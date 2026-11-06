@@ -35,7 +35,7 @@ import os
 import numpy as np
 
 from ppm_io import write_ppm
-from srgb import srgb_to_linear, linear_to_srgb, to_u8
+from srgb import linear_to_srgb, to_u8
 
 
 # ---- Example E1: the 8x8 running patch -----------------------------------
