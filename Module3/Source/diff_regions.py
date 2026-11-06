@@ -12,6 +12,7 @@ Run:  python diff_regions.py --scene scenes/mymodel.json out/mymodel_raster.ppm 
 from __future__ import annotations
 
 import argparse
+import os
 
 import numpy as np
 
@@ -48,6 +49,10 @@ def main():
     ap.add_argument("b")
     ap.add_argument("--map", help="write a picture: red = edge difference, cyan = interior difference")
     args = ap.parse_args()
+    for path in (args.a, args.b):
+        if not os.path.exists(path):
+            hint = " (save it with Export PPM in the web/ viewer first)" if "_three" in path else ""
+            raise SystemExit(f"diff_regions: {path} not found{hint}")
     A, B = read_ppm(args.a).astype(int), read_ppm(args.b).astype(int)
     tid = triangle_ids(load_scene(args.scene), A.shape[1], A.shape[0])
     edge = edge_mask(tid)
