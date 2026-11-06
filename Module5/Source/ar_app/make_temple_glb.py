@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import os
-import struct
 
 import numpy as np
 import pygltflib as gltf
@@ -145,24 +144,8 @@ HOTSPOTS = [
 ]
 
 
-def build_mesh_arrays():
-    all_pos, all_norm, all_idx = [], [], []
-    primitives = []  # (index_start, index_count, color)
-    for name, spec in PARTS.items():
-        if spec["kind"] == "box":
-            pos, norm, idx = box(spec["center"], spec["half"])
-        else:
-            pos, norm, idx = pyramid(spec["center"], spec["base_half"], spec["height"], spec["sides"])
-        vert_offset = len(all_pos)
-        all_pos.append(pos)
-        all_norm.append(norm)
-        all_idx.append(idx + vert_offset)
-        primitives.append((name, len(all_idx[-1]), spec["color"], idx.max() + 1 + vert_offset - vert_offset))
-    return all_pos, all_norm, all_idx, primitives
-
-
 def write_glb(path):
-    all_pos, all_norm, all_idx, part_names = [], [], [], []
+    part_names = []
     positions_list, normals_list, indices_list, colors = [], [], [], []
     for name, spec in PARTS.items():
         if spec["kind"] == "box":

@@ -78,7 +78,7 @@ def main():
     save_ppm(os.path.join(out_dir, "novel_view_predicted.ppm"), novel_pred)
     diff = np.clip(np.abs(novel_pred - novel_target) * 4.0, 0, 1)
     save_ppm(os.path.join(out_dir, "novel_view_diff_x4.ppm"), diff)
-    print(f"wrote out/novel_view_target.ppm, out/novel_view_predicted.ppm, out/novel_view_diff_x4.ppm")
+    print("wrote out/novel_view_target.ppm, out/novel_view_predicted.ppm, out/novel_view_diff_x4.ppm")
 
     return grid, train_psnrs, novel_psnr
 
