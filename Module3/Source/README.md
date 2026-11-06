@@ -40,8 +40,8 @@ python broken_scene.py --all                               # the three fixes + d
 python bench.py                                            # frame time, raster vs ray tracer
 ```
 
-`web/mymodel_three.ppm` comes from the viewer's **Export PPM** button (camera as loaded), so `diff_regions.py`
-fails with "No such file" until that file is saved there.
+`web/mymodel_three.ppm` comes from the viewer's **Export PPM** button (camera as loaded). Until that file is
+saved there, `diff_regions.py` stops with one line that says so (since 6 Nov; before, a Python traceback).
 
 ### README pictures
 
