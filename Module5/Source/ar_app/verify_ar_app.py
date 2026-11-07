@@ -253,6 +253,23 @@ def main():
         check(f"AR scale: the car may be pinched ({scales}), the horse is fixed at 100% ({horse_scale})",
               scales == "auto" and horse_scale == "fixed")
         check("no uncaught JS errors on the page", len(page_errors) == 0)
+        check("no load-error message while every file loads",
+              page.evaluate("document.getElementById('load-error').hidden"))
+
+        # a missing file must be said on the page, not only in the console
+        for what, pattern in (("hotspot file", "**/hotspots_kuda.json"), ("model", "**/kuda.glb")):
+            broken = browser.new_page(viewport={"width": 390, "height": 800})
+            broken.route(pattern, lambda route: route.fulfill(status=404, body="not found"))
+            broken.goto(f"{BASE_URL}/index.html", wait_until="networkidle", timeout=30000)
+            try:
+                broken.wait_for_function("!document.getElementById('load-error').hidden", timeout=15000)
+            except Exception:
+                pass
+            message = broken.evaluate("document.getElementById('load-error').hidden ? ''"
+                                      " : document.getElementById('load-error').innerText")
+            check(f"a missing {what} (404) is said on the page ('{message[:60]}')",
+                  pattern.split("/")[-1] in message)
+            broken.close()
 
         browser.close()
 
