@@ -21,6 +21,7 @@
   const quizBanner = document.getElementById("quiz-banner");
   const quizTargetEl = document.getElementById("quiz-target");
   const quizScoreEl = document.getElementById("quiz-score");
+  const loadError = document.getElementById("load-error");
 
   // each model brings its own geometry, camera and hotspot file; the page shell stays the same
   const MODELS = {
@@ -50,6 +51,34 @@
   function t(hotspot, field) {
     return hotspot[`${field}_${lang}`];
   }
+
+  // a file that fails to load is said on the page, not only in the console: without this the
+  // page kept "Loading the model..." forever, or showed the model with no hotspots and no reason
+  const failed = { model: false, hotspots: false };
+
+  function renderLoadError() {
+    const { src, hotspots: file } = MODELS[model];
+    const parts = [];
+    if (failed.model) parts.push(lang === "en" ? `The model ${src} could not be loaded.` : `Model ${src} gagal dimuat.`);
+    if (failed.hotspots) {
+      parts.push(lang === "en" ? `The info points ${file} could not be loaded.` : `Titik info ${file} gagal dimuat.`);
+    }
+    if (parts.length) {
+      parts.push(lang === "en" ? "Check that the file exists and that the page is opened through a web server (http), not as a file."
+                               : "Pastikan filenya ada dan halaman ini dibuka lewat web server (http), bukan sebagai file.");
+    }
+    loadError.textContent = parts.join(" ");
+    loadError.hidden = parts.length === 0;
+  }
+
+  viewer.addEventListener("error", () => {
+    failed.model = true;
+    renderLoadError();
+  });
+  viewer.addEventListener("load", () => {
+    failed.model = false;
+    renderLoadError();
+  });
 
   // what the info panel is showing, kept so the language toggle can redraw it (T11):
   // null, { hotspot } for a normal tap, or { hotspot, wanted, correct } for a quiz answer
@@ -122,9 +151,14 @@
   function loadHotspots() {
     viewer.querySelectorAll(".hotspot").forEach((el) => el.remove());
     hotspots = [];
+    failed.hotspots = false;
+    renderLoadError();
     const wanted = model;
     fetch(MODELS[wanted].hotspots)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (wanted !== model) return;  // switched again while this file was loading
         hotspots = data.hotspots;
@@ -134,7 +168,10 @@
         pickNewQuizTarget();
       })
       .catch((err) => {
-        console.error(`Could not load ${MODELS[model].hotspots}.`, err);
+        console.error(`Could not load ${MODELS[wanted].hotspots}.`, err);
+        if (wanted !== model) return;
+        failed.hotspots = true;
+        renderLoadError();
       });
   }
 
@@ -147,6 +184,7 @@
       if (button) button.setAttribute("aria-label", t(h, "name"));
     });
     renderPanel();  // the open panel, if any, follows the new language
+    renderLoadError();
   });
 
   modelToggle.addEventListener("click", () => {
@@ -158,6 +196,7 @@
       viewer.cameraOrbit = MODELS[model].orbit;
       viewer.jumpCameraToGoal();
     }, { once: true });
+    failed.model = false;
     viewer.src = MODELS[model].src;
     viewer.alt = MODELS[model].alt;
     viewer.arScale = MODELS[model].arScale;

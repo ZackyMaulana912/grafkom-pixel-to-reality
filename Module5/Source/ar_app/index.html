@@ -45,7 +45,8 @@
         View in your space (AR)
       </button>
 
-      <!-- Hotspot buttons are injected here by app.js from assets/hotspots.json,
+      <!-- Hotspot buttons are injected here by app.js from the chosen model's hotspot file
+           (assets/hotspots_kuda.json or assets/hotspots_amr23.json),
            using model-viewer's data-position / data-normal hotspot slots. -->
     </model-viewer>
 
@@ -59,6 +60,8 @@
       <span id="quiz-prompt">Tap the part named: <strong id="quiz-target"></strong></span>
       <span id="quiz-score"></span>
     </div>
+
+    <p id="load-error" class="load-error" role="alert" hidden></p>
   </main>
 
   <footer class="footer">
