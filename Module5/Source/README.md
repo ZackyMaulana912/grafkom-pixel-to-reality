@@ -37,7 +37,7 @@ python -m http.server 8743 --bind 127.0.0.1   # serve the app (needed for the ho
 
 # optional, heavier: automated headless-browser verification (see below)
 pip install -r ../requirements-verify.txt && python -m playwright install chromium
-python verify_ar_app.py http://127.0.0.1:8743   # -> ALL CHECKS PASSED (17 ok)
+python verify_ar_app.py http://127.0.0.1:8743   # -> ALL CHECKS PASSED (20 ok)
 ```
 
 `verify_ar_app.py` rewrites the four PNGs in `ar_app/screenshots/` every run. The quiz picks its target with
@@ -190,6 +190,7 @@ from the evidence first.
 | Real device AR session | **works**: "View in your space (AR)" on the GitHub Pages URL opens Quick Look; the scanned horse stands on the surface, textured, and looks the same size as the real 63 cm statue (judged by eye next to it, not measured in AR); Android not tested | 2026-11-03 | iPhone 17 Pro, iOS 27.2, Safari |
 | GitHub Pages (HTTPS) | served files identical to the repo; `verify_ar_app.py` against the live URL **16 ok**, no JS error | 2026-11-03 | Playwright 1.64.1, Chrome Headless Shell 156 |
 | audit, clean local clone of `58658ae` | `tests.py` **81 ok**, also under a non-UTF-8 locale; every Quick start command prints the numbers above; `verify_ar_app.py` **17 ok**; README figures rebuild byte-identical. The four `ar_app/screenshots/` were still from 3 Nov (their footer named the temple), so they were taken again; the quiz screenshot changed on every run (random target) until the check seeded `Math.random` on 6 Nov. `scan_to_glb.py` + `occlusion.py --tune` rerun: `kuda.glb` and `hotspots_kuda.json` byte-identical to the committed ones | 2026-11-04 | same Mac, Blender 5.2.2 |
+| a file that fails to load (8 Nov) | before: a missing `kuda.glb` left "Loading the model..." on screen forever, and a missing `hotspots_kuda.json` showed the horse with no hotspots and no reason (both only in the console). Now a red message names the file and says what to check, in the chosen language; `verify_ar_app.py` **20 ok** with 3 new checks that serve each file as 404 (they fail on the old `app.js`); with every file present nothing changes, the four screenshots stay byte-identical | 2026-11-08 | Playwright 1.64.1, Chrome Headless Shell 156 |
 
 ### Verified by the course author (starter, as shipped)
 
