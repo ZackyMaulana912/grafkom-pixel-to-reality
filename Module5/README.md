@@ -30,7 +30,7 @@ python tests.py            # ALL CHECKS PASSED (81 ok)
 cd ar_app && python make_temple_glb.py && python -m http.server 8743 --bind 127.0.0.1
 ```
 
-Lalu buka http://127.0.0.1:8743/index.html. Untuk cek browser otomatis, pasang `requirements-verify.txt`, jalankan `python -m playwright install chromium`, lalu `python verify_ar_app.py http://127.0.0.1:8743` (17 ok).
+Lalu buka http://127.0.0.1:8743/index.html. Untuk cek browser otomatis, pasang `requirements-verify.txt`, jalankan `python -m playwright install chromium`, lalu `python verify_ar_app.py http://127.0.0.1:8743` (20 ok).
 
 ## Hasil utama
 
