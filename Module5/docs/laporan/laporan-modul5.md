@@ -194,7 +194,9 @@ Dalam proses ini saya juga menemukan dan memperbaiki tiga kesalahan alat uji say
 - **T10:** puncak candi tembus pandang. 6 dari 6 segitiga stupa menghadap ke dalam. Ada screenshot sebelum dan sesudah.
 - **T11:** tombol bahasa tidak mengganti panel yang sedang terbuka. Check baru yang tidak mengklik ulang hotspot gagal di `app.js` starter dan lolos setelah diperbaiki.
 
-`verify_ar_app.py`: **17 ok**, di lokal, di clone bersih, maupun langsung ke GitHub Pages.
+**Bug starter ketiga, ditemukan saat audit 8 November:** kalau file model atau file hotspot gagal dimuat, app diam saja. Errornya hanya tercatat di console. Model yang hilang membuat layar tertahan di "Loading the model…" selamanya. File hotspot yang hilang membuat patung tampil tanpa titik info. `app.js` starter sudah begitu sejak awal. Sekarang pesan merah di layar menyebut file mana yang gagal dan apa yang perlu dicek. Tiga check baru menyajikan file itu sebagai 404, dan check ini gagal pada `app.js` lama.
+
+`verify_ar_app.py`: **20 ok** sejak 8 November (sebelumnya 17 ok), di lokal, di clone bersih dari GitHub, maupun langsung ke GitHub Pages.
 
 **Hosting dan perangkat (Lab 3 no 3).** GitHub Pages dari branch `main`: https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html. File yang dilayani identik dengan repo. Uji di iPhone 17 Pro (iOS 27.2, Safari, Quick Look): kuda menempel di permukaan, bertekstur, dan ukurannya terlihat sama dengan patung asli yang berdiri di sampingnya. Ukuran ini dinilai dengan mata, tidak diukur dengan meteran di AR.
 
@@ -222,6 +224,8 @@ Transkrip lengkap ada di `docs/catatan/fase6-reproduksi.md`. Dari clone bersih d
 - `tests.py` **81 ok**;
 - `fit_nerf_toy.py` 20.32 / 14.85 dB, `nerf_bug.py` +2.66 dB, `my_ray.py` sama sampai 5 desimal;
 - `verify_ar_app.py` **17 ok**, dengan server di `127.0.0.1`.
+
+Diuji ulang pada 8 November dari clone GitHub `d60cd71`, setelah semua perbaikan audit, juga dengan `.venv` baru: `tests.py` **81 ok**, angka script sama, `verify_ar_app.py` **20 ok** di lokal dan langsung ke GitHub Pages, dan `git status` tetap bersih.
 
 Setelah dua file dosen disimpan dalam versi hasil generate Mac, `git status` di clone tetap bersih. `kuda.glb` dan `amr23.glb` adalah hasil jadi dari sumber besar yang tidak di-commit. Script dan checksum sumbernya ada di repo, dan dari sumber yang sama hasilnya identik byte per byte.
 
