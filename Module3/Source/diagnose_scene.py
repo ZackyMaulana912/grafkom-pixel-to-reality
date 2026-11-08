@@ -53,7 +53,7 @@ def save(name, img):
     write_ppm(os.path.join(OUT, name), img)
 
 
-def report(name, bad, normal, extra=""):
+def report(bad, normal, extra=""):
     p = psnr(bad, normal)
     print(f"  vs normal render: SSIM {ssim(bad, normal):.3f}   PSNR "
           f"{'inf' if np.isinf(p) else f'{p:.1f}'} dB   pixels differing > 60 codes: "
@@ -91,7 +91,7 @@ def inside_out(mesh, tex):
         print(f"     fragments {f}, pixels covered {int(np.isfinite(d).sum())} (normal {int(np.isfinite(dn).sum())})"
               f", mean NDC depth {d[fin].mean():.4f} (normal {dn[fin].mean():.4f})"
               f", pixels FARTHER than normal: {int((d[fin] > dn[fin] + 1e-9).sum())}")
-        report("inside-out", img, normal)
+        report(img, normal)
 
 
 def zfight():
@@ -123,7 +123,7 @@ def zfight():
     blue = (np.abs(bad.astype(int) - np.array((60, 120, 210))).max(2) < 80) & fin
     blue_n = (np.abs(normal.astype(int) - np.array((60, 120, 210))).max(2) < 80) & np.isfinite(dn)
     print(f"  pixels showing the blue quad: {int(blue.sum())} (float-depth render: {int(blue_n.sum())})")
-    report("zfight", bad, normal, "   (normal = the same near/far with a float depth buffer)")
+    report(bad, normal, "   (normal = the same near/far with a float depth buffer)")
 
 
 def stretched(mesh, tex):
@@ -149,7 +149,7 @@ def stretched(mesh, tex):
         ys, xs = np.nonzero(f)
         print(f"  silhouette bbox ({name}): x {xs.min()}..{xs.max()}  y {ys.min()}..{ys.max()}"
               f"   ({xs.max() - xs.min() + 1} x {ys.max() - ys.min() + 1} px)")
-    report("stretched", bad, normal)
+    report(bad, normal)
 
 
 def main():
