@@ -58,3 +58,19 @@ Server sudah dimatikan dan folder clone sudah dihapus.
 **GitHub Pages:** `index.html`, `app.js`, `kuda.glb`, `amr23.glb`, `hotspots_kuda.json`, dan `hotspots_amr23.json` yang dilayani di https://zackymaulana912.github.io/grafkom-pixel-to-reality/Module5/Source/ar_app/index.html identik dengan isi clone (sha256 sama). `verify_ar_app.py` yang dijalankan langsung ke URL itu juga lolos 17 ok, tanpa error JavaScript (Fase 5).
 
 **Uji perangkat:** iPhone 17 Pro, iOS 27.2, Safari, Quick Look. Patung kuda menempel di permukaan, dan ukurannya terlihat sama dengan patung asli (`fase5-ar-app.md` bagian 12). Mobil F1 belum saya uji di HP.
+
+## 3. Clone dari GitHub setelah audit, 8 November 2026
+
+Sejak bagian 2, ada 33 commit audit. Karena itu repo saya clone lagi dari GitHub pada commit `d60cd71`, dengan `.venv` baru:
+
+| Langkah | Hasil |
+|---|---|
+| `pip install -r requirements-verify.txt` (termasuk `requirements.txt`) | `pip freeze` sama persis dengan isi kedua file |
+| `ray_generator.py`, `volume_render.py`, `my_ray.py`, `capture.py`, `fit_nerf_toy.py`, `nerf_bug.py` (biasa, `--diagnose`, `--sweep`), `pitfall_fix.py` | semuanya jalan, angkanya sama persis dengan run audit 4 November (20.32 / 14.85 dB, +2.66 dB, (-0.17634, -0.34145, -0.92321)) |
+| `tests.py` | **ALL CHECKS PASSED (81 ok)** |
+| `figures.py`, `make_temple_glb.py` | gambar dan candi identik dengan repo |
+| `verify_ar_app.py` ke server `127.0.0.1:8751` | **ALL CHECKS PASSED (20 ok)** |
+| `verify_ar_app.py` langsung ke GitHub Pages | **ALL CHECKS PASSED (20 ok)** |
+| `git status` setelah semua langkah | **bersih**, termasuk keempat screenshot |
+
+`index.html`, `app.js`, `style.css`, kedua GLB, dan kedua file hotspot yang dilayani GitHub Pages identik dengan clone. Server sudah dimatikan.
