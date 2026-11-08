@@ -131,6 +131,7 @@ Added in this repo (18 checks in total, the 10 above unchanged):
 | `make report` after adding `ssim_compare.py` | new `report/ssim_windowed.md` + one figure (`report.html` now 19 images); every other tracked `report/` file unchanged | 2026-11-02 | same |
 | clean local clone (commit `8c436ed`, before the push) + new `.venv` | `make data`, `make test` (**18/18**), `make report`; `git status` clean, so the SSIM table and figure rebuild byte-identical | 2026-11-02 | same |
 | audit, clean local clone of `58658ae` | `make data`, `make test` (**18/18**, also under a non-UTF-8 locale), `make report`, `make png`: `git status` clean; every number in `../README.md` matches what the scripts print (20.24 codes and 21.48 dB come from `gamma_diagnosis.py` / `gamma_fix_check.py`); `report.html` on GitHub Pages is identical to the repo. After closing the files that `report.py` and `prepare_photos.py` left open, `make report` and `prepare_photos.py` (on my 28 originals) give byte-identical files | 2026-11-04 | same Mac |
+| fresh clone from GitHub after the audit (commit `d60cd71`) + new `.venv` | numpy 2.4.6 and pillow 13.0.0 exactly; `make data`, `make test` (**18/18**), `make report`, `make png`; `git status` clean; `report.html` on GitHub Pages identical to the clone | 2026-11-08 | same Mac |
 
 Not yet verified: Windows or Linux.
 
