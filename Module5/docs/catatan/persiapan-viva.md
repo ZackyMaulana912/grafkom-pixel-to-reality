@@ -53,6 +53,9 @@ Marker memberi posisi, arah, dan skala dari pola cetak yang ukurannya diketahui.
 **Kenapa memilih Object Capture, dan apa kelemahannya?**
 Object Capture ada di macOS, tanpa GPU CUDA, dan hasilnya jauh lebih detail dari model pipih Modul 3. Kelemahannya: hasil dari JPG tidak punya ukuran, sehingga harus dikalibrasi dengan tangan. Bawah alas juga tidak pernah terfoto. Dan apakah scan ulang menghasilkan file yang sama belum saya uji.
 
+**Kenapa app menampilkan pesan merah kalau file gagal dimuat?**
+Starter hanya menulis error ke console, yang tidak dilihat pengguna HP. Model yang hilang membuat layar tertahan di "Loading the model…" selamanya, dan file hotspot yang hilang membuat patung tampil tanpa titik info tanpa penjelasan apa pun. Pesan merah menyebut file mana yang gagal dan apa yang perlu dicek, dalam bahasa yang sedang dipilih. `verify_ar_app.py` membuktikannya dengan menyajikan file itu sebagai 404 (20 ok).
+
 **Apa yang belum diuji?**
 - Android (Scene Viewer);
 - ukuran AR dengan meteran (selama ini hanya dengan mata);
